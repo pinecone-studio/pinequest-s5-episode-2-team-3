@@ -57,7 +57,7 @@ function stageSection(): string {
     <p class="stage-chip"><i aria-hidden="true"></i>${escape(deviceSummary())}</p>
     <h1 id="stage-title">${greeting()}</h1>
     <p class="stage-sub">Өнөөдөр <b>${number(drink)}</b> / ${number(state.goal)} мл уусан · <span class="${tone}">${tone === 'over' ? '! ' : ''}${text}</span></p>
-    <p class="stage-sub" data-device-note ${devices.cache.selectedId ? '' : 'hidden'}>Савнаас уусныг автоматаар бүртгэнэ. Доорх товчоор өөр аяга, савнаас уусан усаа нэмнэ.</p>
+    <p class="stage-sub" data-device-note ${devices.cache.selectedId ? '' : 'hidden'}>Суурин дээрх савнаас уусныг суурь өөрөө тоолж бүртгэнэ; асгасан бол бүртгэлээс «Асгасан» болгоно. Доорх товчоор өөр аяга, савнаас уусан усаа нэмнэ.</p>
     <div class="drink-chips" role="group" aria-label="Уусан ус нэмэх">${[150, 250, 500].map(ml => `<button type="button" class="drink-chip" data-drink="${ml}"><span aria-hidden="true">+</span>${ml} мл</button>`).join('')}</div>
     <p class="undo-line" id="undo-line" role="status" ${undoId ? '' : 'hidden'}>Нэмлээ <button type="button" class="text-button" id="undo">Буцаах</button></p>
     ${bottleSection(state.events)}
