@@ -1,4 +1,5 @@
 import { load as readState, save, saveMessage, onExternalChange } from './storage';
+import { bindSyncStatus } from './components/SyncStatus';
 import { TYPES, defaults, isEntryType, type AppState, type WaterEntry } from './data';
 import { number } from './format';
 import { EntryPage } from './components/EntryPage';
@@ -34,6 +35,7 @@ function render(): void {
   document.title = 'Ус бүртгэх · Дусал';
   app.innerHTML = EntryPage(state.events, storageError);
   bind();
+  bindSyncStatus();
 }
 
 function changed(message: string, undo?: () => void) { render(); notify(message, undo); }

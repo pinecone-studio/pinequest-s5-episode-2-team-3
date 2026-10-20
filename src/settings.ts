@@ -1,3 +1,4 @@
+import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './shell.css';
 import './settings.css';
@@ -91,6 +92,7 @@ function render(): void {
         <div class="settings-body">
           <div class="settings-head"><p class="panel-label">Тохиргоо</p><h1>Тохиргоо ба нөөц</h1></div>
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+          ${SyncStatus()}
           ${goalSection()}
           ${backupSection()}
         </div>
@@ -99,6 +101,7 @@ function render(): void {
     </main>
     ${Toast()}`;
   bind();
+  bindSyncStatus();
 }
 
 async function reload(): Promise<void> {

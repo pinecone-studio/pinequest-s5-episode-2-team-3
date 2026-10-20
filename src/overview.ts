@@ -1,3 +1,4 @@
+import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './shell.css';
 import './overview.css';
@@ -372,6 +373,7 @@ function render() {
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${dropIcon}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+      ${SyncStatus()}
       <div class="app-body">${stageSection()}<aside class="side">${planSection(readProfile())}${metricsSection()}</aside></div>
     </div>
     <div class="glass-card">${weekSection()}</div>
@@ -382,6 +384,7 @@ function render() {
   bindPlan();
   bindChart();
   bindBottle(render);
+  bindSyncStatus();
 }
 
 onExternalChange(async () => { await reload(); render(); });

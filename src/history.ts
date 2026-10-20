@@ -1,4 +1,5 @@
 import { load as readState, save, saveMessage, onExternalChange } from './storage';
+import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './shell.css';
 import './history.css';
@@ -204,6 +205,7 @@ function render() {
             <button type="button" class="dark-button" id="export-csv">CSV татах</button>
           </div>
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+          ${SyncStatus()}
           ${filters()}
           <p class="history-summary" id="summary" aria-live="polite"></p>
           <div id="results"></div>
@@ -228,6 +230,7 @@ function render() {
     if (trigger && event.key === 'ArrowDown') { event.preventDefault(); toggleTypeMenu(trigger); }
   };
   renderResults();
+  bindSyncStatus();
 }
 
 function toggleTypeMenu(trigger: HTMLButtonElement) {
