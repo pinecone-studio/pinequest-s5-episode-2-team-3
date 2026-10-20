@@ -1,0 +1,36 @@
+/* «Ус бүртгэх» on the glass shell (shell.css): white list card inside the shell, home-style chips. */
+/* --muted-2 is 4.45:1 on white; darken it here so small muted text passes 4.5:1. */
+.entries-page { --muted-2: #5f6877; }
+.entries-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 26px; }
+.entries-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; }
+.entries-head .panel-label { margin-bottom: 6px; }
+.entries-head h1 { font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-spacing: -1px; color: var(--ink-2); }
+
+.entries-page .quick-add { gap: 10px; padding: 0; border: 0; }
+.entries-page .quick-add > span { margin-right: 4px; font-size: 14px; color: var(--muted-2); }
+.entries-page .quick-add button { display: inline-flex; align-items: center; gap: 4px; min-height: 48px; padding: 0 20px; border: 1px solid rgba(20, 32, 52, .08); border-radius: 999px; background: rgba(255, 255, 255, .85); color: var(--ink-2); font-size: 16px; font-weight: 600; box-shadow: 0 2px 10px rgba(20, 32, 52, .06); }
+.entries-page .quick-add button span { color: #3b7ff0; }
+.entries-page .quick-add button:hover { background: #fff; border-color: rgba(20, 32, 52, .14); }
+
+.entries-page .entries { margin: 0; padding: 4px 20px 6px; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); }
+.entries-page .section-heading { margin: 0; padding: 16px 0 12px; border-bottom: 1px solid var(--hair); }
+.entries-page .section-heading h2 { font-size: 17px; color: var(--ink-2); }
+.entries-page .section-heading > span { font-size: 13px; color: var(--muted-2); }
+.entries-page .entry-row { border-bottom: 1px solid var(--hair); color: var(--ink-2); }
+.entries-page .entry-row:last-child { border-bottom: 0; }
+.entries-page .entry-row time, .entries-page .entry-row small, .entries-page .spill .entry-type { color: var(--muted-2); }
+.entries-page .entry-actions .text-button.subdued { color: var(--muted-2); }
+.entries-footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px 6px 30px; margin: 0; border: 0; font-size: 14px; color: var(--muted-2); }
+
+@media (max-width: 760px) {
+  .entries-body { padding: 18px 14px; gap: 14px; }
+  .entries-page .quick-add > span { width: 100%; }
+  .entries-page .quick-add button { flex: 1; justify-content: center; padding: 0 8px; }
+  .entries-page .entries { padding: 4px 16px 6px; }
+  .entries-page .entry-actions .text-button { border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; }
+  /* style.css pins this button to the screen bottom on phones, but the shell's backdrop-filter
+     turns position: fixed into "fixed to the card", so show it full width under the title instead. */
+  .entries-head > div { width: 100%; }
+  .entries-page #add-entry { position: static; width: 100%; min-height: 52px; box-shadow: 0 6px 16px rgba(18, 22, 30, .25); }
+  .entries-footer { flex-direction: column; gap: 6px; }
+}

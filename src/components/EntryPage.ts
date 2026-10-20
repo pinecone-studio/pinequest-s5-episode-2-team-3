@@ -1,5 +1,5 @@
-import type { WaterEntry } from '../data';
-import { escape } from '../format';
+import { dayKey, type WaterEntry } from '../data';
+import { dateLabel, escape } from '../format';
 import { icon } from './Icon';
 import { siteNav } from '../nav';
 import { EntryList } from './EntryList';
@@ -8,31 +8,32 @@ import { Toast } from './Toast';
 export function EntryPage(events: readonly WaterEntry[], storageError: string): string {
   return `
     <a class="skip-link" href="#main">Агуулга руу очих</a>
-    <header class="site-header">
-      <div class="header-inner">
-        <a class="brand" href="/" aria-label="Дусал нүүр">
-          ${icon('drop')}Дусал<span>/ усны бүртгэл</span>
-        </a>
-        ${siteNav()}
-      </div>
-    </header>
-    <main id="main" tabindex="-1">
-      <div class="page-heading">
-        <div><p class="page-kicker">УСНЫ ХЭРЭГЛЭЭ</p><h1>Ус бүртгэх</h1></div>
-        <button class="primary-button" id="add-entry">${icon('plus')} Бүртгэх</button>
-      </div>
-      <p id="storage-error" class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-      <div class="quick-add">
-        <span>Хурдан нэмэх</span>
-        ${[150, 250, 500].map(amount => `<button data-quick="${amount}">+${amount} мл</button>`).join('')}
-      </div>
-      <section class="entries" aria-labelledby="entries-title">
-        <div class="section-heading">
-          <h2 id="entries-title">Бүртгэлүүд</h2><span>${events.length} бүртгэл</span>
+    <main id="main" class="home entries-page" tabindex="-1">
+      <div class="app-shell">
+        <header class="app-top">
+          <a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${icon('drop')}</span>Дусал</a>
+          ${siteNav()}
+          <span class="app-date">${dateLabel(dayKey())}</span>
+        </header>
+        <div class="entries-body">
+          <div class="entries-head">
+            <div><p class="panel-label">Усны хэрэглээ</p><h1>Ус бүртгэх</h1></div>
+            <button class="dark-button" id="add-entry">${icon('plus')} Бүртгэх</button>
+          </div>
+          <p id="storage-error" class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+          <div class="quick-add" role="group" aria-labelledby="quick-add-label">
+            <span id="quick-add-label">Хурдан нэмэх</span>
+            ${[150, 250, 500].map(amount => `<button data-quick="${amount}"><span aria-hidden="true">+</span>${amount} мл</button>`).join('')}
+          </div>
+          <section class="entries" aria-labelledby="entries-title">
+            <div class="section-heading">
+              <h2 id="entries-title">Бүртгэлүүд</h2><span>${events.length} бүртгэл</span>
+            </div>
+            ${EntryList(events)}
+          </section>
         </div>
-        ${EntryList(events)}
-      </section>
-      <footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
+      </div>
+      <footer class="entries-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
     </main>
     <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
     ${Toast()}
