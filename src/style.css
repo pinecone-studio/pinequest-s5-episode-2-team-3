@@ -141,3 +141,14 @@ dialog form > label:not(:first-child) { margin-top: 20px; }
   .toast { bottom: calc(88px + env(safe-area-inset-bottom)); font-size: 14px; gap: 16px; padding: 10px 14px; }
   .toast button { min-height: 44px; font-size: 14px; }
 }
+/* Three nav links fit beside the brand on phones: tighter links, and below 420px only the
+   brand mark shows (its aria-label still names it). [href]/a.brand outrank the glass shell. */
+@media (max-width: 560px) {
+  .app-top .site-nav a[href] { padding: 8px 10px; font-size: 15px; }
+}
+@media (max-width: 420px) {
+  .app-top a.brand { gap: 0; font-size: 0; }
+}
+@media (max-width: 360px) {
+  .app-top .site-nav a[href] { padding: 8px 7px; }
+}
