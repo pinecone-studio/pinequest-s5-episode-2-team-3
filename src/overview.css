@@ -37,6 +37,8 @@
 .plan-amount > span { font-size: 20px; color: var(--muted-2); }
 .plan-amount .step { width: 48px; height: 48px; border-radius: 50%; border: 1px solid #dde3ec; background: #fff; color: var(--ink-2); font-size: 24px; line-height: 1; }
 .plan-kind { margin-top: 10px; font-size: 16px; color: var(--ink-2); }
+.plan-vs { margin-top: 4px; font-size: 15px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.plan-vs.same { color: #2f6e4b; }
 .plan-how { margin-top: 4px; font-size: 15px; color: var(--muted-2); }
 .plan-warning { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #fbeee9; color: #914530; font-size: 15px; }
 .plan-save { width: 100%; margin-top: 14px; min-height: 54px; border: 0; border-radius: 14px; font-size: 17px; color: #fff; background: linear-gradient(180deg, #3a4250, #12161e); box-shadow: 0 6px 16px rgba(18, 22, 30, .25); }
