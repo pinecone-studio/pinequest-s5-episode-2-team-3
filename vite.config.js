@@ -7,6 +7,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
+        history: resolve(import.meta.dirname, 'history.html'),
         overview: resolve(import.meta.dirname, 'overview.html'),
       },
     },
