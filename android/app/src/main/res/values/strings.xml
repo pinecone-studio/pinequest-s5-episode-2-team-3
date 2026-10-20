@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Дусал</string>
+    <string name="title_activity_main">Дусал</string>
+    <string name="package_name">mn.pinecone.dusal</string>
+    <string name="custom_url_scheme">mn.pinecone.dusal</string>
+</resources>
