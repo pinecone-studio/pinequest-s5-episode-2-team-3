@@ -3,7 +3,7 @@ import './overview.css';
 import './pwa';
 import { STORAGE_KEY, dayKey, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage } from './storage';
-import { BOTTLE_KEY, bottleSection, bindBottle } from './bottle';
+import { BOTTLE_KEY, bottleSection, bottleStatus, bindBottle } from './bottle';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
@@ -39,17 +39,40 @@ function status(drink: number): { text: string; tone: 'ok' | 'short' | 'over' } 
   return diff >= 0 ? { text: `Хязгаар хүртэл ${number(diff)} мл`, tone: 'short' } : { text: `Хязгаараас ${number(-diff)} мл хэтэрсэн`, tone: 'over' };
 }
 
-function todaySection(): string {
+function greeting(): string {
+  const h = new Date().getHours();
+  return h >= 5 && h < 11 ? 'Өглөөний мэнд!' : h >= 11 && h < 18 ? 'Өдрийн мэнд!' : 'Оройн мэнд!';
+}
+
+// Centre of the page: greeting, the bottle on its base, and the quick drink chips.
+function stageSection(): string {
   const drink = drankOn(state.events, today);
-  const percent = Math.min(100, Math.round((drink / state.goal) * 100));
   const { text, tone } = status(drink);
-  return `<section class="today" aria-labelledby="today-title">
-    <h2 id="today-title" class="today-label">Өнөөдөр уусан</h2>
-    <p class="today-total"><strong>${number(drink)}</strong> / ${number(state.goal)} мл</p>
-    <div class="progress ${tone}" role="progressbar" aria-label="Өнөөдрийн явц" aria-valuemin="0" aria-valuemax="${state.goal}" aria-valuenow="${Math.min(drink, state.goal)}"><span style="width:${percent}%"></span></div>
-    <p class="summary-status ${tone}">${tone === 'over' ? '<b aria-hidden="true">!</b>' : ''}${text}</p>
-    <div class="drink-buttons" role="group" aria-label="Уусан ус нэмэх">${[150, 250, 500].map(ml => `<button type="button" class="drink-button" data-drink="${ml}">+${ml} мл</button>`).join('')}</div>
+  return `<section class="stage" aria-labelledby="stage-title">
+    <p class="stage-chip"><i aria-hidden="true"></i>Гараар бүртгэж байна</p>
+    <h1 id="stage-title">${greeting()}</h1>
+    <p class="stage-sub">Өнөөдөр <b>${number(drink)}</b> / ${number(state.goal)} мл уусан · <span class="${tone}">${tone === 'over' ? '! ' : ''}${text}</span></p>
+    ${bottleSection(state.events)}
+    <div class="drink-chips" role="group" aria-label="Уусан ус нэмэх">${[150, 250, 500].map(ml => `<button type="button" class="drink-chip" data-drink="${ml}"><span aria-hidden="true">+</span>${ml} мл</button>`).join('')}</div>
     <p class="undo-line" id="undo-line" role="status" ${undoId ? '' : 'hidden'}>Нэмлээ <button type="button" class="text-button" id="undo">Буцаах</button></p>
+  </section>`;
+}
+
+// Four vertical bars summarising today, in the side panel.
+function metricsSection(): string {
+  const drink = drankOn(state.events, today);
+  const bottle = bottleStatus(state.events);
+  const week = Array.from({ length: 7 }, (_, i) => drankOn(state.events, shiftDay(today, -i))).reduce((a, b) => a + b, 0) / 7;
+  const pct = (n: number) => Math.max(4, Math.min(100, Math.round(n * 100)));
+  const bars = [
+    { name: 'Уусан', value: `${Math.round((drink / state.goal) * 100)}%`, h: pct(drink / state.goal), cls: 'b-drink' },
+    { name: 'Савандаа', value: `${number(bottle.left)} мл`, h: pct(bottle.frac), cls: 'b-bottle' },
+    { name: 'Үлдсэн', value: `${number(Math.max(0, state.goal - drink))} мл`, h: pct(Math.max(0, state.goal - drink) / state.goal), cls: 'b-left' },
+    { name: '7 хоног', value: `${number(Math.round(week))} мл`, h: pct(week / state.goal), cls: 'b-week' },
+  ];
+  return `<section class="metrics" aria-labelledby="metrics-title">
+    <h2 id="metrics-title" class="panel-label">Өнөөдөр</h2>
+    <div class="bars">${bars.map(b => `<div class="bar-col"><span class="bar-name">${b.name}</span><div class="bar-track"><i class="${b.cls}" style="height:${b.h}%"></i></div><span class="bar-val">${b.value}</span></div>`).join('')}</div>
   </section>`;
 }
 
@@ -306,7 +329,15 @@ function bindChart() {
 }
 
 function render() {
-  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Дусал нүүр">${dropIcon}Дусал</a>${siteNav('home')}</div></header><main id="main" tabindex="-1"><p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p><div class="home-grid"><div class="home-left">${bottleSection(state.events)}${todaySection()}</div>${planSection(readProfile())}</div>${weekSection()}<footer><span>Дусал</span><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Нөөц ба тохиргоо</a></p></footer></main>`;
+  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home" tabindex="-1">
+    <div class="app-shell">
+      <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${dropIcon}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
+      <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+      <div class="app-body"><aside class="side">${planSection(readProfile())}${metricsSection()}</aside>${stageSection()}</div>
+    </div>
+    <div class="glass-card">${weekSection()}</div>
+    <footer class="home-footer"><span>Дусал</span><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Нөөц ба тохиргоо</a></p></footer>
+  </main>`;
   document.querySelectorAll<HTMLButtonElement>('[data-drink]').forEach(b => b.addEventListener('click', () => addDrink(Number(b.dataset.drink))));
   document.querySelector('#undo')?.addEventListener('click', undo);
   bindPlan();
