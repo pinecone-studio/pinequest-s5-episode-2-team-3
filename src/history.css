@@ -1,3 +1,7 @@
+.history-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 16px; align-items: end; padding-bottom: 28px; margin-bottom: 28px; border-bottom: 1px solid var(--line); }
+.history-filters :is(input, select) { height: 44px; }
+.history-filters .text-button { min-height: 44px; }
+
 .day-group { margin-top: 28px; }
 .day-group:first-child { margin-top: 0; }
 .day-group h2 { font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
@@ -9,6 +13,10 @@
 
 @media (max-width: 760px) {
   main { padding-bottom: 30px; }
+  .history-filters { grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+  .history-filters > div:nth-child(3) { grid-column: 1 / -1; }
+  .history-filters :is(input, select) { height: 48px; }
+  .history-filters .text-button { grid-column: 1 / -1; justify-self: start; }
   .history-row { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; font-size: 15px; }
   .history-row > strong { font-size: 19px; }
 }
