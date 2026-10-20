@@ -113,7 +113,7 @@ export function bottleSection(events: readonly WaterEntry[]): string {
       </svg>
     </div>
     <div class="bottle-meta">
-      <span class="meta-pill"><b>${left === null ? '?' : number(left)}</b> / ${capacity ? number(capacity) : '?'} мл · ${measured ? (devices.online ? 'хэмжилт' : 'сүүлчийн хэмжилт') : 'тооцоолсон'}</span>
+      <span class="meta-pill"><b>${left === null ? '?' : number(left)}</b> / ${capacity > 1 ? number(capacity) : '?'} мл · ${measured ? (devices.online ? 'хэмжилт' : 'сүүлчийн хэмжилт') : 'тооцоолсон'}</span>
       ${measured ? '' : `
       <label class="visually-hidden" for="bottle-capacity">Савны багтаамж</label>
       <select id="bottle-capacity" class="meta-select">${CAPACITIES.map(c => `<option value="${c}" ${c === bottle.capacity ? 'selected' : ''}>${number(c)} мл сав</option>`).join('')}</select>
