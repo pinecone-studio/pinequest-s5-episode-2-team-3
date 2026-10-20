@@ -3,24 +3,82 @@ import './history.css';
 import { STORAGE_KEY, TYPES, defaults, dayKey, isEntryType, sortedEvents, validateState, type AppState, type EntryType, type WaterEntry } from './data';
 import { dateLabel, escape, number, time } from './format';
 import { icon } from './components/Icon';
+import { openEntryDialog } from './components/EntryDialog';
+import { Toast, notify } from './components/Toast';
 import { downloadCsv, entriesCsv } from './csv';
 
 interface Filter { from: string; to: string; type: EntryType | 'all' }
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let state: AppState = defaults();
+let savedRaw: string | null = null;
 let storageError = '';
+let corruptStorage = false;
 let filter: Filter = { from: '', to: '', type: 'all' };
 
 function load() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    state = raw ? validateState(JSON.parse(raw)) : defaults();
+    savedRaw = localStorage.getItem(STORAGE_KEY);
+    state = savedRaw ? validateState(JSON.parse(savedRaw)) : defaults();
     storageError = '';
+    corruptStorage = false;
   } catch {
     state = defaults();
     storageError = 'Хадгалсан өгөгдлийг нээж чадсангүй. Түүх харуулах боломжгүй байна.';
+    corruptStorage = true;
   }
+}
+
+// Same write guard as app.ts: never overwrite unreadable data or a newer save from another tab.
+function commit(change: (next: AppState) => void): boolean {
+  if (corruptStorage) { notify('Хадгалсан өгөгдөл уншигдахгүй байна. Өөрчлөлт оруулаагүй.'); return false; }
+  try {
+    if (localStorage.getItem(STORAGE_KEY) !== savedRaw) {
+      load(); render(); notify('Өөр цонхонд мэдээлэл өөрчлөгдсөн тул шинэчиллээ. Үйлдлээ дахин хийнэ үү.');
+      return false;
+    }
+    const next = structuredClone(state);
+    change(next);
+    const valid = validateState(next);
+    const raw = JSON.stringify(valid);
+    localStorage.setItem(STORAGE_KEY, raw);
+    state = valid;
+    savedRaw = raw;
+    return true;
+  } catch {
+    const dialogError = document.querySelector<HTMLElement>('#dialog-error');
+    if (dialogError) {
+      dialogError.textContent = 'Өөрчлөлтийг хадгалж чадсангүй. Браузерын хадгалах эрх, сул зайг шалгаад дахин оролдоно уу.';
+      dialogError.hidden = false;
+    }
+    notify('Хадгалалт амжилтгүй. Өөрчлөлт ороогүй.');
+    return false;
+  }
+}
+
+function changed(message: string, undo?: () => void) { renderResults(); notify(message, undo); }
+
+function openEdit(id: string | undefined) {
+  const entry = state.events.find(item => item.id === id);
+  if (!entry) return;
+  const previous = structuredClone(entry);
+  openEntryDialog({
+    entry,
+    onSave(item) {
+      if (!commit(next => { next.events[next.events.findIndex(row => row.id === item.id)] = item; })) return false;
+      changed('Бүртгэлийг шинэчиллээ.', () => {
+        if (commit(next => { next.events = next.events.filter(row => row.id !== item.id).concat(previous); })) changed('Үйлдлийг буцаалаа.');
+      });
+      return true;
+    },
+    onDelete() {
+      if (!commit(next => { next.events = next.events.filter(row => row.id !== entry.id); })) return false;
+      changed('Бүртгэлийг устгалаа.', () => {
+        if (commit(next => next.events.push(previous))) changed('Бүртгэлийг сэргээв.');
+      });
+      return true;
+    },
+  });
 }
 
 // Dates compare as YYYY-MM-DD strings; an empty bound means no limit.
@@ -47,6 +105,8 @@ function row(event: WaterEntry): string {
     <time datetime="${event.at}">${time(event.at)}</time>
     <span class="entry-type"><i></i>${TYPES[event.type]}</span>
     <strong>${number(event.amount)} <small>мл</small></strong>
+    <button class="text-button subdued" data-edit="${event.id}"
+      aria-label="${dateLabel(dayKey(new Date(event.at)))} ${time(event.at)} цагийн ${event.amount} мл бүртгэл засах">Засах</button>
   </li>`;
 }
 
@@ -151,14 +211,20 @@ function render() {
       <div id="results"></div>
       <footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
     </main>
+    <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+    ${Toast()}
   `;
   bindFilters();
   app.querySelector<HTMLButtonElement>('#export-csv')!.onclick = exportCsv;
+  app.querySelector<HTMLDivElement>('#results')!.onclick = event => {
+    const button = (event.target as Element).closest<HTMLButtonElement>('[data-edit]');
+    if (button) openEdit(button.dataset.edit);
+  };
   renderResults();
 }
 
 window.addEventListener('storage', event => {
-  if (event.key === STORAGE_KEY || event.key === null) { load(); render(); }
+  if ((event.key === STORAGE_KEY || event.key === null) && !document.querySelector('dialog[open]')) { load(); render(); }
 });
 load();
 render();
