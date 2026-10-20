@@ -1,3 +1,5 @@
+#export-csv:disabled { background: #c3c9d6; cursor: not-allowed; }
+
 .history-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 16px; align-items: end; padding-bottom: 28px; margin-bottom: 28px; border-bottom: 1px solid var(--line); }
 .history-filters :is(input, select) { height: 44px; }
 .history-filters .text-button { min-height: 44px; }
