@@ -3,6 +3,7 @@ import './history.css';
 import { STORAGE_KEY, TYPES, defaults, dayKey, sortedEvents, validateState, type AppState, type WaterEntry } from './data';
 import { dateLabel, escape, number, time } from './format';
 import { icon } from './components/Icon';
+import { siteNav } from './nav';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let state: AppState = defaults();
@@ -64,9 +65,7 @@ function render() {
     <header class="site-header">
       <div class="header-inner">
         <a class="brand" href="/" aria-label="Дусал нүүр">${icon('drop')}Дусал<span>/ хэрэглээний түүх</span></a>
-        <nav class="site-nav" aria-label="Хэсгүүд">
-          <a href="/overview.html">Өдрийн тойм</a><a href="/">Ус бүртгэх</a><a href="/history.html" aria-current="page">Түүх</a>
-        </nav>
+        ${siteNav('history')}
       </div>
     </header>
     <main id="main" tabindex="-1">
