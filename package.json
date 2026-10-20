@@ -13,7 +13,8 @@
     "android": "bun run cap:sync && cap open android",
     "ios": "bun run cap:sync && cap open ios",
     "test:contract": "bun test shared/contracts.test.ts backend/migration.test.ts backend/contract.test.ts",
-    "test:sync": "bun test backend/sync.test.ts tests/sync.test.ts"
+    "test:sync": "bun test backend/sync.test.ts tests/sync.test.ts",
+    "test:device": "bun test backend/devices.test.ts tests/devices.test.ts"
   },
   "devDependencies": {
     "@capacitor/cli": "7.6.9",

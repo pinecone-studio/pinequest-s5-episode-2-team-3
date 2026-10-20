@@ -1,5 +1,5 @@
 // Offline support: pages are network-first, hashed build assets cache-first.
-const CACHE = 'dusal-v2';
+const CACHE = 'dusal-v3';
 const PAGES = ['/', '/overview.html', '/entries.html', '/history.html', '/settings.html'];
 
 // Production serves /overview for /overview.html, so both share one cache key.

@@ -8,13 +8,15 @@ let sequence = -1;
 let corrupt = false;
 const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('dusal-data-v2');
 const callbacks = new Set<() => void>();
-export function announce(source: 'local' | 'sync' | 'status' = 'sync'): void {
+export function announce(source: 'local' | 'sync' | 'status' | 'device' = 'sync'): void {
   channel?.postMessage(source);
+  if (source === 'device') { window.dispatchEvent(new Event('dusal-device-view')); return; }
   window.dispatchEvent(new Event('dusal-sync-status'));
   if (source === 'sync') callbacks.forEach(fn => fn());
   if (source === 'local') window.dispatchEvent(new Event('dusal-local-save'));
 }
 channel?.addEventListener('message', event => {
+  if (event.data === 'device') { window.dispatchEvent(new Event('dusal-device-cache')); return; }
   window.dispatchEvent(new Event('dusal-sync-status'));
   if (event.data !== 'status') callbacks.forEach(fn => fn());
 });
