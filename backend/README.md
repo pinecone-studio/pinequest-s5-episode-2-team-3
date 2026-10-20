@@ -16,6 +16,7 @@ Deploy хийх: `npm run db:migrate:remote && npm run deploy` (тохиргоо
 
 | Method | Зам | Тайлбар |
 | --- | --- | --- |
+| GET / POST | `/api/sync` | Хувилбар шалгасан, давхардалгүй аппын синк — [дүрэм](../docs/app-sync.md) |
 | GET | `/api/health` | `{ ok: true, ai, contractVersion: 1 }` |
 | GET / PUT | `/api/settings` | `{ goal: 50–10000, mode: "goal" \| "limit" }` |
 | GET | `/api/state` | `{ goal, mode, events }` — вэбийн `dusal-v1` бүтэцтэй ижил |
@@ -32,4 +33,4 @@ Deploy хийх: `npm run db:migrate:remote && npm run deploy` (тохиргоо
 
 `0003_event_identity.sql` migration-ийг шинэ Worker-оос өмнө ажиллуулна. Шинэ POST нь 201, ижил анхны payload-тай retry нь 200, өөр payload-тай ижил ID нь 409. Устгасан бүртгэлийн ижил retry 204 буцааж, дахин үүсгэхгүй. `deviceId`-тай хүсэлт тогтмол `id` заавал явуулна. `PATCH` нь `deviceId`-г өөрчлөхгүй.
 
-Төхөөрөмжийн authentication, хэмжилт авах endpoint, аппын бүрэн синк дараагийн шатанд хийгдэнэ. Одоогийн API нэг хэрэглэгчийнх бөгөөд нэвтрэлтгүй хэвээр байна.
+Аппын синк `0004_app_sync.sql` migration шаардана. Төхөөрөмжийн authentication, хэмжилт авах endpoint дараагийн шатанд хийгдэнэ. Одоогийн API нэг хэрэглэгчийнх бөгөөд нэвтрэлтгүй хэвээр байна.
