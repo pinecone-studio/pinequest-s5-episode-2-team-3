@@ -60,3 +60,9 @@ bun run ios       # build → sync → Xcode нээнэ (зөвхөн Mac)
 - [Тохиргоо ба нөөц](docs/settings.md)
 - [Утсанд суулгах (PWA)](docs/pwa.md)
 - [Backend API](backend/README.md)
+
+## 1-р ажил: өгөгдлийн нэгдсэн дүрэм
+
+`shared/contracts.ts` нь веб/Capacitor апп, Worker-ийн нэг өгөгдлийн эх сурвалж. `src/data.ts` хуучин импортын замыг хадгална. Төхөөрөмжийн `deviceId`, давтагдахгүй үйлдлийн `id`, timestamp, хэмжээ болон хэмжилтийн JSON дүрмийг [docs/device-contract.md](docs/device-contract.md)-д тайлбарласан.
+
+`bun run test:contract` нь shared validation, D1 migration, retry/давхардал, хэрэглэгчийн засвар/устгалыг SQLite дээр шалгана. Бодит төхөөрөмж, апп–backend синк энэ шатанд ороогүй. Бодит серверийг шинэчлэхийн өмнө backend migration шаардлагатай; локал кодын өөрчлөлт deploy болсон гэсэн үг биш.
