@@ -1,3 +1,4 @@
+import { SyncStatus } from './SyncStatus';
 import type { WaterEntry } from '../data';
 import { escape } from '../format';
 import { icon } from './Icon';
@@ -22,6 +23,7 @@ export function EntryPage(events: readonly WaterEntry[], storageError: string): 
         <button class="primary-button" id="add-entry">${icon('plus')} Бүртгэх</button>
       </div>
       <p id="storage-error" class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+      ${SyncStatus()}
       <div class="quick-add">
         <span>Хурдан нэмэх</span>
         ${[150, 250, 500].map(amount => `<button data-quick="${amount}">+${amount} мл</button>`).join('')}

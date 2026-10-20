@@ -1,7 +1,9 @@
+import { load as readState, onExternalChange } from './storage';
+import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './history.css';
 import './pwa';
-import { STORAGE_KEY, TYPES, defaults, dayKey, sortedEvents, validateState, type AppState, type WaterEntry } from './data';
+import { TYPES, defaults, dayKey, sortedEvents, type AppState, type WaterEntry } from './data';
 import { dateLabel, escape, number, time } from './format';
 import { icon } from './components/Icon';
 import { siteNav } from './nav';
@@ -10,15 +12,10 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 let state: AppState = defaults();
 let storageError = '';
 
-function load() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    state = raw ? validateState(JSON.parse(raw)) : defaults();
-    storageError = '';
-  } catch {
-    state = defaults();
-    storageError = 'Хадгалсан өгөгдлийг нээж чадсангүй. Түүх харуулах боломжгүй байна.';
-  }
+async function load() {
+  const loaded = await readState();
+  state = loaded.state;
+  storageError = loaded.error;
 }
 
 // Newest day first; entries inside a day stay newest first.
@@ -74,15 +71,14 @@ function render() {
         <div><p class="page-kicker">ХЭРЭГЛЭЭНИЙ ТҮҮХ</p><h1>Бүх бүртгэл</h1></div>
       </div>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+      ${SyncStatus()}
       <div id="results"></div>
       <footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
     </main>
   `;
   renderResults();
+  bindSyncStatus();
 }
 
-window.addEventListener('storage', event => {
-  if (event.key === STORAGE_KEY || event.key === null) { load(); render(); }
-});
-load();
-render();
+onExternalChange(async () => { await load(); render(); });
+void load().then(render);

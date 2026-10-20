@@ -3,8 +3,8 @@ import { icon } from './Icon';
 
 interface EntryDialogProps {
   entry?: WaterEntry;
-  onSave: (entry: WaterEntry) => boolean;
-  onDelete?: () => boolean;
+  onSave: (entry: WaterEntry) => boolean | Promise<boolean>;
+  onDelete?: () => boolean | Promise<boolean>;
 }
 
 export function openEntryDialog({ entry, onSave, onDelete }: EntryDialogProps): void {
@@ -41,13 +41,23 @@ export function openEntryDialog({ entry, onSave, onDelete }: EntryDialogProps): 
   dialog.querySelector<HTMLButtonElement>('#close-dialog')!.onclick = () => dialog.close();
   dialog.onclick = event => {
     const rect = dialog.getBoundingClientRect();
-    if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
+    if (!busy && event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
   };
   dialog.querySelectorAll<HTMLButtonElement>('[data-amount]').forEach(button => {
     button.onclick = () => { dialog.querySelector<HTMLInputElement>('#amount')!.value = button.dataset.amount!; };
   });
+  let busy = false;
+  async function perform(action: () => boolean | Promise<boolean>) {
+    if (busy) return;
+    busy = true;
+    dialog.querySelectorAll<HTMLButtonElement>('button').forEach(b => { b.disabled = true; });
+    try { if (await action()) dialog.close(); }
+    catch { const error = dialog.querySelector<HTMLElement>('#entry-error')!; error.hidden = false; error.textContent = 'Хадгалж чадсангүй. Дахин оролдоно уу.'; }
+    finally { busy = false; dialog.querySelectorAll<HTMLButtonElement>('button').forEach(b => { b.disabled = false; }); }
+  }
+  dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
   dialog.querySelector<HTMLButtonElement>('#delete-entry')?.addEventListener('click', () => {
-    if (onDelete?.()) dialog.close();
+    if (onDelete) void perform(onDelete);
   });
   dialog.querySelector<HTMLFormElement>('form')!.onsubmit = submit => {
     submit.preventDefault();
@@ -65,7 +75,7 @@ export function openEntryDialog({ entry, onSave, onDelete }: EntryDialogProps): 
     const timestamp = entry && localInput(new Date(entry.at)) === atValue ? entry.at : at.toISOString();
     const item: WaterEntry = { id: entry?.id ?? crypto.randomUUID(), amount, type, at: timestamp };
     if (entry?.deviceId) item.deviceId = entry.deviceId;
-    if (onSave(item)) dialog.close();
+    void perform(() => onSave(item));
   };
   dialog.showModal();
 }

@@ -1,61 +1,71 @@
-import { STORAGE_KEY, defaults, validateState, type AppState } from './data';
+import { defaults, type AppState } from './data';
+import { LocalStore } from './local-store';
 
 export type SaveResult = 'saved' | 'conflict' | 'corrupt' | 'failed';
 export interface Loaded { state: AppState; error: string; corrupt: boolean }
-
-// Raw value we last read or wrote; used to detect writes from other tabs.
-let savedRaw: string | null = null;
+export const store = new LocalStore();
+let sequence = -1;
 let corrupt = false;
+const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('dusal-data-v2');
+const callbacks = new Set<() => void>();
+export function announce(source: 'local' | 'sync' | 'status' = 'sync'): void {
+  channel?.postMessage(source);
+  window.dispatchEvent(new Event('dusal-sync-status'));
+  if (source === 'sync') callbacks.forEach(fn => fn());
+  if (source === 'local') window.dispatchEvent(new Event('dusal-local-save'));
+}
+channel?.addEventListener('message', event => {
+  window.dispatchEvent(new Event('dusal-sync-status'));
+  if (event.data !== 'status') callbacks.forEach(fn => fn());
+});
 
-export function load(): Loaded {
-  let raw: string | null;
+export async function load(): Promise<Loaded> {
   try {
-    raw = localStorage.getItem(STORAGE_KEY);
-  } catch {
-    corrupt = true;
-    return { state: defaults(), corrupt, error: 'Браузер мэдээлэл хадгалахыг зөвшөөрөхгүй байна. Хувийн цонх эсвэл сайтын тохиргоогоо шалгана уу.' };
-  }
-  savedRaw = raw;
-  try {
-    const state = raw ? validateState(JSON.parse(raw)) : defaults();
+    const record = await store.read();
+    sequence = record.sequence;
     corrupt = false;
-    return { state, corrupt, error: '' };
+    return { state: record.state, error: '', corrupt };
   } catch {
     corrupt = true;
-    return { state: defaults(), corrupt, error: 'Хадгалсан өгөгдөл эвдэрсэн тул уншиж чадсангүй. Өмнөх мэдээллийг хамгаалахын тулд өөрчлөлт хадгалахгүй. Нөөц файлаас сэргээж болно.' };
+    return { state: defaults(), corrupt, error: 'Хадгалсан мэдээллийг уншиж чадсангүй. Өмнөх мэдээллийг хамгаалахын тулд өөрчлөлт хадгалахгүй. Браузерын хадгалах эрхийг шалгана уу.' };
   }
 }
 
-// `overwrite` replaces unreadable or newer data; only use it after the user confirmed.
-export function save(next: AppState, overwrite = false): SaveResult {
+export async function save(next: AppState, overwrite = false): Promise<SaveResult> {
+  if (corrupt && !overwrite) return 'corrupt';
+  const expected = sequence;
   try {
-    if (!overwrite) {
-      if (corrupt) return 'corrupt';
-      if (localStorage.getItem(STORAGE_KEY) !== savedRaw) return 'conflict';
-    }
-    const raw = JSON.stringify(validateState(next));
-    localStorage.setItem(STORAGE_KEY, raw);
-    savedRaw = raw;
-    corrupt = false;
-    return 'saved';
-  } catch {
-    return 'failed';
-  }
+    const result = await store.update(record => {
+      // Confirmed backup restore may replace current readable state; pending requests remain intact.
+      if (!overwrite && record.sequence !== expected) return 'conflict' as const;
+      record.state = next;
+      return 'saved' as const;
+    }, overwrite ? next : undefined);
+    // Do not advance the page's read version until it actually reloads its rendered snapshot.
+    if (result === 'saved') { corrupt = false; announce('local'); }
+    return result;
+  } catch { return 'failed'; }
 }
 
 export const saveMessage: Record<Exclude<SaveResult, 'saved'>, string> = {
-  conflict: 'Өөр цонхонд мэдээлэл өөрчлөгдсөн тул шинэчиллээ. Дахин оролдоно уу.',
+  conflict: 'Мэдээлэл өөрчлөгдсөн тул шинэчиллээ. Үйлдлээ дахин хийнэ үү.',
   corrupt: 'Хадгалсан өгөгдөл уншигдахгүй байна. Өөрчлөлт оруулаагүй.',
   failed: 'Хадгалж чадсангүй. Браузерын хадгалах эрх, сул зайг шалгаад дахин оролдоно уу.',
 };
-
 export function onExternalChange(callback: () => void): void {
-  window.addEventListener('storage', event => {
-    if (event.key === STORAGE_KEY || event.key === null) callback();
-  });
+  let pending = false;
+  const flush = () => {
+    // A stale form gets an explicit save conflict; background sync must not erase typed input.
+    if (!pending || document.querySelector('dialog[open], form[data-dirty]')) return;
+    pending = false;
+    callback();
+  };
+  callbacks.add(() => { pending = true; flush(); });
+  document.addEventListener('close', () => queueMicrotask(flush), true);
+  document.addEventListener('focusout', () => queueMicrotask(flush));
+  window.addEventListener('dusal-sync-status', () => queueMicrotask(flush));
 }
-
-// Ask the browser not to evict our data under storage pressure; failure is harmless.
-export function requestPersistence(): void {
-  navigator.storage?.persist?.().catch(() => {});
-}
+document.addEventListener('input', event => {
+  (event.target as HTMLElement).closest('form')?.setAttribute('data-dirty', '');
+});
+export function requestPersistence(): void { navigator.storage?.persist?.().catch(() => {}); }

@@ -1,8 +1,9 @@
+import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './overview.css';
 import './pwa';
-import { STORAGE_KEY, dayKey, type AppState, type WaterEntry } from './data';
-import { load, save, saveMessage } from './storage';
+import { dayKey, defaults, type AppState, type WaterEntry } from './data';
+import { load, save, saveMessage, onExternalChange } from './storage';
 import { BOTTLE_KEY, bottleSection, bottleStatus, bindBottle } from './bottle';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
@@ -14,14 +15,14 @@ const liters = (ml: number) => (ml / 1000).toFixed(ml % 100 ? 2 : 1).replace(/0$
 const escape = (value: string) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 const dateLabel = (key: string) => key.replaceAll('-', '.');
 const app = document.querySelector<HTMLDivElement>('#app')!;
-let state: AppState;
+let state: AppState = defaults();
 let storageError = '';
 let today = dayKey();
 let undoId: string | null = null;
 let undoTimer: ReturnType<typeof setTimeout> | undefined;
 
-function reload() {
-  const loaded = load();
+async function reload() {
+  const loaded = await load();
   state = loaded.state;
   storageError = loaded.error;
 }
@@ -211,21 +212,21 @@ function bindPlan() {
     aiAsking = false;
     if (source === 'ai') render();
   });
-  form.addEventListener('submit', event => {
+  form.addEventListener('submit', async event => {
     event.preventDefault();
     if (!draft) return;
-    const result = save({ ...state, goal: draft!.ml, mode: draft!.mode });
-    if (result !== 'saved') { showError(saveMessage[result]); reload(); return; }
-    reload();
+    const result = await save({ ...state, goal: draft!.ml, mode: draft!.mode });
+    if (result !== 'saved') { showError(saveMessage[result]); await reload(); return; }
+    await reload();
     render();
     document.querySelector('#plan-saved')!.textContent = `Хадгаллаа: ${draft!.mode === 'limit' ? 'хамгийн ихдээ' : 'өдөрт'} ${liters(draft!.ml)} л`;
   });
 }
 
-function addDrink(ml: number) {
+async function addDrink(ml: number) {
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
-  const result = save({ ...state, events: [...state.events, entry] });
-  reload();
+  const result = await save({ ...state, events: [...state.events, entry] });
+  await reload();
   if (result !== 'saved') { storageError = saveMessage[result]; render(); return; }
   undoId = entry.id;
   clearTimeout(undoTimer);
@@ -233,12 +234,12 @@ function addDrink(ml: number) {
   render();
 }
 
-function undo() {
+async function undo() {
   if (!undoId) return;
   const id = undoId;
   undoId = null;
-  const result = save({ ...state, events: state.events.filter(e => e.id !== id) });
-  reload();
+  const result = await save({ ...state, events: state.events.filter(e => e.id !== id) });
+  await reload();
   if (result !== 'saved') storageError = saveMessage[result];
   render();
 }
@@ -333,6 +334,7 @@ function render() {
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${dropIcon}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+      ${SyncStatus()}
       <div class="app-body"><aside class="side">${planSection(readProfile())}${metricsSection()}</aside>${stageSection()}</div>
     </div>
     <div class="glass-card">${weekSection()}</div>
@@ -343,10 +345,12 @@ function render() {
   bindPlan();
   bindChart();
   bindBottle(render);
+  bindSyncStatus();
 }
 
+onExternalChange(async () => { await reload(); render(); });
 window.addEventListener('storage', event => {
-  if ([STORAGE_KEY, BOTTLE_KEY, PROFILE_KEY, null].includes(event.key)) { reload(); render(); }
+  if ([BOTTLE_KEY, PROFILE_KEY, null].includes(event.key)) render();
 });
 let lastWidth = chartWidth();
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -356,6 +360,5 @@ window.addEventListener('resize', () => {
 });
 // Roll over to the new day at midnight without a reload.
 setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 60_000);
-reload();
-render();
+void reload().then(render);
 checkAi().then(ready => { aiReady = ready; if (source === 'ai') render(); });

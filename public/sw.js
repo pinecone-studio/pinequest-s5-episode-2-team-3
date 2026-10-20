@@ -1,7 +1,6 @@
 // Offline support: pages are network-first, hashed build assets cache-first.
-const CACHE = 'dusal-v1';
-const PAGES = ['/', '/overview.html', '/history.html', '/settings.html'];
-const PAGES = ['/', '/entries.html', '/history.html', '/settings.html'];
+const CACHE = 'dusal-v2';
+const PAGES = ['/', '/overview.html', '/entries.html', '/history.html', '/settings.html'];
 
 // Production serves /overview for /overview.html, so both share one cache key.
 const pageKey = url => new URL(url, self.location.origin).pathname.replace(/\.html$/, '').replace(/\/index$/, '/');
@@ -67,7 +66,7 @@ async function staleWhileRevalidate(request) {
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
-  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
   if (request.mode === 'navigate') event.respondWith(page(request));
   else if (url.pathname.startsWith('/assets/')) event.respondWith(asset(request));
   else event.respondWith(staleWhileRevalidate(request));
