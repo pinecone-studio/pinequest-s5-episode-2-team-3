@@ -1,40 +1,14 @@
 import { beforeEach, describe, expect, test, spyOn } from 'bun:test';
-import { Database } from 'bun:sqlite';
-import { readFileSync, readdirSync } from 'node:fs';
-import worker from './src/index.js';
+import { LocalD1 } from './test-db';
 import { validateEntry, validateState } from '../shared/contracts';
 
-// Exercise the Worker's real SQL against SQLite using D1's prepare/bind/batch interface.
-class Statement {
-  constructor(private db: Database, private sql: string, private values: (string | number | null)[] = []) {}
-  bind(...values: (string | number | null)[]) { return new Statement(this.db, this.sql, values); }
-  async first() { return this.db.query(this.sql).get(...this.values) ?? null; }
-  async all() { return { results: this.db.query(this.sql).all(...this.values) }; }
-  async run() { return { meta: this.db.query(this.sql).run(...this.values) }; }
-  execute() {
-    if (/^\s*SELECT/i.test(this.sql)) return { results: this.db.query(this.sql).all(...this.values), meta: { changes: 0 } };
-    return { results: [], meta: this.db.query(this.sql).run(...this.values) };
-  }
-}
-class LocalD1 {
-  sqlite = new Database(':memory:');
-  prepare(sql: string) { return new Statement(this.sqlite, sql); }
-  async batch(statements: Statement[]) { return this.sqlite.transaction(() => statements.map(statement => statement.execute()))(); }
-}
-const migrations = new URL('./migrations/', import.meta.url);
-const files = readdirSync(migrations).filter(name => name.endsWith('.sql')).sort();
-const sql = (name: string) => readFileSync(new URL(name, migrations), 'utf8');
 const event = { id: 'bottle-01-event-1', amount: 200, type: 'drink', at: '2026-10-20T04:00:00.000Z', deviceId: 'bottle-01' };
 let db: LocalD1;
 beforeEach(() => {
   db?.sqlite.close();
   db = new LocalD1();
-  for (const file of files) db.sqlite.exec(sql(file));
 });
-const call = (method: string, path: string, body?: unknown) => worker.fetch(new Request(`http://localhost${path}`, {
-  method,
-  ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
-}), { DB: db });
+const call = (method: string, path: string, body?: unknown) => db.call(method, path, body);
 
 describe('event API', () => {
   test('identical retries add only one event, including simultaneous requests', async () => {
@@ -82,4 +56,12 @@ describe('event API', () => {
     expect((await call('PUT', '/api/settings', { goal: 0, mode: 'goal' })).status).toBe(400);
     expect(await (await call('GET', '/api/health')).json()).toEqual({ ok: true, ai: false, contractVersion: 1 });
   });
+});
+
+test('oversized and missing bodies are rejected without touching data; responses are never cached', async () => {
+  expect((await call('POST', '/api/events', 'x'.repeat(5_000_001))).status).toBe(413);
+  expect((await call('POST', '/api/events')).status).toBe(400);
+  const list = await call('GET', '/api/events');
+  expect(list.headers.get('Cache-Control')).toBe('no-store');
+  expect(await list.json()).toEqual([]);
 });
