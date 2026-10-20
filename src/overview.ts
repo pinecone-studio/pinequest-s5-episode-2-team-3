@@ -39,10 +39,13 @@ function summarize(events: readonly WaterEntry[], key: string): DaySummary {
 
 function summarySection(key: string): string {
   const day = summarize(state.events, key);
+  const percent = Math.round((day.drink / state.goal) * 100);
+  const target = state.mode === 'goal' ? 'Өдрийн зорилт' : 'Өдрийн дээд хязгаар';
   return `<section class="summary" aria-labelledby="summary-title">
     <h2 id="summary-title" class="visually-hidden">Өдрийн дүн</h2>
     <p class="summary-label">Уусан</p>
     <p class="summary-total"><strong>${number(day.drink)}</strong> мл</p>
+    <p class="summary-target">${target} <strong>${number(state.goal)} мл</strong> · ${percent}%</p>
     <dl class="facts">
       <div><dt>Уусан бүртгэл</dt><dd>${day.drinkCount}</dd></div>
       <div><dt>Асгасан</dt><dd>${number(day.spill)} мл <small>дүнд ороогүй</small></dd></div>

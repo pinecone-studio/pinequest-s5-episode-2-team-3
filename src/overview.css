@@ -5,6 +5,8 @@
 .summary-label { font-size: 12px; color: var(--muted); }
 .summary-total { font-size: 18px; color: var(--muted); margin-top: 2px; }
 .summary-total strong { font-size: 56px; line-height: 1.1; font-weight: 600; letter-spacing: -2px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.summary-target { margin-top: 8px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.summary-target strong { color: var(--ink); font-weight: 500; }
 
 .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 26px 0 0; }
 .facts div { border-top: 1px solid var(--line); padding-top: 12px; }
