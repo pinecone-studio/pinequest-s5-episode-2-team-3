@@ -1,0 +1,16 @@
+// Backend Worker; override with VITE_API_URL for local `wrangler dev`.
+export const API_URL: string = import.meta.env.VITE_API_URL ?? 'https://dusal-api.bbek3201.workers.dev';
+
+export interface AiPlan { ml: number; mode: 'goal' | 'limit'; reason: string; warning: string }
+
+export async function askAi(body: { age: number; weight: number; height: number; condition: string; note: string }): Promise<AiPlan> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  } catch {
+    throw new Error('Интернэт холболтоо шалгаад дахин оролдоно уу.');
+  }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error ?? 'AI хариулж чадсангүй. Дахин оролдоно уу.');
+  return data as AiPlan;
+}

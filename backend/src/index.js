@@ -1,3 +1,5 @@
+import { PlanError, suggestPlan } from './plan.js';
+
 const TYPES = ['drink', 'spill', 'pending'];
 const ID_RE = /^[a-zA-Z0-9-]{1,64}$/;
 
@@ -60,7 +62,9 @@ async function route(request, env) {
   const db = env.DB;
   const method = request.method;
 
-  if (pathname === '/api/health') return json({ ok: true });
+  if (pathname === '/api/health') return json({ ok: true, ai: Boolean(env.ANTHROPIC_API_KEY) });
+
+  if (pathname === '/api/plan' && method === 'POST') return json(await suggestPlan(await readBody(request), env));
 
   if (pathname === '/api/state' && method === 'GET') {
     const [settings, events] = await Promise.all([getSettings(db), listEvents(db)]);
@@ -125,6 +129,7 @@ export default {
       return await route(request, env);
     } catch (err) {
       if (err instanceof ValidationError) return fail(400, err.message);
+      if (err instanceof PlanError) return fail(err.status, err.message);
       console.error(err);
       return fail(500, 'Серверийн алдаа.');
     }

@@ -12,23 +12,26 @@ export const CONDITIONS = {
 } as const;
 export type Condition = keyof typeof CONDITIONS;
 
-export interface Profile { age: number; weight: number; height: number; condition: Condition; doctorLimit: number }
+export interface Profile { age: number; weight: number; height: number; condition: Condition; doctorLimit: number; doctorMode: 'goal' | 'limit' }
 export interface Plan { ml: number; mode: 'goal' | 'limit'; how: string }
 
-const DEFAULT: Profile = { age: 30, weight: 65, height: 165, condition: 'none', doctorLimit: 1500 };
+const DEFAULT: Profile = { age: 30, weight: 65, height: 165, condition: 'none', doctorLimit: 1500, doctorMode: 'limit' };
 const round50 = (ml: number) => Math.round(ml / 50) * 50;
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 const isInt = (n: unknown, lo: number, hi: number): n is number => typeof n === 'number' && Number.isInteger(n) && n >= lo && n <= hi;
 
 export function validProfile(p: Partial<Profile>): p is Profile {
   return isInt(p.age, 4, 110) && isInt(p.weight, 10, 250) && isInt(p.height, 90, 230)
-    && typeof p.condition === 'string' && Object.hasOwn(CONDITIONS, p.condition) && isInt(p.doctorLimit, 500, 4000);
+    && typeof p.condition === 'string' && Object.hasOwn(CONDITIONS, p.condition) && isInt(p.doctorLimit, 500, 4000)
+    && (p.doctorMode === 'goal' || p.doctorMode === 'limit');
 }
 
 export function readProfile(): Profile {
   try {
     const p = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? 'null') as Partial<Profile> | null;
-    return p && validProfile(p) ? p : DEFAULT;
+    // Profiles saved before doctorMode existed are still valid.
+    const merged = p ? { doctorMode: DEFAULT.doctorMode, ...p } : null;
+    return merged && validProfile(merged) ? merged : DEFAULT;
   } catch {
     return DEFAULT;
   }
