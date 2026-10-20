@@ -79,7 +79,7 @@ function render(): void {
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a>
     <header class="site-header"><div class="header-inner">
       <a class="brand" href="/" aria-label="Дусал нүүр">${icon('drop')}Дусал<span>/ тохиргоо</span></a>
-      ${siteNav()}
+      ${siteNav('settings')}
     </div></header>
     <main id="main" tabindex="-1">
       <div class="page-heading"><div><p class="page-kicker">ТОХИРГОО</p><h1>Тохиргоо ба нөөц</h1></div></div>
