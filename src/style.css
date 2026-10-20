@@ -90,11 +90,12 @@ dialog form > label:not(:first-child) { margin-top: 20px; }
 .toast.visible { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
 .toast button { border: 0; background: transparent; color: #c7d5ff; text-decoration: underline; white-space: nowrap; padding: 5px 0; min-height: 32px; }
 @media (max-width: 760px) {
-  .header-inner { padding: 0 20px; min-height: 64px; }
+  .header-inner { padding: 0 20px; min-height: 64px; gap: 12px; }
   .brand > span { display: none; }
   .connection { font-size: 11px; }
   .site-nav + .connection { display: none; }
-  .site-nav a { padding: 10px; min-height: 44px; display: inline-flex; align-items: center; }
+  .site-nav { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .site-nav a { padding: 10px 8px; min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap; }
   main { padding: 26px 20px calc(100px + env(safe-area-inset-bottom)); }
   h1 { font-size: 27px; }
   .page-heading { margin-bottom: 25px; }
