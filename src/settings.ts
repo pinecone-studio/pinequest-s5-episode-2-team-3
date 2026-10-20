@@ -1,7 +1,8 @@
 import './style.css';
+import './shell.css';
 import './settings.css';
 import './pwa';
-import type { AppState } from './data';
+import { dayKey, type AppState } from './data';
 import { dateLabel, escape, number } from './format';
 import { icon } from './components/Icon';
 import { siteNav } from './nav';
@@ -77,16 +78,21 @@ function backupSection(): string {
 
 function render(): void {
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a>
-    <header class="site-header"><div class="header-inner">
-      <a class="brand" href="/" aria-label="Дусал нүүр">${icon('drop')}Дусал<span>/ тохиргоо</span></a>
-      ${siteNav('settings')}
-    </div></header>
-    <main id="main" tabindex="-1">
-      <div class="page-heading"><div><p class="page-kicker">ТОХИРГОО</p><h1>Тохиргоо ба нөөц</h1></div></div>
-      <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-      ${goalSection()}
-      ${backupSection()}
-      <footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
+    <main id="main" class="home settings-page" tabindex="-1">
+      <div class="app-shell">
+        <header class="app-top">
+          <a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${icon('drop')}</span>Дусал</a>
+          ${siteNav('settings')}
+          <span class="app-date">${dateLabel(dayKey())}</span>
+        </header>
+        <div class="settings-body">
+          <div class="settings-head"><p class="panel-label">Тохиргоо</p><h1>Тохиргоо ба нөөц</h1></div>
+          <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+          ${goalSection()}
+          ${backupSection()}
+        </div>
+      </div>
+      <footer class="settings-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
     </main>
     ${Toast()}`;
   bind();
