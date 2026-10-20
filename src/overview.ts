@@ -1,97 +1,140 @@
 import './style.css';
 import './overview.css';
 import './pwa';
-import { STORAGE_KEY, defaults, dayKey, validateState, type AppState, type WaterEntry } from './data';
+import { STORAGE_KEY, dayKey, type AppState, type WaterEntry } from './data';
+import { load, save, saveMessage } from './storage';
 import { BOTTLE_KEY, bottleSection, bindBottle } from './bottle';
+import { siteNav } from './nav';
+import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 
 const dropIcon = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/></svg>';
 const number = (n: number) => new Intl.NumberFormat('en-US').format(n);
+const liters = (ml: number) => (ml / 1000).toFixed(ml % 100 ? 2 : 1).replace(/0$/, '');
 const escape = (value: string) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 const dateLabel = (key: string) => key.replaceAll('-', '.');
 const app = document.querySelector<HTMLDivElement>('#app')!;
-let state: AppState = defaults();
+let state: AppState;
 let storageError = '';
 let today = dayKey();
-let selected = today;
+let undoId: string | null = null;
+let undoTimer: ReturnType<typeof setTimeout> | undefined;
 
-interface DaySummary { drink: number; drinkCount: number; spill: number; pending: number }
-
-// Read-only: this part never writes to storage.
-function load() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    state = raw ? validateState(JSON.parse(raw)) : defaults();
-    storageError = '';
-  } catch {
-    state = defaults();
-    storageError = 'Хадгалсан өгөгдлийг нээж чадсангүй. Тойм харуулах боломжгүй байна.';
-  }
+function reload() {
+  const loaded = load();
+  state = loaded.state;
+  storageError = loaded.error;
 }
 
-// Only "drink" counts toward the daily total; spill and pending are shown separately.
-function summarize(events: readonly WaterEntry[], key: string): DaySummary {
-  const summary: DaySummary = { drink: 0, drinkCount: 0, spill: 0, pending: 0 };
-  for (const event of events) {
-    if (dayKey(new Date(event.at)) !== key) continue;
-    if (event.type === 'drink') { summary.drink += event.amount; summary.drinkCount += 1; }
-    else if (event.type === 'spill') summary.spill += event.amount;
-    else summary.pending += 1;
-  }
-  return summary;
+// Only "drink" counts toward the daily total.
+function drankOn(events: readonly WaterEntry[], key: string): number {
+  return events.reduce((sum, e) => (e.type === 'drink' && dayKey(new Date(e.at)) === key ? sum + e.amount : sum), 0);
 }
 
 function status(drink: number): { text: string; tone: 'ok' | 'short' | 'over' } {
-  const { goal, mode } = state;
-  const diff = goal - drink;
-  if (mode === 'goal') {
-    if (diff > 0) return { text: `Зорилтод хүрэхэд ${number(diff)} мл дутуу`, tone: 'short' };
-    return { text: diff < 0 ? `Зорилт биеллээ · ${number(-diff)} мл илүү` : 'Зорилт биеллээ', tone: 'ok' };
+  const diff = state.goal - drink;
+  if (state.mode === 'goal') {
+    return diff > 0 ? { text: `Дахиад ${number(diff)} мл уух`, tone: 'short' } : { text: 'Өнөөдрийн зорилт биеллээ', tone: 'ok' };
   }
-  if (diff >= 0) return { text: `Хязгаар хүртэл ${number(diff)} мл үлдсэн`, tone: 'short' };
-  return { text: `Хязгаараас ${number(-diff)} мл хэтэрсэн`, tone: 'over' };
+  return diff >= 0 ? { text: `Хязгаар хүртэл ${number(diff)} мл`, tone: 'short' } : { text: `Хязгаараас ${number(-diff)} мл хэтэрсэн`, tone: 'over' };
 }
 
-function summarySection(key: string): string {
-  const day = summarize(state.events, key);
-  const percent = Math.round((day.drink / state.goal) * 100);
-  const { text, tone } = status(day.drink);
-  const target = state.mode === 'goal' ? 'Өдрийн зорилт' : 'Өдрийн дээд хязгаар';
-  return `<section class="summary" aria-labelledby="summary-title">
-    <h2 id="summary-title" class="visually-hidden">Өдрийн дүн</h2>
-    <p class="summary-label">Уусан</p>
-    <p class="summary-total"><strong>${number(day.drink)}</strong> мл</p>
-    <p class="summary-target">${target} <strong>${number(state.goal)} мл</strong> · ${percent}%</p>
-    <div class="progress ${tone}" role="progressbar" aria-label="${target}" aria-valuemin="0" aria-valuemax="${state.goal}" aria-valuenow="${Math.min(day.drink, state.goal)}" aria-valuetext="${number(day.drink)} / ${number(state.goal)} мл"><span style="width:${Math.min(percent, 100)}%"></span></div>
+function todaySection(): string {
+  const drink = drankOn(state.events, today);
+  const percent = Math.min(100, Math.round((drink / state.goal) * 100));
+  const { text, tone } = status(drink);
+  return `<section class="today" aria-labelledby="today-title">
+    <h2 id="today-title" class="today-label">Өнөөдөр уусан</h2>
+    <p class="today-total"><strong>${number(drink)}</strong> / ${number(state.goal)} мл</p>
+    <div class="progress ${tone}" role="progressbar" aria-label="Өнөөдрийн явц" aria-valuemin="0" aria-valuemax="${state.goal}" aria-valuenow="${Math.min(drink, state.goal)}"><span style="width:${percent}%"></span></div>
     <p class="summary-status ${tone}">${tone === 'over' ? '<b aria-hidden="true">!</b>' : ''}${text}</p>
-    <dl class="facts">
-      <div><dt>Уусан бүртгэл</dt><dd>${day.drinkCount}</dd></div>
-      <div><dt>Асгасан</dt><dd>${number(day.spill)} мл <small>дүнд ороогүй</small></dd></div>
-      <div><dt>Тодорхойгүй</dt><dd>${day.pending} бүртгэл ${day.pending ? '<a href="/">шийдэх</a>' : '<small>дүнд ороогүй</small>'}</dd></div>
-    </dl>
+    <div class="drink-buttons" role="group" aria-label="Уусан ус нэмэх">${[150, 250, 500].map(ml => `<button type="button" class="drink-button" data-drink="${ml}">+${ml} мл</button>`).join('')}</div>
+    <p class="undo-line" id="undo-line" role="status" ${undoId ? '' : 'hidden'}>Нэмлээ <button type="button" class="text-button" id="undo">Буцаах</button></p>
   </section>`;
 }
 
-function shiftDay(key: string, days: number): string {
-  const date = new Date(`${key}T12:00`);
-  date.setDate(date.getDate() + days);
-  return dayKey(date);
+function planSection(p: Profile): string {
+  const plan = calcPlan(p);
+  const doctor = p.condition === 'kidney' || p.condition === 'heart';
+  return `<section class="plan-card" aria-labelledby="plan-title">
+    <h2 id="plan-title">Миний өдрийн хэмжээ</h2>
+    <form id="plan-form" novalidate>
+      <div class="plan-fields">
+        <label>Нас<input id="plan-age" name="age" type="number" inputmode="numeric" min="4" max="110" value="${p.age}"/></label>
+        <label>Жин, кг<input id="plan-weight" name="weight" type="number" inputmode="numeric" min="10" max="250" value="${p.weight}"/></label>
+        <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
+        <label class="wide">Онош<select id="plan-condition" name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${p.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        <label class="doctor" ${doctor ? '' : 'hidden'}>Эмчийн заасан хязгаар, мл<input id="plan-doctor" name="doctorLimit" type="number" inputmode="numeric" min="500" max="4000" value="${p.doctorLimit}"/></label>
+      </div>
+      <div class="plan-result" aria-live="polite">
+        <p class="plan-amount"><strong id="plan-l">${liters(plan.ml)}</strong> л <span id="plan-kind">${plan.mode === 'limit' ? 'өдөрт хамгийн ихдээ' : 'өдөрт'}</span></p>
+        <p class="plan-how" id="plan-how">${escape(plan.how)}</p>
+      </div>
+      <p class="form-error" id="plan-error" role="alert" hidden></p>
+      <button type="submit" class="primary-button plan-save">Үүнийг зорилт болгох</button>
+      <p class="plan-saved" id="plan-saved" role="status"></p>
+    </form>
+    <p class="plan-note">Ерөнхий зөвлөмж. Эмчийн заавар байвал түүнийг дагана.</p>
+  </section>`;
 }
 
-function select(key: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || key > today) return;
-  selected = key;
+function readForm(form: HTMLFormElement): Partial<Profile> {
+  const d = new FormData(form);
+  const n = (k: string) => Number(d.get(k));
+  return { age: n('age'), weight: n('weight'), height: n('height'), condition: String(d.get('condition')) as Profile['condition'], doctorLimit: n('doctorLimit') };
+}
+
+function bindPlan() {
+  const form = document.querySelector<HTMLFormElement>('#plan-form')!;
+  const error = form.querySelector<HTMLElement>('#plan-error')!;
+  const update = () => {
+    const p = readForm(form);
+    const doctor = p.condition === 'kidney' || p.condition === 'heart';
+    form.querySelector<HTMLElement>('.doctor')!.hidden = !doctor;
+    if (!validProfile(p)) {
+      error.textContent = 'Нас 4–110, жин 10–250 кг, өндөр 90–230 см байна.';
+      error.hidden = false;
+      return null;
+    }
+    error.hidden = true;
+    writeProfile(p);
+    const plan = calcPlan(p);
+    form.querySelector('#plan-l')!.textContent = liters(plan.ml);
+    form.querySelector('#plan-kind')!.textContent = plan.mode === 'limit' ? 'өдөрт хамгийн ихдээ' : 'өдөрт';
+    form.querySelector('#plan-how')!.textContent = plan.how;
+    return plan;
+  };
+  form.addEventListener('input', update);
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const plan = update();
+    if (!plan) return;
+    const result = save({ ...state, goal: plan.ml, mode: plan.mode });
+    if (result !== 'saved') { error.textContent = saveMessage[result]; error.hidden = false; reload(); return; }
+    reload();
+    render();
+    document.querySelector('#plan-saved')!.textContent = `Хадгаллаа: өдөрт ${liters(plan.ml)} л`;
+  });
+}
+
+function addDrink(ml: number) {
+  const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
+  const result = save({ ...state, events: [...state.events, entry] });
+  reload();
+  if (result !== 'saved') { storageError = saveMessage[result]; render(); return; }
+  undoId = entry.id;
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => { undoId = null; document.querySelector<HTMLElement>('#undo-line')?.toggleAttribute('hidden', true); }, 10_000);
   render();
 }
 
-function dayPicker(): string {
-  return `<div class="day-picker"><button class="icon-button" id="prev-day" aria-label="Өмнөх өдөр">‹</button><label class="visually-hidden" for="day-input">Өдөр сонгох</label><input id="day-input" type="date" max="${today}" value="${selected}"/><button class="icon-button" id="next-day" aria-label="Дараах өдөр" ${selected >= today ? 'disabled' : ''}>›</button>${selected !== today ? '<button class="text-button" id="go-today">Өнөөдөр</button>' : ''}</div>`;
-}
-
-function bind() {
-  document.querySelector('#prev-day')?.addEventListener('click', () => select(shiftDay(selected, -1)));
-  document.querySelector('#next-day')?.addEventListener('click', () => select(shiftDay(selected, 1)));
-  document.querySelector('#go-today')?.addEventListener('click', () => select(today));
-  document.querySelector<HTMLInputElement>('#day-input')?.addEventListener('change', event => select((event.target as HTMLInputElement).value));
+function undo() {
+  if (!undoId) return;
+  const id = undoId;
+  undoId = null;
+  const result = save({ ...state, events: state.events.filter(e => e.id !== id) });
+  reload();
+  if (result !== 'saved') storageError = saveMessage[result];
+  render();
 }
 
 const WEEKDAYS = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
@@ -107,19 +150,26 @@ function barPath(x: number, y: number, w: number, h: number): string {
   return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
 }
 
+function shiftDay(key: string, days: number): string {
+  const date = new Date(`${key}T12:00`);
+  date.setDate(date.getDate() + days);
+  return dayKey(date);
+}
+
 function chartWidth(): number {
   const gutter = window.innerWidth <= 760 ? 20 : 40;
   return Math.round(Math.min(1000, Math.max(300, window.innerWidth - gutter * 2)));
 }
 
 function weekSection(): string {
-  const days = Array.from({ length: 7 }, (_, i) => shiftDay(selected, i - 6)).map(key => ({ key, drink: summarize(state.events, key).drink }));
+  const days = Array.from({ length: 7 }, (_, i) => shiftDay(today, i - 6)).map(key => ({ key, drink: drankOn(state.events, key) }));
   const total = days.reduce((sum, day) => sum + day.drink, 0);
   // Draw at the real content width so text stays at its CSS size on phones.
   const W = chartWidth(), H = 220, left = 40, right = 8, top = 18, bottom = 40;
   const plotW = W - left - right, plotH = H - top - bottom;
-  const step = niceStep(Math.max(state.goal, ...days.map(day => day.drink)) * 1.1);
-  const yMax = Math.ceil((Math.max(state.goal, ...days.map(day => day.drink)) * 1.1) / step) * step;
+  const peak = Math.max(state.goal, ...days.map(day => day.drink)) * 1.1;
+  const step = niceStep(peak);
+  const yMax = Math.ceil(peak / step) * step;
   const y = (value: number) => top + plotH - (value / yMax) * plotH;
   const slot = plotW / 7, barW = Math.min(24, slot * 0.5);
   const ticks = Array.from({ length: Math.floor(yMax / step) + 1 }, (_, i) => i * step);
@@ -129,19 +179,17 @@ function weekSection(): string {
     const cx = left + slot * i + slot / 2;
     const h = (day.drink / yMax) * plotH;
     const date = new Date(`${day.key}T12:00`);
-    const isSelected = day.key === selected;
-    return `<g class="day${isSelected ? ' selected' : ''}">
+    const isToday = day.key === today;
+    return `<g class="day${isToday ? ' selected' : ''}">
       ${h > 0 ? `<path class="bar" d="${barPath(cx - barW / 2, y(day.drink), barW, h)}"/>` : ''}
-      ${isSelected && day.drink > 0 ? `<text class="value" x="${cx}" y="${y(day.drink) - 8}" text-anchor="middle">${number(day.drink)}</text>` : ''}
-      <text class="axis${isSelected ? ' strong' : ''}" x="${cx}" y="${H - bottom + 18}" text-anchor="middle">${WEEKDAYS[date.getDay()]}</text>
+      ${isToday && day.drink > 0 ? `<text class="value" x="${cx}" y="${y(day.drink) - 8}" text-anchor="middle">${number(day.drink)}</text>` : ''}
+      <text class="axis${isToday ? ' strong' : ''}" x="${cx}" y="${H - bottom + 18}" text-anchor="middle">${WEEKDAYS[date.getDay()]}</text>
       <text class="axis" x="${cx}" y="${H - bottom + 33}" text-anchor="middle">${date.getDate()}</text>
-      <rect class="hit" x="${left + slot * i}" y="${top}" width="${slot}" height="${plotH + bottom}" tabindex="0" role="button" data-day="${day.key}" data-cx="${cx / W}" data-cy="${y(day.drink) / H}" aria-label="${dateLabel(day.key)}: ${number(day.drink)} мл"/>
+      <rect class="hit" x="${left + slot * i}" y="${top}" width="${slot}" height="${plotH + bottom}" tabindex="0" data-day="${day.key}" data-cx="${cx / W}" data-cy="${y(day.drink) / H}" aria-label="${dateLabel(day.key)}: ${number(day.drink)} мл"/>
     </g>`;
   }).join('');
-  const rows = days.map(day => `<tr${day.key === selected ? ' class="selected"' : ''}><td>${dateLabel(day.key)}</td><td>${WEEKDAYS[new Date(`${day.key}T12:00`).getDay()]}</td><td>${number(day.drink)} мл</td><td>${Math.round((day.drink / state.goal) * 100)}%</td></tr>`).join('');
   return `<section class="week" aria-labelledby="week-title">
-    <div class="section-heading"><h2 id="week-title">Сүүлийн 7 хоног</h2><span>${dateLabel(days[0].key)} – ${dateLabel(days[6].key)}</span></div>
-    <p class="week-total">Нийт <strong>${number(total)} мл</strong> · өдөрт дунджаар <strong>${number(Math.round(total / 7))} мл</strong></p>
+    <div class="section-heading"><h2 id="week-title">Сүүлийн 7 хоног</h2><span>Өдөрт дунджаар ${number(Math.round(total / 7))} мл</span></div>
     <div class="chart">
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Сүүлийн 7 хоногийн уусан ус, өдөр бүрээр">
         ${grid}
@@ -151,7 +199,6 @@ function weekSection(): string {
       </svg>
       <div class="chart-tip" role="status" hidden></div>
     </div>
-    <details class="chart-table"><summary>Хүснэгтээр харах</summary><div class="table-wrap"><table><thead><tr><th>Огноо</th><th>Гараг</th><th>Уусан</th><th>${goalLabel}ын</th></tr></thead><tbody>${rows}</tbody></table></div></details>
   </section>`;
 }
 
@@ -162,8 +209,7 @@ function bindChart() {
   chart.querySelectorAll<SVGRectElement>('.hit').forEach(hit => {
     const key = hit.dataset.day!;
     const show = () => {
-      const drink = summarize(state.events, key).drink;
-      tip.innerHTML = `<span>${dateLabel(key)}</span><strong>${number(drink)} мл</strong>`;
+      tip.innerHTML = `<span>${dateLabel(key)}</span><strong>${number(drankOn(state.events, key))} мл</strong>`;
       tip.style.left = `${Number(hit.dataset.cx) * 100}%`;
       tip.style.top = `${Number(hit.dataset.cy) * 100}%`;
       tip.hidden = false;
@@ -173,33 +219,28 @@ function bindChart() {
     hit.addEventListener('pointerleave', hide);
     hit.addEventListener('focus', show);
     hit.addEventListener('blur', hide);
-    hit.addEventListener('click', () => select(key));
-    hit.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(key); } });
   });
 }
 
 function render() {
-  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Дусал нүүр">${dropIcon}Дусал<span>/ өдрийн тойм</span></a><nav class="site-nav" aria-label="Хэсгүүд"><a href="/overview.html" aria-current="page">Өдрийн тойм</a><a href="/">Ус бүртгэх</a><a href="/settings.html">Тохиргоо</a></nav></div></header><main id="main" tabindex="-1"><div class="page-heading"><div><p class="page-kicker">ӨДРИЙН ТОЙМ</p><h1>${selected === today ? 'Өнөөдөр' : dateLabel(selected)}</h1>${selected === today ? `<p class="page-date">${dateLabel(today)}</p>` : ''}</div>${dayPicker()}</div><p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>${selected === today ? bottleSection(state.events) : ''}${summarySection(selected)}${weekSection()}<footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer></main>`;
-  bind();
+  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Дусал нүүр">${dropIcon}Дусал</a>${siteNav('home')}</div></header><main id="main" tabindex="-1"><p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p><div class="home-grid"><div class="home-left">${bottleSection(state.events)}${todaySection()}</div>${planSection(readProfile())}</div>${weekSection()}<footer><span>Дусал</span><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Нөөц ба тохиргоо</a></p></footer></main>`;
+  document.querySelectorAll<HTMLButtonElement>('[data-drink]').forEach(b => b.addEventListener('click', () => addDrink(Number(b.dataset.drink))));
+  document.querySelector('#undo')?.addEventListener('click', undo);
+  bindPlan();
   bindChart();
   bindBottle(render);
 }
 
 window.addEventListener('storage', event => {
-  if (event.key === STORAGE_KEY || event.key === BOTTLE_KEY || event.key === null) { load(); render(); }
+  if ([STORAGE_KEY, BOTTLE_KEY, PROFILE_KEY, null].includes(event.key)) { reload(); render(); }
 });
-// Roll over to the new day at midnight without a reload.
 let lastWidth = chartWidth();
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => { if (chartWidth() !== lastWidth) { lastWidth = chartWidth(); render(); } }, 150);
 });
-setInterval(() => {
-  if (dayKey() === today) return;
-  if (selected === today) selected = dayKey();
-  today = dayKey();
-  render();
-}, 60_000);
-load();
+// Roll over to the new day at midnight without a reload.
+setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 60_000);
+reload();
 render();
