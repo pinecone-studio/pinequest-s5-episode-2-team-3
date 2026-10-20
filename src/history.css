@@ -10,10 +10,11 @@
 .day-group:first-child { margin-top: 0; }
 .day-group h2 { font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .day-group ul { list-style: none; margin: 0; padding: 0; }
-.history-row { display: grid; grid-template-columns: 70px 1fr 110px; gap: 16px; align-items: center; min-height: 56px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.history-row { display: grid; grid-template-columns: 70px 1fr 110px 60px; gap: 16px; align-items: center; min-height: 56px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .history-row time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .history-row > strong { font-size: 17px; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
 .history-row small { font-size: 12px; font-weight: 400; color: var(--muted); }
+.history-row .text-button { justify-self: end; }
 
 @media (max-width: 760px) {
   main { padding-bottom: 30px; }
@@ -21,6 +22,7 @@
   .history-filters > div:nth-child(3) { grid-column: 1 / -1; }
   .history-filters :is(input, select) { height: 48px; }
   .history-filters .text-button { grid-column: 1 / -1; justify-self: start; }
-  .history-row { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; font-size: 15px; }
+  .history-row { grid-template-columns: 52px minmax(0, 1fr) auto auto; gap: 12px; font-size: 15px; }
   .history-row > strong { font-size: 19px; }
+  .history-row .text-button { min-height: 44px; padding: 9px 12px; font-size: 14px; border: 1px solid var(--line); border-radius: 5px; }
 }
