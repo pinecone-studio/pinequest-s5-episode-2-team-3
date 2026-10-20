@@ -1,8 +1,9 @@
+import { load as readState, save, saveMessage, onExternalChange } from './storage';
 import './style.css';
 import './shell.css';
 import './history.css';
 import './pwa';
-import { STORAGE_KEY, TYPES, defaults, dayKey, isEntryType, sortedEvents, validateState, type AppState, type EntryType, type WaterEntry } from './data';
+import { TYPES, defaults, dayKey, isEntryType, sortedEvents, type AppState, type EntryType, type WaterEntry } from './data';
 import { dateLabel, escape, number, time } from './format';
 import { icon } from './components/Icon';
 import { openEntryDialog } from './components/EntryDialog';
@@ -15,60 +16,40 @@ interface Filter { from: string; to: string; type: EntryType | 'all' }
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let state: AppState = defaults();
-let savedRaw: string | null = null;
 let storageError = '';
-let corruptStorage = false;
+let committing = false;
 let filter: Filter = { from: '', to: '', type: 'all' };
 
-function load() {
-  try {
-    savedRaw = localStorage.getItem(STORAGE_KEY);
-    state = savedRaw ? validateState(JSON.parse(savedRaw)) : defaults();
-    storageError = '';
-    corruptStorage = false;
-  } catch {
-    state = defaults();
-    storageError = 'Хадгалсан өгөгдлийг нээж чадсангүй. Түүх харуулах боломжгүй байна.';
-    corruptStorage = true;
-  }
+async function load() {
+  const loaded = await readState();
+  state = loaded.state;
+  storageError = loaded.error;
 }
 
-// Same write guard as app.ts: never overwrite unreadable data or a newer save from another tab.
-function commit(change: (next: AppState) => void): boolean {
-  if (corruptStorage) { notify('Хадгалсан өгөгдөл уншигдахгүй байна. Өөрчлөлт оруулаагүй.'); return false; }
+// Same write path as app.ts: storage refuses unreadable data and saves based on a stale read.
+async function commit(change: (next: AppState) => void): Promise<boolean> {
+  if (committing) return false;
+  committing = true;
   try {
-    if (localStorage.getItem(STORAGE_KEY) !== savedRaw) {
-      load(); render(); notify('Өөр цонхонд мэдээлэл өөрчлөгдсөн тул шинэчиллээ. Үйлдлээ дахин хийнэ үү.');
-      return false;
-    }
     const next = structuredClone(state);
     change(next);
-    const valid = validateState(next);
-    const raw = JSON.stringify(valid);
-    localStorage.setItem(STORAGE_KEY, raw);
-    state = valid;
-    savedRaw = raw;
-    return true;
-  } catch {
-    const dialogError = document.querySelector<HTMLElement>('#dialog-error');
-    if (dialogError) {
-      dialogError.textContent = 'Өөрчлөлтийг хадгалж чадсангүй. Браузерын хадгалах эрх, сул зайг шалгаад дахин оролдоно уу.';
-      dialogError.hidden = false;
-    }
-    notify('Хадгалалт амжилтгүй. Өөрчлөлт ороогүй.');
+    const result = await save(next);
+    if (result === 'saved') { await load(); return true; }
+    if (result === 'conflict') { await load(); render(); }
+    notify(saveMessage[result]);
     return false;
-  }
+  } finally { committing = false; }
 }
 
 function changed(message: string, undo?: () => void) { renderResults(); notify(message, undo); }
 
 // Drink and spill are the only final types; a pending entry gets resolved here too.
-function setType(id: string | undefined, type: unknown) {
+async function setType(id: string | undefined, type: unknown) {
   const previous = state.events.find(event => event.id === id)?.type;
   if (!previous || type === previous || (type !== 'drink' && type !== 'spill')) return;
-  if (!commit(next => { next.events.find(event => event.id === id)!.type = type; })) return;
-  changed(`${TYPES[type]} болгож өөрчиллөө.`, () => {
-    if (commit(next => { const event = next.events.find(item => item.id === id); if (event) event.type = previous; })) changed('Өөрчлөлтийг буцаалаа.');
+  if (!await commit(next => { next.events.find(event => event.id === id)!.type = type; })) return;
+  changed(`${TYPES[type]} болгож өөрчиллөө.`, async () => {
+    if (await commit(next => { const event = next.events.find(item => item.id === id); if (event) event.type = previous; })) changed('Өөрчлөлтийг буцаалаа.');
   });
   app.querySelector<HTMLButtonElement>(`[data-type-menu="${id}"]`)?.focus();
 }
@@ -79,17 +60,17 @@ function openEdit(id: string | undefined) {
   const previous = structuredClone(entry);
   openEntryDialog({
     entry,
-    onSave(item) {
-      if (!commit(next => { next.events[next.events.findIndex(row => row.id === item.id)] = item; })) return false;
-      changed('Бүртгэлийг шинэчиллээ.', () => {
-        if (commit(next => { next.events = next.events.filter(row => row.id !== item.id).concat(previous); })) changed('Үйлдлийг буцаалаа.');
+    async onSave(item) {
+      if (!await commit(next => { next.events[next.events.findIndex(row => row.id === item.id)] = item; })) return false;
+      changed('Бүртгэлийг шинэчиллээ.', async () => {
+        if (await commit(next => { next.events = next.events.filter(row => row.id !== item.id).concat(previous); })) changed('Үйлдлийг буцаалаа.');
       });
       return true;
     },
-    onDelete() {
-      if (!commit(next => { next.events = next.events.filter(row => row.id !== entry.id); })) return false;
-      changed('Бүртгэлийг устгалаа.', () => {
-        if (commit(next => next.events.push(previous))) changed('Бүртгэлийг сэргээв.');
+    async onDelete() {
+      if (!await commit(next => { next.events = next.events.filter(row => row.id !== entry.id); })) return false;
+      changed('Бүртгэлийг устгалаа.', async () => {
+        if (await commit(next => next.events.push(previous))) changed('Бүртгэлийг сэргээв.');
       });
       return true;
     },
@@ -171,7 +152,7 @@ const hasPending = () => filter.type === 'pending' || state.events.some(event =>
 
 function filters(): string {
   const today = dayKey();
-  return `<form class="history-filters" id="filters" aria-label="Шүүлтүүр">
+  return `<form class="history-filters" id="filters" aria-label="Шүүлтүүр" data-transient>
     <div>
       <label for="filter-from">Эхлэх огноо</label>
       <input id="filter-from" name="from" type="date" max="${filter.to || today}" value="${filter.from}"/>
@@ -256,8 +237,5 @@ function toggleTypeMenu(trigger: HTMLButtonElement) {
   if (entry) openTypeMenu(trigger, entry.type, type => setType(id, type));
 }
 
-window.addEventListener('storage', event => {
-  if ((event.key === STORAGE_KEY || event.key === null) && !document.querySelector('dialog[open]')) { load(); render(); }
-});
-load();
-render();
+onExternalChange(async () => { await load(); render(); });
+void load().then(render);
