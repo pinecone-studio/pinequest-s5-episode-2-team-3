@@ -69,3 +69,12 @@ cd backend && npm run db:migrate:remote && npm run deploy   # API + D1
 ```
 
 Анхаарах: бүртгэл localStorage-д хадгалагддаг тул домэйн бүр (preview хаяг ч гэсэн) тусдаа өгөгдөлтэй. Хэрэглэгчдэд нэг үндсэн хаяг өгнө.
+
+### Автомат deploy (GitHub Actions)
+
+`main` руу код орох бүрт `.github/workflows/deploy.yml` нь вэб болон API-г автоматаар deploy хийнэ. API-гийн өмнө D1 migration-уудыг хийнэ. PR дээр зөвхөн build-ыг шалгана. Ажиллахын тулд repo-д дараах secret-үүд хэрэгтэй (Settings → Secrets and variables → Actions):
+
+| Secret | Утга |
+| --- | --- |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+| `CLOUDFLARE_API_TOKEN` | «Edit Cloudflare Workers» загвараар үүсгэсэн token, дээр нь **D1: Edit** эрх нэмнэ |
