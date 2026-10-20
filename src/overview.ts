@@ -1,5 +1,6 @@
 import './style.css';
 import './overview.css';
+import './pwa';
 import { STORAGE_KEY, defaults, dayKey, validateState, type AppState, type WaterEntry } from './data';
 import { BOTTLE_KEY, bottleSection, bindBottle } from './bottle';
 
