@@ -1,14 +1,28 @@
+#export-csv:disabled { background: #c3c9d6; cursor: not-allowed; }
+
+.history-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 16px; align-items: end; padding-bottom: 28px; margin-bottom: 28px; border-bottom: 1px solid var(--line); }
+.history-filters :is(input, select) { height: 44px; }
+.history-filters .text-button { min-height: 44px; }
+.history-summary { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; font-size: 13px; color: var(--muted); }
+.history-summary strong { font-size: 20px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; margin-right: 3px; }
+
 .day-group { margin-top: 28px; }
 .day-group:first-child { margin-top: 0; }
 .day-group h2 { font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .day-group ul { list-style: none; margin: 0; padding: 0; }
-.history-row { display: grid; grid-template-columns: 70px 1fr 110px; gap: 16px; align-items: center; min-height: 56px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.history-row { display: grid; grid-template-columns: 70px 1fr 110px 60px; gap: 16px; align-items: center; min-height: 56px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .history-row time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .history-row > strong { font-size: 17px; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
 .history-row small { font-size: 12px; font-weight: 400; color: var(--muted); }
+.history-row .text-button { justify-self: end; }
 
 @media (max-width: 760px) {
   main { padding-bottom: 30px; }
-  .history-row { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; font-size: 15px; }
+  .history-filters { grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+  .history-filters > div:nth-child(3) { grid-column: 1 / -1; }
+  .history-filters :is(input, select) { height: 48px; }
+  .history-filters .text-button { grid-column: 1 / -1; justify-self: start; }
+  .history-row { grid-template-columns: 52px minmax(0, 1fr) auto auto; gap: 12px; font-size: 15px; }
   .history-row > strong { font-size: 19px; }
+  .history-row .text-button { min-height: 44px; padding: 9px 12px; font-size: 14px; border: 1px solid var(--line); border-radius: 5px; }
 }
