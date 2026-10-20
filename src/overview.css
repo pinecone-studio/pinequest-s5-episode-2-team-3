@@ -18,7 +18,8 @@ main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-
 .app-top .brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--ink-2); letter-spacing: -.4px; text-decoration: none; }
 .app-top .brand > .brand-mark { display: grid; margin: 0; width: 40px; height: 40px; border-radius: 12px; place-items: center; background: linear-gradient(180deg, #2b3340, #0f131a); color: #8fd3ff; }
 .brand-mark .icon, .brand-mark svg { width: 22px; height: 22px; }
-.app-top .site-nav { margin: 0 0 0 8px; display: flex; gap: 2px; padding: 4px; border-radius: 14px; background: rgba(255, 255, 255, .7); }
+/* Nav sits at the far right, after the date. */
+.app-top .site-nav { order: 1; margin: 0; display: flex; gap: 2px; padding: 4px; border-radius: 14px; background: rgba(255, 255, 255, .7); }
 .app-top .site-nav a { padding: 8px 18px; border-radius: 10px; font-size: 16px; color: var(--muted-2); text-decoration: none; }
 .app-top .site-nav a[aria-current="page"] { background: #fff; color: var(--ink-2); font-weight: 600; box-shadow: 0 1px 4px rgba(20, 32, 52, .1); }
 .app-date { margin-left: auto; padding: 8px 14px; border-radius: 12px; background: rgba(255, 255, 255, .7); font-size: 15px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
