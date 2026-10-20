@@ -18,6 +18,8 @@
 .entries-page .section-heading > span { font-size: 13px; color: var(--muted-2); }
 .entries-page .entry-row { border-bottom: 1px solid var(--hair); color: var(--ink-2); }
 .entries-page .entry-row:last-child { border-bottom: 0; }
+.entries-page .entry-row { grid-template-columns: 115px 1fr 110px 70px; }
+.entries-page .type-cell { display: flex; align-items: center; }
 .entries-page .entry-row time, .entries-page .entry-row small, .entries-page .spill .entry-type { color: var(--muted-2); }
 .entries-page .entry-actions .text-button.subdued { color: var(--muted-2); }
 .entries-footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px 6px 30px; margin: 0; border: 0; font-size: 14px; color: var(--muted-2); }
@@ -27,6 +29,11 @@
   .entries-page .quick-add > span { width: 100%; }
   .entries-page .quick-add button { flex: 1; justify-content: center; padding: 0 8px; }
   .entries-page .entries { padding: 4px 16px 6px; }
+  .entries-page .entry-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'time edit' 'type amount'; align-items: center; }
+  .entries-page .entry-row time { grid-area: time; grid-column: auto; }
+  .entries-page .entry-actions { grid-area: edit; grid-column: auto; }
+  .entries-page .type-cell { grid-area: type; }
+  .entries-page .entry-row > strong { grid-area: amount; }
   .entries-page .entry-actions .text-button { border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; }
   /* style.css pins this button to the screen bottom on phones, but the shell's backdrop-filter
      turns position: fixed into "fixed to the card", so show it full width under the title instead. */

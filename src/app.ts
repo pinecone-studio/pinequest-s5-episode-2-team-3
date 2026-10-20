@@ -116,11 +116,7 @@ function bind(): void {
   });
   bindEntryList(app, {
     onEdit: openEntry,
-    onToggle(id) {
-      const event = state.events.find(item => item.id === id);
-      if (event) setType(event.id, event.type === 'drink' ? 'spill' : 'drink');
-    },
-    onResolve: setType,
+    onType: setType,
   });
 }
 

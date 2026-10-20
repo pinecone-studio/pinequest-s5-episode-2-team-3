@@ -1,10 +1,11 @@
-import { dayKey, sortedEvents, TYPES, type WaterEntry } from '../data';
+import { dayKey, sortedEvents, type EntryType, type WaterEntry } from '../data';
 import { number, time, dateLabel } from '../format';
+import { closeTypeMenu, openTypeMenu, typeTrigger } from './TypeMenu';
 
 interface EntryListActions {
   onEdit: (id: string | undefined) => void;
-  onToggle: (id: string | undefined) => void;
-  onResolve: (id: string | undefined, type: unknown) => void;
+  // Same popup menu as the history page; also resolves pending entries.
+  onType: (id: string | undefined, type: 'drink' | 'spill') => void;
 }
 
 export function EntryList(events: readonly WaterEntry[]): string {
@@ -20,13 +21,9 @@ export function EntryList(events: readonly WaterEntry[]): string {
       <time datetime="${event.at}">
         <span>${dateLabel(dayKey(new Date(event.at)))}</span>${time(event.at)}
       </time>
-      <span class="entry-type"><i></i>${TYPES[event.type]}</span>
+      <div class="type-cell">${typeTrigger(event.id, event.type, `${time(event.at)} цагийн ${event.amount} мл`)}</div>
       <strong>${number(event.amount)} <small>мл</small></strong>
       <div class="entry-actions">
-        ${event.type !== 'pending'
-          ? `<button class="text-button" data-toggle="${event.id}">${event.type === 'drink' ? 'Асгасан болгох' : 'Уусан болгох'}</button>`
-          : `<button class="text-button" data-resolve="${event.id}" data-type="drink">Уусан</button>
-             <button class="text-button" data-resolve="${event.id}" data-type="spill">Асгасан</button>`}
         <button class="text-button subdued" data-edit="${event.id}"
           aria-label="${time(event.at)} цагийн ${event.amount} мл бүртгэл засах">Засах</button>
       </div>
@@ -38,10 +35,18 @@ export function bindEntryList(root: ParentNode, actions: EntryListActions): void
   root.querySelectorAll<HTMLButtonElement>('[data-edit]').forEach(button => {
     button.onclick = () => actions.onEdit(button.dataset.edit);
   });
-  root.querySelectorAll<HTMLButtonElement>('[data-toggle]').forEach(button => {
-    button.onclick = () => actions.onToggle(button.dataset.toggle);
-  });
-  root.querySelectorAll<HTMLButtonElement>('[data-resolve]').forEach(button => {
-    button.onclick = () => actions.onResolve(button.dataset.resolve, button.dataset.type);
+  root.querySelectorAll<HTMLButtonElement>('[data-type-menu]').forEach(trigger => {
+    const toggle = () => {
+      if (trigger.getAttribute('aria-expanded') === 'true') { closeTypeMenu(true); return; }
+      const current = (['drink', 'spill', 'pending'] as EntryType[]).find(type => trigger.classList.contains(type))!;
+      const id = trigger.dataset.typeMenu;
+      openTypeMenu(trigger, current, type => {
+        actions.onType(id, type);
+        // The list re-renders; keep keyboard focus on this entry's new pill.
+        document.querySelector<HTMLButtonElement>(`[data-type-menu="${id}"]`)?.focus();
+      });
+    };
+    trigger.onclick = toggle;
+    trigger.onkeydown = event => { if (event.key === 'ArrowDown') { event.preventDefault(); toggle(); } };
   });
 }

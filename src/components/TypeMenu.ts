@@ -1,3 +1,4 @@
+import './type-menu.css';
 import { TYPES, type EntryType } from '../data';
 
 type Choice = 'drink' | 'spill';
