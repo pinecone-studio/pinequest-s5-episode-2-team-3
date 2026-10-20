@@ -80,3 +80,19 @@ Deploy хийсэн хаягийг утсаараа нээгээд суулга�
 - Icon-ууд `public/drop.svg`-ээс үүссэн (`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`)
 
 Шинэ хуудас нэмбэл `public/sw.js`-ийн `PAGES` жагсаалтад нэмж, entry файлдаа `import './pwa';` бичнэ.
+
+## Native app (Capacitor)
+
+`android/`, `ios/` нь ижил вэб кодыг (`dist`) ачаалдаг native төслүүд. Вэб код өөрчлөгдөхөд энэ хоёрыг гараар засах шаардлагагүй — `bun run cap:sync` хангалттай.
+
+```sh
+bun run android   # build → sync → Android Studio нээнэ
+bun run ios       # build → sync → Xcode нээнэ (зөвхөн Mac)
+```
+
+Шаардлага: Android — Android Studio (JDK дотроо), iOS — Xcode 16+. iOS нь CocoaPods биш Swift Package Manager ашигладаг тул `pod install` хэрэггүй.
+
+- `capacitor.config.ts` — app ID `mn.pinecone.dusal`, нэр «Дусал»
+- `assets/` — icon, splash-ийн эх зураг. Солих бол `npx @capacitor/assets generate` ажиллуулна
+- Service worker native app дотор бүртгэгдэхгүй (`src/pwa.ts`), файлууд app дотор багтсан
+- Шинэ HTML хуудас нэмбэл `vite.config.js`-д нэмэхэд л app-д орно
