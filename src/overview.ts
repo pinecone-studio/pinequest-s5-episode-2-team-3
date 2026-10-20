@@ -6,7 +6,7 @@ import { load, save, saveMessage } from './storage';
 import { BOTTLE_KEY, bottleSection, bindBottle } from './bottle';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
-import { askAi } from './api';
+import { askAi, checkAi } from './api';
 
 const dropIcon = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/></svg>';
 const number = (n: number) => new Intl.NumberFormat('en-US').format(n);
@@ -58,6 +58,10 @@ const SOURCES: Record<Source, string> = { calc: 'Тооцоолох', doctor: '�
 let source: Source = 'calc';
 // The amount shown in the editable result; the user may adjust it before saving.
 let draft: { ml: number; mode: 'goal' | 'limit'; how: string; warning: string } | null = null;
+// AI tab: nothing is shown until the user asks; aiReady is null until /api/health answers.
+let aiAsking = false;
+let aiError = '';
+let aiReady: boolean | null = null;
 
 function suggestion(p: Profile): { ml: number; mode: 'goal' | 'limit'; how: string; warning: string } {
   if (source === 'doctor') return { ml: p.doctorLimit, mode: p.doctorMode, how: 'Эмчийн заасан хэмжээ', warning: '' };
@@ -67,27 +71,14 @@ function suggestion(p: Profile): { ml: number; mode: 'goal' | 'limit'; how: stri
 
 function planSection(p: Profile): string {
   // Keep the user's own edits across re-renders; recompute only after a source or profile change.
-  if (!draft) draft = suggestion(p);
+  if (!draft && source !== 'ai') draft = suggestion(p);
   const d = draft;
-  return `<section class="plan-card" aria-labelledby="plan-title">
-    <h2 id="plan-title">Миний өдрийн хэмжээ</h2>
-    <div class="source-tabs" role="radiogroup" aria-label="Хэрхэн гаргах вэ">${(Object.keys(SOURCES) as Source[]).map(s => `<button type="button" role="radio" aria-checked="${s === source}" data-source="${s}">${SOURCES[s]}</button>`).join('')}</div>
-    <form id="plan-form" novalidate>
-      <div class="plan-fields" ${source === 'doctor' ? 'hidden' : ''}>
-        <label>Нас<input id="plan-age" name="age" type="number" inputmode="numeric" min="4" max="110" value="${p.age}"/></label>
-        <label>Жин, кг<input id="plan-weight" name="weight" type="number" inputmode="numeric" min="10" max="250" value="${p.weight}"/></label>
-        <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
-        <label class="wide">Онош<select id="plan-condition" name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${p.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
-        ${source === 'ai' ? `<label class="wide">Нэмэлт мэдээлэл<textarea id="plan-note" name="note" rows="2" maxlength="500" placeholder="Жишээ: өдөр бүр гүйдэг, гадаа халуун">${escape(aiNote)}</textarea></label><button type="button" class="ai-button" id="ask-ai">AI-аас асуух</button>` : ''}
-      </div>
-      <div class="plan-fields" ${source === 'doctor' ? '' : 'hidden'}>
-        <label class="wide">Эмчийн заасан хэмжээ, мл<input id="plan-doctor" name="doctorLimit" type="number" inputmode="numeric" min="500" max="4000" value="${p.doctorLimit}"/></label>
-        <fieldset class="wide doctor-mode"><legend>Эмч юу гэж заасан бэ?</legend>
-          <label><input type="radio" name="doctorMode" value="goal" ${p.doctorMode === 'goal' ? 'checked' : ''}/> Дор хаяж ийм хэмжээ уух</label>
-          <label><input type="radio" name="doctorMode" value="limit" ${p.doctorMode === 'limit' ? 'checked' : ''}/> Үүнээс хэтрүүлэхгүй</label>
-        </fieldset>
-      </div>
-      <div class="plan-result" aria-live="polite">
+  const aiOff = aiReady === false;
+  const aiControls = source !== 'ai' ? '' : `<label class="wide">Нэмэлт мэдээлэл <small>(заавал биш)</small><textarea id="plan-note" name="note" rows="2" maxlength="500" placeholder="Жишээ: өдөр бүр гүйдэг, гадаа халуун">${escape(aiNote)}</textarea></label>
+        ${aiOff ? '<p class="ai-off wide">AI одоогоор идэвхжээгүй байна. Түүнийг тохируулах хүртэл «Тооцоолох» эсвэл «Эмчийн заавар»-ыг ашиглаарай.</p>' : ''}
+        <button type="button" class="ai-button" id="ask-ai" ${aiAsking || aiOff ? 'disabled' : ''}>${aiAsking ? 'AI бодож байна…' : d ? 'AI-аас дахин асуух' : 'AI-аас асуух'}</button>`;
+  const result = d ? `<div class="plan-result" aria-live="polite">
+        ${source === 'ai' ? '<p class="ai-chip">AI-ийн зөвлөгөө</p>' : ''}
         <div class="plan-amount">
           <button type="button" class="step" id="plan-minus" aria-label="50 мл хасах">−</button>
           <label class="visually-hidden" for="plan-l">Өдрийн хэмжээ, литр</label>
@@ -98,9 +89,28 @@ function planSection(p: Profile): string {
         <p class="plan-kind" id="plan-kind">${d.mode === 'limit' ? 'өдөрт хамгийн ихдээ' : 'өдөрт дор хаяж'}</p>
         <p class="plan-how" id="plan-how">${escape(d.how)}</p>
         <p class="plan-warning" id="plan-warning" ${d.warning ? '' : 'hidden'}>${escape(d.warning)}</p>
+      </div>` : `<div class="plan-result plan-empty" aria-live="polite">${aiAsking ? '<p><strong>AI бодож байна…</strong></p><p>Хэдэн секунд хүлээнэ үү.</p>' : '<p><strong>Мэдээллээ шалгаад «AI-аас асуух» дарна уу.</strong></p><p>AI таны өдөрт уух усны хэмжээг гаргаж, яагаад гэдгийг тайлбарлана.</p>'}</div>`;
+  return `<section class="plan-card" aria-labelledby="plan-title">
+    <h2 id="plan-title">Миний өдрийн хэмжээ</h2>
+    <div class="source-tabs" role="radiogroup" aria-label="Хэрхэн гаргах вэ">${(Object.keys(SOURCES) as Source[]).map(s => `<button type="button" role="radio" aria-checked="${s === source}" data-source="${s}">${SOURCES[s]}</button>`).join('')}</div>
+    <form id="plan-form" novalidate>
+      <div class="plan-fields" ${source === 'doctor' ? 'hidden' : ''}>
+        <label>Нас<input id="plan-age" name="age" type="number" inputmode="numeric" min="4" max="110" value="${p.age}"/></label>
+        <label>Жин, кг<input id="plan-weight" name="weight" type="number" inputmode="numeric" min="10" max="250" value="${p.weight}"/></label>
+        <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
+        <label class="wide">Онош<select id="plan-condition" name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${p.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        ${aiControls}
       </div>
-      <p class="form-error" id="plan-error" role="alert" hidden></p>
-      <button type="submit" class="primary-button plan-save">Үүнийг зорилт болгох</button>
+      <div class="plan-fields" ${source === 'doctor' ? '' : 'hidden'}>
+        <label class="wide">Эмчийн заасан хэмжээ, мл<input id="plan-doctor" name="doctorLimit" type="number" inputmode="numeric" min="500" max="4000" value="${p.doctorLimit}"/></label>
+        <fieldset class="wide doctor-mode"><legend>Эмч юу гэж заасан бэ?</legend>
+          <label><input type="radio" name="doctorMode" value="goal" ${p.doctorMode === 'goal' ? 'checked' : ''}/> Дор хаяж ийм хэмжээ уух</label>
+          <label><input type="radio" name="doctorMode" value="limit" ${p.doctorMode === 'limit' ? 'checked' : ''}/> Үүнээс хэтрүүлэхгүй</label>
+        </fieldset>
+      </div>
+      ${result}
+      <p class="form-error" id="plan-error" role="alert" ${aiError ? '' : 'hidden'}>${escape(aiError)}</p>
+      <button type="submit" class="primary-button plan-save" ${d ? '' : 'disabled'}>Үүнийг зорилт болгох</button>
       <p class="plan-saved" id="plan-saved" role="status"></p>
     </form>
     <p class="plan-note">Ерөнхий зөвлөмж. Эмчийн заавар байвал түүнийг дагана.</p>
@@ -118,9 +128,10 @@ function readForm(form: HTMLFormElement): Partial<Profile> {
 function bindPlan() {
   const form = document.querySelector<HTMLFormElement>('#plan-form')!;
   const error = form.querySelector<HTMLElement>('#plan-error')!;
-  const amount = form.querySelector<HTMLInputElement>('#plan-l')!;
+  const amount = form.querySelector<HTMLInputElement>('#plan-l');
   const showError = (text: string) => { error.textContent = text; error.hidden = !text; };
   const show = () => {
+    if (!draft || !amount) return;
     form.querySelector('#plan-kind')!.textContent = draft!.mode === 'limit' ? 'өдөрт хамгийн ихдээ' : 'өдөрт дор хаяж';
     form.querySelector('#plan-how')!.textContent = draft!.how;
     const warning = form.querySelector<HTMLElement>('#plan-warning')!;
@@ -131,6 +142,7 @@ function bindPlan() {
   document.querySelectorAll<HTMLButtonElement>('[data-source]').forEach(b => b.addEventListener('click', () => {
     source = b.dataset.source as Source;
     draft = null;
+    aiError = '';
     render();
   }));
   // Profile edits recompute the suggestion (AI waits for its button).
@@ -149,35 +161,34 @@ function bindPlan() {
     draft = { ...draft!, ml, how: draft!.how.includes('Өөрчилсөн') ? draft!.how : `${draft!.how} · Өөрчилсөн` };
     show();
   };
-  form.querySelector('#plan-minus')!.addEventListener('click', () => nudge(-50));
-  form.querySelector('#plan-plus')!.addEventListener('click', () => nudge(50));
-  amount.addEventListener('change', () => {
+  form.querySelector('#plan-minus')?.addEventListener('click', () => nudge(-50));
+  form.querySelector('#plan-plus')?.addEventListener('click', () => nudge(50));
+  amount?.addEventListener('change', () => {
+    if (!draft) return;
     const ml = Math.round(Number(amount.value) * 1000 / 50) * 50;
-    if (!Number.isFinite(ml) || ml < 500 || ml > 4000) { showError('Хэмжээ 0.5–4 литр байна.'); amount.value = liters(draft!.ml); return; }
+    if (!Number.isFinite(ml) || ml < 500 || ml > 4000) { showError('Хэмжээ 0.5–4 литр байна.'); amount.value = liters(draft.ml); return; }
     showError('');
     nudge(ml - draft!.ml);
   });
-  form.querySelector('#ask-ai')?.addEventListener('click', async event => {
-    const button = event.currentTarget as HTMLButtonElement;
+  form.querySelector('#ask-ai')?.addEventListener('click', async () => {
     const p = readForm(form);
     if (!validProfile(p)) { showError('Нас 4–110, жин 10–250 кг, өндөр 90–230 см байна.'); return; }
-    button.disabled = true;
-    button.textContent = 'Бодож байна…';
-    showError('');
+    aiAsking = true;
+    aiError = '';
+    draft = null;
+    render();
     try {
       const ai = await askAi({ age: p.age, weight: p.weight, height: p.height, condition: p.condition, note: aiNote });
       draft = { ml: ai.ml, mode: ai.mode, how: ai.reason, warning: ai.warning };
-      show();
-      button.textContent = 'AI-аас дахин асуух';
     } catch (err) {
-      showError((err as Error).message);
-      button.textContent = 'AI-аас асуух';
-    } finally {
-      button.disabled = false;
+      aiError = (err as Error).message;
     }
+    aiAsking = false;
+    if (source === 'ai') render();
   });
   form.addEventListener('submit', event => {
     event.preventDefault();
+    if (!draft) return;
     const result = save({ ...state, goal: draft!.ml, mode: draft!.mode });
     if (result !== 'saved') { showError(saveMessage[result]); reload(); return; }
     reload();
@@ -314,3 +325,4 @@ window.addEventListener('resize', () => {
 setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 60_000);
 reload();
 render();
+checkAi().then(ready => { aiReady = ready; if (source === 'ai') render(); });

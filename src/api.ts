@@ -14,3 +14,13 @@ export async function askAi(body: { age: number; weight: number; height: number;
   if (!response.ok) throw new Error(data.error ?? 'AI хариулж чадсангүй. Дахин оролдоно уу.');
   return data as AiPlan;
 }
+
+// Whether the backend has an AI key configured; false when the API can't be reached.
+export async function checkAi(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/api/health`);
+    return Boolean((await response.json()).ai);
+  } catch {
+    return false;
+  }
+}
