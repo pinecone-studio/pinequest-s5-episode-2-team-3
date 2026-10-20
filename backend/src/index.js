@@ -1,4 +1,5 @@
 import { readJson, BodyError } from './body.js';
+import { readSnapshot, applySnapshot } from './sync.js';
 import { PlanError, suggestPlan } from './plan.js';
 
 import { CONTRACT_VERSION, ContractError, validateId, validateSettings, validateEntry, validateEventPatch } from '../../shared/contracts.ts';
@@ -42,6 +43,11 @@ async function route(request, env) {
   if (pathname === '/api/health') return json({ ok: true, ai: Boolean(env.ANTHROPIC_API_KEY), contractVersion: CONTRACT_VERSION });
 
   if (pathname === '/api/plan' && method === 'POST') return json(await suggestPlan(await readJson(request), env));
+
+  if (pathname === '/api/sync') {
+    if (method === 'GET') return json(await readSnapshot(db));
+    if (method === 'POST') { const result = await applySnapshot(request, db); return json(result.body, result.status); }
+  }
 
   if (pathname === '/api/state' && method === 'GET') {
     const [settings, events] = await Promise.all([getSettings(db), listEvents(db)]);
