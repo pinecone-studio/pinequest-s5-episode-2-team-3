@@ -10,3 +10,5 @@ constexpr int PIN_BUTTON = 0;
 
 constexpr uint32_t SAMPLE_INTERVAL_MS = 100;   // HX711 runs at 10 samples/s by default.
 constexpr uint32_t LONG_PRESS_MS = 5000;
+constexpr uint32_t READING_INTERVAL_MS = 15000; // status heartbeat for the app ("online" lasts 60 s)
+constexpr uint32_t MAX_BACKOFF_MS = 300000;     // longest wait between failed uploads
