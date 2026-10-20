@@ -20,15 +20,22 @@ function checkSettings(body) {
   return { goal: body.goal, mode: body.mode };
 }
 
-function checkEvent(body) {
+// `partial` is used by PATCH, where every field is optional.
+function checkEvent(body, partial = false) {
   if (!body || typeof body !== 'object') throw new ValidationError('Бүртгэл буруу байна.');
   const out = {};
-  if (!Number.isInteger(body.amount) || body.amount < 1 || body.amount > 5000) throw new ValidationError('Хэмжээ 1-5000 мл байх ёстой.');
-  out.amount = body.amount;
-  if (!TYPES.includes(body.type)) throw new ValidationError('Бүртгэлийн төрөл буруу байна.');
-  out.type = body.type;
-  if (typeof body.at !== 'string' || !Number.isFinite(Date.parse(body.at))) throw new ValidationError('Огноо буруу байна.');
-  out.at = new Date(body.at).toISOString();
+  if (!partial || 'amount' in body) {
+    if (!Number.isInteger(body.amount) || body.amount < 1 || body.amount > 5000) throw new ValidationError('Хэмжээ 1-5000 мл байх ёстой.');
+    out.amount = body.amount;
+  }
+  if (!partial || 'type' in body) {
+    if (!TYPES.includes(body.type)) throw new ValidationError('Бүртгэлийн төрөл буруу байна.');
+    out.type = body.type;
+  }
+  if (!partial || 'at' in body) {
+    if (typeof body.at !== 'string' || !Number.isFinite(Date.parse(body.at))) throw new ValidationError('Огноо буруу байна.');
+    out.at = new Date(body.at).toISOString();
+  }
   return out;
 }
 
@@ -86,6 +93,25 @@ async function route(request, env) {
         throw err;
       }
       return json({ id, ...event }, 201);
+    }
+  }
+
+  const match = pathname.match(/^\/api\/events\/([^/]+)$/);
+  if (match) {
+    const id = decodeURIComponent(match[1]);
+    if (method === 'PATCH') {
+      const changes = checkEvent(await readBody(request), true);
+      const keys = Object.keys(changes);
+      if (keys.length) {
+        const sets = keys.map((key, i) => `${key} = ?${i + 2}`).join(', ');
+        await db.prepare(`UPDATE events SET ${sets} WHERE id = ?1`).bind(id, ...keys.map(k => changes[k])).run();
+      }
+      const event = await db.prepare('SELECT id, amount, type, at FROM events WHERE id = ?1').bind(id).first();
+      return event ? json(event) : fail(404, 'Бүртгэл олдсонгүй.');
+    }
+    if (method === 'DELETE') {
+      const { meta } = await db.prepare('DELETE FROM events WHERE id = ?1').bind(id).run();
+      return meta.changes ? new Response(null, { status: 204, headers: cors }) : fail(404, 'Бүртгэл олдсонгүй.');
     }
   }
 
