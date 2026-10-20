@@ -1,6 +1,7 @@
 import './style.css';
 import './overview.css';
 import { STORAGE_KEY, defaults, dayKey, validateState, type AppState, type WaterEntry } from './data';
+import { BOTTLE_KEY, bottleSection, bindBottle } from './bottle';
 
 const dropIcon = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/></svg>';
 const number = (n: number) => new Intl.NumberFormat('en-US').format(n);
@@ -177,13 +178,14 @@ function bindChart() {
 }
 
 function render() {
-  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Дусал нүүр">${dropIcon}Дусал<span>/ өдрийн тойм</span></a><nav class="site-nav" aria-label="Хэсгүүд"><a href="/overview.html" aria-current="page">Өдрийн тойм</a><a href="/">Ус бүртгэх</a></nav></div></header><main id="main" tabindex="-1"><div class="page-heading"><div><p class="page-kicker">ӨДРИЙН ТОЙМ</p><h1>${selected === today ? 'Өнөөдөр' : dateLabel(selected)}</h1>${selected === today ? `<p class="page-date">${dateLabel(today)}</p>` : ''}</div>${dayPicker()}</div><p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>${summarySection(selected)}${weekSection()}<footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer></main>`;
+  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Дусал нүүр">${dropIcon}Дусал<span>/ өдрийн тойм</span></a><nav class="site-nav" aria-label="Хэсгүүд"><a href="/overview.html" aria-current="page">Өдрийн тойм</a><a href="/">Ус бүртгэх</a></nav></div></header><main id="main" tabindex="-1"><div class="page-heading"><div><p class="page-kicker">ӨДРИЙН ТОЙМ</p><h1>${selected === today ? 'Өнөөдөр' : dateLabel(selected)}</h1>${selected === today ? `<p class="page-date">${dateLabel(today)}</p>` : ''}</div>${dayPicker()}</div><p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>${selected === today ? bottleSection(state.events) : ''}${summarySection(selected)}${weekSection()}<footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer></main>`;
   bind();
   bindChart();
+  bindBottle(render);
 }
 
 window.addEventListener('storage', event => {
-  if (event.key === STORAGE_KEY || event.key === null) { load(); render(); }
+  if (event.key === STORAGE_KEY || event.key === BOTTLE_KEY || event.key === null) { load(); render(); }
 });
 // Roll over to the new day at midnight without a reload.
 let lastWidth = chartWidth();
