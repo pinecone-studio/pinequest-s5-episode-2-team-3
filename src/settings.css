@@ -1,3 +1,23 @@
+/* Settings on the glass shell (shell.css): each section is a white card; primary actions use the dark CTA. */
+/* --muted-2 is 4.45:1 on white; darken it here so small muted text passes 4.5:1. */
+.settings-page { --muted-2: #5f6877; }
+.settings-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 26px; }
+.settings-head .panel-label { margin-bottom: 6px; }
+.settings-head h1 { font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-spacing: -1px; color: var(--ink-2); }
+.settings-page .settings-section { max-width: none; padding: 20px 22px; border: 0; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); color: var(--ink-2); }
+.settings-page .settings-section h2 { font-size: 19px; color: var(--ink-2); }
+.settings-page .mode-options legend, .settings-page .mode-option small, .settings-page .backup-row p, .settings-page label { color: var(--muted-2); }
+.settings-page .mode-option { border: 1px solid #e3e7ee; border-radius: 14px; background: #f8fafc; color: var(--ink-2); }
+.settings-page .mode-option:has(input:checked) { border-color: #9db7f5; background: #f0f5ff; }
+.settings-page #goal { height: 50px; font-size: 18px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; }
+.settings-page #goal:focus { border-color: #9db7f5; background: #fff; }
+.settings-page .primary-button { min-height: 48px; padding: 0 22px; border-radius: 14px; font-size: 16px; font-weight: 600; background: linear-gradient(180deg, #3a4250, #12161e); box-shadow: 0 6px 16px rgba(18, 22, 30, .25); }
+.settings-page .primary-button:hover { background: linear-gradient(180deg, #454e5e, #1a1f29); }
+.settings-page .backup-row + .backup-row { border-top-color: var(--hair); }
+.settings-page .file-button { min-height: 48px; border: 1px solid #e3e7ee; border-radius: 12px; color: var(--ink-2); font-weight: 600; }
+.settings-page .restore-preview { border-color: #c9d7f5; border-radius: 16px; background: #f3f7ff; }
+.settings-footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px 6px 30px; margin: 0; border: 0; font-size: 14px; color: var(--muted-2); }
+
 .settings-section { padding: 28px 0; border-top: 1px solid var(--line); max-width: 640px; }
 .settings-section h2 { margin-bottom: 16px; }
 .mode-options { border: 0; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -31,6 +51,9 @@
 .restore-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 
 @media (max-width: 760px) {
+  .settings-body { padding: 18px 14px; gap: 14px; }
+  .settings-page .settings-section { padding: 18px 16px; }
+  .settings-footer { flex-direction: column; gap: 6px; }
   .mode-options, .restore-preview dl { grid-template-columns: 1fr; }
   .backup-row { flex-direction: column; align-items: stretch; }
   .backup-row .primary-button, .file-button { justify-content: center; }
