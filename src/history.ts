@@ -3,6 +3,7 @@ import './history.css';
 import { STORAGE_KEY, TYPES, defaults, dayKey, isEntryType, sortedEvents, validateState, type AppState, type EntryType, type WaterEntry } from './data';
 import { dateLabel, escape, number, time } from './format';
 import { icon } from './components/Icon';
+import { downloadCsv, entriesCsv } from './csv';
 
 interface Filter { from: string; to: string; type: EntryType | 'all' }
 
@@ -81,6 +82,13 @@ function renderResults() {
   const events = state.events.filter(matches);
   app.querySelector<HTMLParagraphElement>('#summary')!.innerHTML = summary(events);
   app.querySelector<HTMLDivElement>('#results')!.innerHTML = results(events);
+  app.querySelector<HTMLButtonElement>('#export-csv')!.disabled = !events.length;
+}
+
+// Exports exactly what the filters show.
+function exportCsv() {
+  const events = state.events.filter(matches);
+  if (events.length) downloadCsv(`dusal-history-${dayKey()}.csv`, entriesCsv(events));
 }
 
 function filters(): string {
@@ -135,6 +143,7 @@ function render() {
     <main id="main" tabindex="-1">
       <div class="page-heading">
         <div><p class="page-kicker">ХЭРЭГЛЭЭНИЙ ТҮҮХ</p><h1>Бүх бүртгэл</h1></div>
+        <button class="primary-button" id="export-csv">CSV татах</button>
       </div>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       ${filters()}
@@ -144,6 +153,7 @@ function render() {
     </main>
   `;
   bindFilters();
+  app.querySelector<HTMLButtonElement>('#export-csv')!.onclick = exportCsv;
   renderResults();
 }
 
