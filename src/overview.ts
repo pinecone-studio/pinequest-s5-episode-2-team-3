@@ -10,7 +10,8 @@ import { askAi, checkAi } from './api';
 
 const dropIcon = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/></svg>';
 const number = (n: number) => new Intl.NumberFormat('en-US').format(n);
-const liters = (ml: number) => (ml / 1000).toFixed(ml % 100 ? 2 : 1).replace(/0$/, '');
+// 2000 → "2", 2150 → "2.15", 2500 → "2.5" (the old regex left "2.", which a number input rejects).
+const liters = (ml: number) => String(Number((ml / 1000).toFixed(2)));
 const escape = (value: string) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 const dateLabel = (key: string) => key.replaceAll('-', '.');
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -92,10 +93,19 @@ function suggestion(p: Profile): { ml: number; mode: 'goal' | 'limit'; how: stri
   return { ...plan, warning: plan.mode === 'limit' ? 'Хязгаарыг эмч тогтооно. «Эмчийн заавар» хэсэгт оруулна уу.' : '' };
 }
 
+// Compare the suggestion with the saved goal so it's clear what saving would change.
+function versusGoal(d: { ml: number; mode: 'goal' | 'limit' }): { text: string; same: boolean } {
+  const label = state.mode === 'limit' ? 'хязгаар' : 'зорилт';
+  if (d.ml === state.goal && d.mode === state.mode) return { text: `✓ Энэ таны одоогийн ${label}`, same: true };
+  const diff = d.ml - state.goal;
+  return { text: `Одоогийн ${label}: ${number(state.goal)} мл${diff ? ` · ${diff > 0 ? '+' : '−'}${number(Math.abs(diff))} мл` : ''}`, same: false };
+}
+
 function planSection(p: Profile): string {
   // Keep the user's own edits across re-renders; recompute only after a source or profile change.
   if (!draft && source !== 'ai') draft = suggestion(p);
   const d = draft;
+  const vs = d && versusGoal(d);
   const aiOff = aiReady === false;
   const aiControls = source !== 'ai' ? '' : `<div class="ai-row wide">
           <label class="visually-hidden" for="plan-note">Нэмэлт мэдээлэл</label>
@@ -112,6 +122,7 @@ function planSection(p: Profile): string {
           <button type="button" class="step" id="plan-plus" aria-label="50 мл нэмэх">+</button>
         </div>
         <p class="plan-kind" id="plan-kind">${d.mode === 'limit' ? 'өдөрт хамгийн ихдээ' : 'өдөрт дор хаяж'}</p>
+        <p class="plan-vs${vs!.same ? ' same' : ''}" id="plan-vs">${vs!.text}</p>
         <p class="plan-how" id="plan-how">${escape(d.how)}</p>
         <p class="plan-warning" id="plan-warning" ${d.warning ? '' : 'hidden'}>${escape(d.warning)}</p>
       </div>` : `<div class="plan-result plan-empty" aria-live="polite">${aiAsking ? '<p><strong>AI бодож байна…</strong></p><p>Хэдэн секунд хүлээнэ үү.</p>' : aiOff ? '<p><strong>AI одоогоор идэвхжээгүй байна.</strong></p><p>«Тооцоолох» эсвэл «Эмчийн заавар»-ыг ашиглаарай.</p>' : '<p><strong>«AI-аас асуух» дарна уу.</strong></p><p>AI өдөрт уух хэмжээг гаргаж, шалтгааныг тайлбарлана.</p>'}</div>`;
@@ -135,7 +146,7 @@ function planSection(p: Profile): string {
       </div>
       ${result}
       <p class="form-error" id="plan-error" role="alert" ${aiError ? '' : 'hidden'}>${escape(aiError)}</p>
-      <button type="submit" class="primary-button plan-save" ${d ? '' : 'disabled'}>Үүнийг зорилт болгох</button>
+      <button type="submit" class="primary-button plan-save" ${d && !vs!.same ? '' : 'disabled'}>${vs?.same ? 'Зорилт болгосон' : 'Үүнийг зорилт болгох'}</button>
       <p class="plan-saved" id="plan-saved" role="status"></p>
     </form>
     <p class="plan-note">Ерөнхий зөвлөмж. Эмчийн заавар байвал түүнийг дагана.</p>
@@ -163,6 +174,13 @@ function bindPlan() {
     warning.textContent = draft!.warning;
     warning.hidden = !draft!.warning;
     amount.value = liters(draft!.ml);
+    const vs = versusGoal(draft!);
+    const line = form.querySelector<HTMLElement>('#plan-vs')!;
+    line.textContent = vs.text;
+    line.classList.toggle('same', vs.same);
+    const button = form.querySelector<HTMLButtonElement>('.plan-save')!;
+    button.disabled = vs.same;
+    button.textContent = vs.same ? 'Зорилт болгосон' : 'Үүнийг зорилт болгох';
   };
   document.querySelectorAll<HTMLButtonElement>('[data-source]').forEach(b => b.addEventListener('click', () => {
     source = b.dataset.source as Source;
