@@ -64,6 +64,7 @@ export function openEntryDialog({ entry, onSave, onDelete }: EntryDialogProps): 
     }
     const timestamp = entry && localInput(new Date(entry.at)) === atValue ? entry.at : at.toISOString();
     const item: WaterEntry = { id: entry?.id ?? crypto.randomUUID(), amount, type, at: timestamp };
+    if (entry?.deviceId) item.deviceId = entry.deviceId;
     if (onSave(item)) dialog.close();
   };
   dialog.showModal();
