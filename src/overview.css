@@ -29,7 +29,33 @@
 .facts small { display: block; font-size: 11px; color: var(--muted); }
 .facts a { font-size: 13px; color: var(--blue); text-decoration: underline; margin-left: 4px; }
 
-@media (prefers-reduced-motion: reduce) { .progress span { transition: none; } }
+.week { margin-top: 30px; }
+.week-total { font-size: 14px; color: var(--muted); margin-bottom: 12px; font-variant-numeric: tabular-nums; }
+.week-total strong { color: var(--ink); font-weight: 500; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .grid { stroke: #ebebe6; stroke-width: 1; }
+.chart .axis { font-size: 12px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.chart .axis.strong { fill: var(--ink); font-weight: 600; }
+.chart .bar { fill: var(--blue); opacity: .38; transition: opacity .15s; }
+.chart .selected .bar, .chart .day:hover .bar { opacity: 1; }
+.chart .value { font-size: 13px; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums; }
+.chart .goal-line { stroke: var(--ink); stroke-width: 1; opacity: .55; }
+.chart .goal-label { font-size: 12px; fill: var(--muted); }
+.chart .hit { fill: transparent; cursor: pointer; outline: none; }
+.chart .hit:focus-visible { fill: #315dd514; }
+.chart-tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--ink); color: white; border-radius: 5px; padding: 6px 10px; font-size: 12px; white-space: nowrap; pointer-events: none; display: flex; flex-direction: column; align-items: center; font-variant-numeric: tabular-nums; }
+.chart-tip span { color: #c5ccd6; font-size: 11px; }
+.chart-table { margin-top: 10px; font-size: 13px; }
+.chart-table summary { cursor: pointer; color: var(--blue); padding: 8px 0; width: max-content; }
+.table-wrap { overflow-x: auto; }
+.chart-table table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.chart-table th, .chart-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.chart-table th { font-weight: 500; color: var(--muted); font-size: 12px; }
+.chart-table td:nth-child(n+3), .chart-table th:nth-child(n+3) { text-align: right; }
+.chart-table tr.selected td { font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) { .progress span, .chart .bar { transition: none; } }
 @media (max-width: 760px) {
   main { padding-bottom: 30px; }
   .page-heading { flex-wrap: wrap; }
