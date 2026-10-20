@@ -1,4 +1,4 @@
-// Shared validation for app data and the Worker API.
+// Shared by the web/native app and the Worker. Firmware must follow docs/device-contract.md.
 export const CONTRACT_VERSION = 1;
 export const TYPES = { drink: 'Уусан', spill: 'Асгасан', pending: 'Тодорхойгүй' } as const;
 export type EntryType = keyof typeof TYPES;
