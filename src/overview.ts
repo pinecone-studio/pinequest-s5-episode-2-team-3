@@ -1,4 +1,5 @@
 import './style.css';
+import './shell.css';
 import './overview.css';
 import './pwa';
 import { STORAGE_KEY, dayKey, type AppState, type WaterEntry } from './data';
@@ -27,10 +28,12 @@ function reload() {
   storageError = loaded.error;
 }
 
-// Only "drink" counts toward the daily total.
-function drankOn(events: readonly WaterEntry[], key: string): number {
-  return events.reduce((sum, e) => (e.type === 'drink' && dayKey(new Date(e.at)) === key ? sum + e.amount : sum), 0);
+function amountOn(events: readonly WaterEntry[], key: string, type: 'drink' | 'spill'): number {
+  return events.reduce((sum, e) => (e.type === type && dayKey(new Date(e.at)) === key ? sum + e.amount : sum), 0);
 }
+
+// Only "drink" counts toward the daily total.
+const drankOn = (events: readonly WaterEntry[], key: string) => amountOn(events, key, 'drink');
 
 function status(drink: number): { text: string; tone: 'ok' | 'short' | 'over' } {
   const diff = state.goal - drink;
@@ -45,7 +48,7 @@ function greeting(): string {
   return h >= 5 && h < 11 ? 'Өглөөний мэнд!' : h >= 11 && h < 18 ? 'Өдрийн мэнд!' : 'Оройн мэнд!';
 }
 
-// Centre of the page: greeting, the bottle on its base, and the quick drink chips.
+// Centre of the page: greeting, the quick drink chips (kept above the fold), then the bottle on its base.
 function stageSection(): string {
   const drink = drankOn(state.events, today);
   const { text, tone } = status(drink);
@@ -53,9 +56,9 @@ function stageSection(): string {
     <p class="stage-chip"><i aria-hidden="true"></i>Гараар бүртгэж байна</p>
     <h1 id="stage-title">${greeting()}</h1>
     <p class="stage-sub">Өнөөдөр <b>${number(drink)}</b> / ${number(state.goal)} мл уусан · <span class="${tone}">${tone === 'over' ? '! ' : ''}${text}</span></p>
-    ${bottleSection(state.events)}
     <div class="drink-chips" role="group" aria-label="Уусан ус нэмэх">${[150, 250, 500].map(ml => `<button type="button" class="drink-chip" data-drink="${ml}"><span aria-hidden="true">+</span>${ml} мл</button>`).join('')}</div>
     <p class="undo-line" id="undo-line" role="status" ${undoId ? '' : 'hidden'}>Нэмлээ <button type="button" class="text-button" id="undo">Буцаах</button></p>
+    ${bottleSection(state.events)}
   </section>`;
 }
 
@@ -280,42 +283,56 @@ function shiftDay(key: string, days: number): string {
   return dayKey(date);
 }
 
+// Width inside main.home's gutter and the glass card's padding and border.
 function chartWidth(): number {
-  const gutter = window.innerWidth <= 760 ? 20 : 40;
-  return Math.round(Math.min(1000, Math.max(300, window.innerWidth - gutter * 2)));
+  const inset = window.innerWidth <= 560 ? 34 : 54;
+  return Math.round(Math.max(260, Math.min(1200, window.innerWidth - 40) - inset));
 }
 
 function weekSection(): string {
-  const days = Array.from({ length: 7 }, (_, i) => shiftDay(today, i - 6)).map(key => ({ key, drink: drankOn(state.events, key) }));
-  const total = days.reduce((sum, day) => sum + day.drink, 0);
+  const days = Array.from({ length: 7 }, (_, i) => shiftDay(today, i - 6))
+    .map(key => ({ key, drink: amountOn(state.events, key, 'drink'), spill: amountOn(state.events, key, 'spill') }));
+  const avg = (type: 'drink' | 'spill') => number(Math.round(days.reduce((sum, day) => sum + day[type], 0) / 7));
   // Draw at the real content width so text stays at its CSS size on phones.
-  const W = chartWidth(), H = 220, left = 40, right = 8, top = 18, bottom = 40;
+  const W = chartWidth(), H = 230, left = 40, right = 8, top = 18, bottom = 44;
   const plotW = W - left - right, plotH = H - top - bottom;
-  const peak = Math.max(state.goal, ...days.map(day => day.drink)) * 1.1;
+  const peak = Math.max(state.goal, ...days.map(day => Math.max(day.drink, day.spill))) * 1.1;
   const step = niceStep(peak);
   const yMax = Math.ceil(peak / step) * step;
   const y = (value: number) => top + plotH - (value / yMax) * plotH;
-  const slot = plotW / 7, barW = Math.min(24, slot * 0.5);
+  const slot = plotW / 7, barW = Math.min(20, slot * 0.28), gap = 4;
   const ticks = Array.from({ length: Math.floor(yMax / step) + 1 }, (_, i) => i * step);
   const goalLabel = state.mode === 'goal' ? 'Зорилт' : 'Хязгаар';
   const grid = ticks.map(t => `<line class="grid" x1="${left}" x2="${W - right}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${left - 8}" y="${y(t) + 4}" text-anchor="end">${compact(t)}</text>`).join('');
+  const bar = (type: 'drink' | 'spill', x: number, value: number) =>
+    value > 0 ? `<path class="bar ${type}" d="${barPath(x, y(value), barW, (value / yMax) * plotH)}"/>` : '';
   const bars = days.map((day, i) => {
     const cx = left + slot * i + slot / 2;
-    const h = (day.drink / yMax) * plotH;
     const date = new Date(`${day.key}T12:00`);
     const isToday = day.key === today;
-    return `<g class="day${isToday ? ' selected' : ''}">
-      ${h > 0 ? `<path class="bar" d="${barPath(cx - barW / 2, y(day.drink), barW, h)}"/>` : ''}
-      ${isToday && day.drink > 0 ? `<text class="value" x="${cx}" y="${y(day.drink) - 8}" text-anchor="middle">${number(day.drink)}</text>` : ''}
-      <text class="axis${isToday ? ' strong' : ''}" x="${cx}" y="${H - bottom + 18}" text-anchor="middle">${WEEKDAYS[date.getDay()]}</text>
-      <text class="axis" x="${cx}" y="${H - bottom + 33}" text-anchor="middle">${date.getDate()}</text>
-      <rect class="hit" x="${left + slot * i}" y="${top}" width="${slot}" height="${plotH + bottom}" tabindex="0" data-day="${day.key}" data-cx="${cx / W}" data-cy="${y(day.drink) / H}" aria-label="${dateLabel(day.key)}: ${number(day.drink)} мл"/>
+    return `<g class="day">
+      <rect class="band" x="${left + slot * i + 4}" y="${top - 8}" width="${slot - 8}" height="${plotH + 8}" rx="10"/>
+      ${bar('drink', cx - gap / 2 - barW, day.drink)}
+      ${bar('spill', cx + gap / 2, day.spill)}
+      <text class="axis${isToday ? ' strong' : ''}" x="${cx}" y="${H - bottom + 20}" text-anchor="middle">${WEEKDAYS[date.getDay()]}</text>
+      <text class="axis" x="${cx}" y="${H - bottom + 36}" text-anchor="middle">${date.getDate()}</text>
+      <rect class="hit" x="${left + slot * i}" y="${top}" width="${slot}" height="${plotH + bottom}" tabindex="0" data-day="${day.key}" data-cx="${cx / W}" data-cy="${(y(Math.max(day.drink, day.spill)) - 8) / H}" aria-label="${dateLabel(day.key)}: уусан ${number(day.drink)} мл, асгасан ${number(day.spill)} мл"/>
     </g>`;
   }).join('');
   return `<section class="week" aria-labelledby="week-title">
-    <div class="section-heading"><h2 id="week-title">Сүүлийн 7 хоног</h2><span>Өдөрт дунджаар ${number(Math.round(total / 7))} мл</span></div>
+    <div class="week-head">
+      <div>
+        <p class="panel-label">Сүүлийн 7 хоног</p>
+        <h2 id="week-title">Уусан ба асгасан ус</h2>
+        <p class="week-avg">Өдөрт дунджаар ${avg('drink')} мл уусан · ${avg('spill')} мл асгасан</p>
+      </div>
+      <ul class="legend" aria-label="Тайлбар">
+        <li><i class="key drink"></i>Уусан</li>
+        <li><i class="key spill"></i>Асгасан</li>
+      </ul>
+    </div>
     <div class="chart">
-      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Сүүлийн 7 хоногийн уусан ус, өдөр бүрээр">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Сүүлийн 7 хоногийн уусан болон асгасан ус, өдөр бүрээр">
         ${grid}
         <line class="goal-line" x1="${left}" x2="${W - right}" y1="${y(state.goal)}" y2="${y(state.goal)}"/>
         <text class="goal-label" x="${W - right}" y="${y(state.goal) - 6}" text-anchor="end">${goalLabel} ${number(state.goal)}</text>
@@ -333,10 +350,14 @@ function bindChart() {
   chart.querySelectorAll<SVGRectElement>('.hit').forEach(hit => {
     const key = hit.dataset.day!;
     const show = () => {
-      tip.innerHTML = `<span>${dateLabel(key)}</span><strong>${number(drankOn(state.events, key))} мл</strong>`;
-      tip.style.left = `${Number(hit.dataset.cx) * 100}%`;
+      const row = (type: 'drink' | 'spill', label: string) =>
+        `<span class="tip-row"><i class="key ${type}"></i><strong>${number(amountOn(state.events, key, type))} мл</strong>${label}</span>`;
+      tip.innerHTML = `<span class="tip-date">${dateLabel(key)}</span>${row('drink', 'Уусан')}${row('spill', 'Асгасан')}`;
       tip.style.top = `${Number(hit.dataset.cy) * 100}%`;
       tip.hidden = false;
+      // Keep the tooltip inside the card near the edge days.
+      const half = tip.offsetWidth / 2, width = chart.offsetWidth;
+      tip.style.left = `${Math.min(Math.max(Number(hit.dataset.cx) * width, half), width - half)}px`;
     };
     const hide = () => { tip.hidden = true; };
     hit.addEventListener('pointerenter', show);
@@ -351,7 +372,7 @@ function render() {
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${dropIcon}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-      <div class="app-body"><aside class="side">${planSection(readProfile())}${metricsSection()}</aside>${stageSection()}</div>
+      <div class="app-body">${stageSection()}<aside class="side">${planSection(readProfile())}${metricsSection()}</aside></div>
     </div>
     <div class="glass-card">${weekSection()}</div>
     <footer class="home-footer"><span>Дусал</span><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Нөөц ба тохиргоо</a></p></footer>
