@@ -12,10 +12,12 @@
     "cap:sync": "bun run build && cap sync",
     "android": "bun run cap:sync && cap open android",
     "ios": "bun run cap:sync && cap open ios",
-    "test:contract": "bun test shared/contracts.test.ts backend/migration.test.ts backend/contract.test.ts"
+    "test:contract": "bun test shared/contracts.test.ts backend/migration.test.ts backend/contract.test.ts",
+    "test:sync": "bun test backend/sync.test.ts tests/sync.test.ts"
   },
   "devDependencies": {
     "@capacitor/cli": "7.6.9",
+    "fake-indexeddb": "^6.2.6",
     "typescript": "^5.9.3",
     "vite": "^6.4.1"
   },
