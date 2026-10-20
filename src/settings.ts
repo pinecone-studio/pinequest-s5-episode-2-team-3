@@ -1,5 +1,6 @@
 import './style.css';
 import './settings.css';
+import './pwa';
 import type { AppState } from './data';
 import { dateLabel, escape, number } from './format';
 import { icon } from './components/Icon';

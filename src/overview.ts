@@ -1,5 +1,6 @@
 import './style.css';
 import './overview.css';
+import './pwa';
 import { STORAGE_KEY, defaults, dayKey, validateState, type AppState, type WaterEntry } from './data';
 
 const dropIcon = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/></svg>';
