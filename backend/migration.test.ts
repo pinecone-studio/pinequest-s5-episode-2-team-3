@@ -50,3 +50,22 @@ test('sync migration preserves existing history, identity receipts and settings'
   expect(db.query('SELECT goal, mode FROM settings').get()).toEqual({ goal: 1500, mode: 'limit' });
   expect(db.query('SELECT revision FROM sync_clock').get()).toEqual({ revision: 0 });
 });
+
+test('device ingestion migration leaves existing log, settings, receipts and sync revision intact', () => {
+  insert();
+  db.exec(migration('0003_event_identity.sql'));
+  db.exec(migration('0004_app_sync.sql'));
+  db.query('UPDATE settings SET goal = 1600, mode = ? WHERE id = 1').run('limit');
+  const before = {
+    events: db.query('SELECT * FROM events').all(),
+    settings: db.query('SELECT * FROM settings').all(),
+    receipts: db.query('SELECT * FROM event_receipts').all(),
+    clock: db.query('SELECT * FROM sync_clock').all(),
+  };
+  db.exec(migration('0005_device_readings.sql'));
+  expect(db.query('SELECT * FROM events').all()).toEqual(before.events);
+  expect(db.query('SELECT * FROM settings').all()).toEqual(before.settings);
+  expect(db.query('SELECT * FROM event_receipts').all()).toEqual(before.receipts);
+  expect(db.query('SELECT * FROM sync_clock').all()).toEqual(before.clock);
+  expect(db.query('SELECT * FROM device_states').all()).toEqual([]);
+});
