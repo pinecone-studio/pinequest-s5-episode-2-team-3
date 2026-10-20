@@ -16,7 +16,8 @@ let state = defaults();
 let savedRaw = null;
 let storageError = '';
 let corruptStorage = false;
-let toastTimer;
+let undoAction;
+let undoTimer;
 
 function load() {
   try {
@@ -66,28 +67,40 @@ function entryRows() {
 
 function render() {
   document.title = 'Ус бүртгэх · Дусал';
-  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><header class="site-header"><div class="header-inner"><a class="brand" href="#main" aria-label="Дусал нүүр">${icon('drop')}Дусал<span>/ усны бүртгэл</span></a><span class="connection">Гараар бүртгэж байна</span></div></header><main id="main" tabindex="-1"><div class="page-heading"><div><p class="page-kicker">УСНЫ ХЭРЭГЛЭЭ</p><h1>Ус бүртгэх</h1></div><button class="primary-button" id="add-entry">${icon('plus')} Бүртгэх</button></div><p id="storage-error" class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p><div class="quick-add"><span>Хурдан нэмэх</span>${[150, 250, 500].map(amount => `<button data-quick="${amount}">+${amount} мл</button>`).join('')}</div><section class="entries" aria-labelledby="entries-title"><div class="section-heading"><h2 id="entries-title">Бүртгэлүүд</h2><span>${state.events.length} бүртгэл</span></div>${entryRows()}</section><footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer></main><dialog id="dialog" aria-labelledby="dialog-title"></dialog><div class="toast" id="toast" role="status" aria-live="polite"><span></span></div>`;
+  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><header class="site-header"><div class="header-inner"><a class="brand" href="#main" aria-label="Дусал нүүр">${icon('drop')}Дусал<span>/ усны бүртгэл</span></a><span class="connection">Гараар бүртгэж байна</span></div></header><main id="main" tabindex="-1"><div class="page-heading"><div><p class="page-kicker">УСНЫ ХЭРЭГЛЭЭ</p><h1>Ус бүртгэх</h1></div><button class="primary-button" id="add-entry">${icon('plus')} Бүртгэх</button></div><p id="storage-error" class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p><div class="quick-add"><span>Хурдан нэмэх</span>${[150, 250, 500].map(amount => `<button data-quick="${amount}">+${amount} мл</button>`).join('')}</div><section class="entries" aria-labelledby="entries-title"><div class="section-heading"><h2 id="entries-title">Бүртгэлүүд</h2><span>${state.events.length} бүртгэл</span></div>${entryRows()}</section><footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer></main><dialog id="dialog" aria-labelledby="dialog-title"></dialog><div class="toast" id="toast" role="status" aria-live="polite"><span></span><button id="undo" hidden>Буцаах</button></div>`;
   bind();
 }
 
-function notify(message) {
-  clearTimeout(toastTimer);
+function notify(message, undo) {
+  clearTimeout(undoTimer);
+  undoAction = undo;
   const toast = document.querySelector('#toast');
   toast.querySelector('span').textContent = message;
+  toast.querySelector('button').hidden = !undo;
   toast.classList.add('visible');
-  toastTimer = setTimeout(() => toast.classList.remove('visible'), 5000);
+  undoTimer = setTimeout(() => { toast.classList.remove('visible'); undoAction = undefined; }, undo ? 10000 : 5000);
 }
 
-function changed(message) { render(); notify(message); }
+function changed(message, undo) { render(); notify(message, undo); }
 
 function addEntry(amount) {
-  const event = { id: crypto.randomUUID(), amount, type: 'drink', at: new Date().toISOString() };
-  if (commit(next => next.events.push(event))) changed(`${number(amount)} мл уусан гэж бүртгэлээ.`);
+  const date = new Date();
+  const event = { id: crypto.randomUUID(), amount, type: 'drink', at: date.toISOString() };
+  if (commit(next => next.events.push(event))) {
+    changed(`${number(amount)} мл уусан гэж бүртгэлээ.`, () => {
+      if (commit(next => { next.events = next.events.filter(item => item.id !== event.id); })) changed('Бүртгэлийг буцаалаа.');
+    });
+  }
 }
 
 function setType(id, type) {
-  if (!state.events.some(event => event.id === id) || !Object.hasOwn(TYPES, type)) return;
-  if (commit(next => { next.events.find(event => event.id === id).type = type; })) changed(`${TYPES[type]} болгож өөрчиллөө.`);
+  const previous = state.events.find(event => event.id === id)?.type;
+  if (!previous || !Object.hasOwn(TYPES, type)) return;
+  if (commit(next => { next.events.find(event => event.id === id).type = type; })) {
+    changed(`${TYPES[type]} болгож өөрчиллөө.`, () => {
+      if (commit(next => { const event = next.events.find(item => item.id === id); if (event) event.type = previous; })) changed('Өөрчлөлтийг буцаалаа.');
+    });
+  }
 }
 
 function dialogShell(title, content) {
@@ -108,9 +121,10 @@ function openEntry(id) {
   const dialog = dialogShell(event ? 'Бүртгэл засах' : 'Ус бүртгэх', `<form id="entry-form"><label for="amount">Хэмжээ, мл</label><input autofocus id="amount" name="amount" type="number" min="1" max="5000" step="1" required value="${event?.amount ?? 250}"/><div class="amount-presets">${[150, 250, 500].map(amount => `<button type="button" data-amount="${amount}">${amount} мл</button>`).join('')}</div><label for="entry-type">Төрөл</label><select id="entry-type" name="type">${Object.entries(TYPES).map(([type, label]) => `<option value="${type}" ${(event?.type ?? 'drink') === type ? 'selected' : ''}>${label}</option>`).join('')}</select><label for="entry-date">Огноо, цаг</label><input id="entry-date" type="datetime-local" name="at" required max="${localInput()}" value="${localInput(initial)}"/><p id="entry-error" class="form-error" role="alert" hidden></p><div class="dialog-actions">${event ? '<button type="button" class="text-button danger" id="delete-entry">Устгах</button>' : '<span></span>'}<button type="submit" class="primary-button">${event ? 'Хадгалах' : 'Бүртгэх'}</button></div></form>`);
   dialog.querySelectorAll('[data-amount]').forEach(button => button.onclick = () => { dialog.querySelector('#amount').value = button.dataset.amount; });
   dialog.querySelector('#delete-entry')?.addEventListener('click', () => {
+    const removed = structuredClone(event);
     if (commit(next => { next.events = next.events.filter(item => item.id !== event.id); })) {
       dialog.close();
-      changed('Бүртгэлийг устгалаа.');
+      changed('Бүртгэлийг устгалаа.', () => { if (commit(next => next.events.push(removed))) changed('Бүртгэлийг сэргээв.'); });
     }
   });
   dialog.querySelector('form').onsubmit = submit => {
@@ -124,11 +138,14 @@ function openEntry(id) {
       error.hidden = false; error.textContent = '1–5,000 мл бүхэл тоо, өнгөрсөн эсвэл одоогийн огноо оруулна уу.';
       return;
     }
+    const previous = event && structuredClone(event);
     const timestamp = event && localInput(new Date(event.at)) === form.get('at') ? event.at : at.toISOString();
     const item = { id: event?.id ?? crypto.randomUUID(), amount, type, at: timestamp };
     if (!commit(next => { if (event) next.events[next.events.findIndex(row => row.id === id)] = item; else next.events.push(item); })) return;
     dialog.close();
-    changed(event ? 'Бүртгэлийг шинэчиллээ.' : `${number(amount)} мл ${TYPES[type].toLowerCase()} гэж бүртгэлээ.`);
+    changed(event ? 'Бүртгэлийг шинэчиллээ.' : `${number(amount)} мл ${TYPES[type].toLowerCase()} гэж бүртгэлээ.`, () => {
+      if (commit(next => { next.events = next.events.filter(row => row.id !== item.id); if (previous) next.events.push(previous); })) changed('Үйлдлийг буцаалаа.');
+    });
   };
 }
 
@@ -141,6 +158,7 @@ function bind() {
     if (event) setType(event.id, event.type === 'drink' ? 'spill' : 'drink');
   });
   document.querySelectorAll('[data-resolve]').forEach(button => button.onclick = () => setType(button.dataset.resolve, button.dataset.type));
+  document.querySelector('#undo').onclick = () => { const undo = undoAction; undoAction = undefined; undo?.(); };
 }
 
 window.addEventListener('storage', event => {
