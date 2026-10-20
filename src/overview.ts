@@ -44,7 +44,7 @@ function greeting(): string {
   return h >= 5 && h < 11 ? 'Өглөөний мэнд!' : h >= 11 && h < 18 ? 'Өдрийн мэнд!' : 'Оройн мэнд!';
 }
 
-// Centre of the page: greeting, the bottle on its base, and the quick drink chips.
+// Centre of the page: greeting, the quick drink chips (kept above the fold), then the bottle on its base.
 function stageSection(): string {
   const drink = drankOn(state.events, today);
   const { text, tone } = status(drink);
@@ -52,9 +52,9 @@ function stageSection(): string {
     <p class="stage-chip"><i aria-hidden="true"></i>Гараар бүртгэж байна</p>
     <h1 id="stage-title">${greeting()}</h1>
     <p class="stage-sub">Өнөөдөр <b>${number(drink)}</b> / ${number(state.goal)} мл уусан · <span class="${tone}">${tone === 'over' ? '! ' : ''}${text}</span></p>
-    ${bottleSection(state.events)}
     <div class="drink-chips" role="group" aria-label="Уусан ус нэмэх">${[150, 250, 500].map(ml => `<button type="button" class="drink-chip" data-drink="${ml}"><span aria-hidden="true">+</span>${ml} мл</button>`).join('')}</div>
     <p class="undo-line" id="undo-line" role="status" ${undoId ? '' : 'hidden'}>Нэмлээ <button type="button" class="text-button" id="undo">Буцаах</button></p>
+    ${bottleSection(state.events)}
   </section>`;
 }
 
