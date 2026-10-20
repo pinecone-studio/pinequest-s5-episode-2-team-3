@@ -46,6 +46,12 @@
 .plan-amount .step { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--blue); background: #fff; color: var(--blue); font-size: 26px; font-weight: 700; line-height: 1; }
 .plan-kind { margin-top: 8px; font-size: 17px; color: var(--ink); }
 .plan-how { margin-top: 4px; font-size: 16px; color: var(--muted); }
+.plan-empty { text-align: center; padding: 26px 18px; font-size: 16px; color: var(--muted); display: grid; gap: 6px; }
+.plan-empty strong { color: var(--ink); font-size: 17px; }
+.ai-chip { display: inline-block; margin-bottom: 10px; padding: 4px 12px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 14px; font-weight: 700; }
+.ai-off { padding: 10px 12px; border-radius: 8px; background: #fff6e5; color: #7a4f00; font-size: 15px; }
+.plan-fields label small { font-size: 14px; }
+.plan-save:disabled { opacity: .45; cursor: default; }
 .plan-warning { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #fbeee9; color: #914530; font-size: 16px; }
 .plan-save { width: 100%; margin-top: 16px; min-height: 56px; font-size: 18px; }
 .plan-saved { margin-top: 10px; font-size: 16px; color: #2f6e4b; min-height: 1.5em; }
