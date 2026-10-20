@@ -83,3 +83,11 @@ describe('event API', () => {
     expect(await (await call('GET', '/api/health')).json()).toEqual({ ok: true, ai: false, contractVersion: 1 });
   });
 });
+
+test('oversized and missing bodies are rejected without touching data; responses are never cached', async () => {
+  expect((await call('POST', '/api/events', 'x'.repeat(5_000_001))).status).toBe(413);
+  expect((await call('POST', '/api/events')).status).toBe(400);
+  const list = await call('GET', '/api/events');
+  expect(list.headers.get('Cache-Control')).toBe('no-store');
+  expect(await list.json()).toEqual([]);
+});
