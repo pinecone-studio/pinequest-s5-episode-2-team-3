@@ -12,6 +12,7 @@
     "cap:sync": "bun run build && cap sync",
     "android": "bun run cap:sync && cap open android",
     "ios": "bun run cap:sync && cap open ios"
+    "deploy": "npm run build && npx wrangler@4 deploy"
   },
   "devDependencies": {
     "@capacitor/cli": "7.6.9",

@@ -31,10 +31,13 @@ function since(bottle: BottleState): number {
 }
 
 // Every logged amount left the bottle: drunk, spilled, or not yet decided.
+// Using more than one bottle means it was refilled, so count from the last full bottle.
 function remaining(events: readonly WaterEntry[], bottle: BottleState): number {
   const from = since(bottle);
   const used = events.reduce((sum, e) => (Date.parse(e.at) >= from ? sum + e.amount : sum), 0);
-  return Math.max(0, bottle.capacity - used);
+  if (used <= bottle.capacity) return bottle.capacity - used;
+  const rest = used % bottle.capacity;
+  return rest === 0 ? 0 : bottle.capacity - rest;
 }
 
 // Body geometry inside the 200×300 viewBox; water level moves within it.
@@ -88,7 +91,7 @@ export function bottleSection(events: readonly WaterEntry[]): string {
         <label class="visually-hidden" for="bottle-capacity">Савны багтаамж</label>
         <select id="bottle-capacity">${CAPACITIES.map(c => `<option value="${c}" ${c === bottle.capacity ? 'selected' : ''}>${number(c)} мл сав</option>`).join('')}</select>
       </div>
-      <p class="bottle-note">${bottle.refilledAt ? `Сүүлд ${new Date(bottle.refilledAt).toTimeString().slice(0, 5)}-д дүүргэсэн` : 'Өглөө дүүргэсэн гэж тооцов'}</p>
+      <p class="bottle-note">${bottle.refilledAt ? `Сүүлд ${new Date(bottle.refilledAt).toTimeString().slice(0, 5)}-д дүүргэсэн` : 'Хоосрох бүрт дахин дүүргэсэн гэж тооцно'}</p>
     </div>
   </section>`;
 }
