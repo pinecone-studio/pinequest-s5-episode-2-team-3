@@ -16,6 +16,8 @@ Deploy хийх: `npm run db:migrate:remote && npm run deploy` (тохиргоо
 
 | Method | Зам | Тайлбар |
 | --- | --- | --- |
+| GET | `/api/devices` | Сав бүрийн сүүлчийн хэмжилт; нууц түлхүүр буцаахгүй |
+| POST | `/api/devices/:id/readings` | Bearer төхөөрөмжийн түлхүүртэй хэмжилт, 4096 byte хүртэл — [заавар](../docs/device-ingestion.md) |
 | GET / POST | `/api/sync` | Хувилбар шалгасан, давхардалгүй аппын синк — [дүрэм](../docs/app-sync.md) |
 | GET | `/api/health` | `{ ok: true, ai, contractVersion: 1 }` |
 | GET / PUT | `/api/settings` | `{ goal: 50–10000, mode: "goal" \| "limit" }` |
@@ -33,4 +35,6 @@ Deploy хийх: `npm run db:migrate:remote && npm run deploy` (тохиргоо
 
 `0003_event_identity.sql` migration-ийг шинэ Worker-оос өмнө ажиллуулна. Шинэ POST нь 201, ижил анхны payload-тай retry нь 200, өөр payload-тай ижил ID нь 409. Устгасан бүртгэлийн ижил retry 204 буцааж, дахин үүсгэхгүй. `deviceId`-тай хүсэлт тогтмол `id` заавал явуулна. `PATCH` нь `deviceId`-г өөрчлөхгүй.
 
-Аппын синк `0004_app_sync.sql` migration шаардана. Төхөөрөмжийн authentication, хэмжилт авах endpoint дараагийн шатанд хийгдэнэ. Одоогийн API нэг хэрэглэгчийнх бөгөөд нэвтрэлтгүй хэвээр байна.
+Аппын синк `0004_app_sync.sql` migration шаардана. `0005_device_readings.sql` нь төхөөрөмжийн төлөв, хэмжилтийн receipt нэмнэ. `DEVICE_TOKENS` secret-ээр хэмжилт илгээх эрхийг шалгана. Firmware тусдаа ажил хэвээр. Аппын API нэг хэрэглэгчийнх бөгөөд нэвтрэлтгүй хэвээр байна.
+
+3-р ажлын холболт, түлхүүр, локал ажиллуулах ба rollback: [device ingestion](../docs/device-ingestion.md).
