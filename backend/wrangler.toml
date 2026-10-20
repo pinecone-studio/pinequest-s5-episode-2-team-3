@@ -1,9 +1,0 @@
-name = "dusal-api"
-main = "src/index.js"
-compatibility_date = "2025-06-01"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "dusal"
-database_id = "0243fe5d-00d4-4310-b3d7-035028581f7c"
-migrations_dir = "migrations"
