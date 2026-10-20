@@ -1,4 +1,5 @@
 import './style.css';
+import './shell.css';
 import './overview.css';
 import './pwa';
 import { STORAGE_KEY, dayKey, type AppState, type WaterEntry } from './data';

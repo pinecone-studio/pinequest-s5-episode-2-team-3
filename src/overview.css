@@ -1,32 +1,8 @@
-/* Home: a soft glass app shell — plan panel on the left, the bottle on its base in the centre. */
-:root {
-  --home-bg: linear-gradient(180deg, #b9c8de 0%, #dbe3ee 42%, #f2e7e0 100%);
-  --glass: rgba(255, 255, 255, .62);
-  --glass-line: rgba(255, 255, 255, .75);
-  --hair: rgba(20, 32, 52, .07);
-  --ink-2: #1f2733;
-  --muted-2: #6f7888;
-}
-html, body { background: var(--home-bg) fixed; min-height: 100%; }
+/* Home: plan panel on the left, the bottle on its base in the centre. Shell styles live in shell.css. */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-
-main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px)); }
-.app-shell { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 30px; box-shadow: 0 30px 80px rgba(40, 60, 90, .16); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); overflow: hidden; }
-
-/* Top bar */
-.app-top { display: flex; align-items: center; gap: 16px; padding: 16px 22px; border-bottom: 1px solid var(--hair); }
-.app-top .brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--ink-2); letter-spacing: -.4px; text-decoration: none; }
-.app-top .brand > .brand-mark { display: grid; margin: 0; width: 40px; height: 40px; border-radius: 12px; place-items: center; background: linear-gradient(180deg, #2b3340, #0f131a); color: #8fd3ff; }
-.brand-mark .icon, .brand-mark svg { width: 22px; height: 22px; }
-/* Nav sits at the far right, after the date. */
-.app-top .site-nav { order: 1; margin: 0; display: flex; gap: 2px; padding: 4px; border-radius: 14px; background: rgba(255, 255, 255, .7); }
-.app-top .site-nav a { padding: 8px 18px; border-radius: 10px; font-size: 16px; color: var(--muted-2); text-decoration: none; }
-.app-top .site-nav a[aria-current="page"] { background: #fff; color: var(--ink-2); font-weight: 600; box-shadow: 0 1px 4px rgba(20, 32, 52, .1); }
-.app-date { margin-left: auto; padding: 8px 14px; border-radius: 12px; background: rgba(255, 255, 255, .7); font-size: 15px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
 
 .app-body { display: grid; grid-template-columns: 410px minmax(0, 1fr); min-height: 640px; }
 .side { grid-template-columns: minmax(0, 1fr); padding: 22px; border-right: 1px solid var(--hair); background: rgba(255, 255, 255, .28); display: grid; gap: 20px; align-content: start; }
-.panel-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 12px; }
 
 /* Plan card */
 .plan-card { background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); }
@@ -138,10 +114,6 @@ main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-
   .side { border-right: 0; border-top: 1px solid var(--hair); }
 }
 @media (max-width: 560px) {
-  main.home { padding-top: 12px; }
-  .app-top { flex-wrap: wrap; padding: 12px 14px; }
-  .app-date { display: none; }
-  .app-top .site-nav { margin-left: auto; }
   .side { padding: 14px; }
   .source-tabs { gap: 8px; }
   .source-tabs button { font-size: 14px; }
