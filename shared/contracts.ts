@@ -16,6 +16,18 @@ export interface Settings {
 export interface AppState extends Settings {
   events: WaterEntry[];
 }
+interface ReadingBase {
+  version: typeof CONTRACT_VERSION;
+  id: string;
+  deviceId: string;
+  at: string;
+  capacityMl: number;
+}
+export type DeviceReading = ReadingBase & (
+  { stable: true; remainingMl: number } |
+  { stable: false; remainingMl: null }
+);
+
 export class ContractError extends Error {}
 
 function record(value: unknown): Record<string, unknown> {
@@ -86,3 +98,22 @@ export function validateState(value: unknown): AppState {
   return { ...settings, events };
 }
 
+export function validateDeviceReading(value: unknown): DeviceReading {
+  const body = record(value);
+  if (body.version !== CONTRACT_VERSION) throw new ContractError('Төхөөрөмжийн өгөгдлийн хувилбар буруу байна.');
+  if (typeof body.capacityMl !== 'number' || !Number.isInteger(body.capacityMl) || body.capacityMl < 1 || body.capacityMl > 5000) {
+    throw new ContractError('Савны багтаамж 1–5,000 мл байна.');
+  }
+  const base: ReadingBase = {
+    version: CONTRACT_VERSION,
+    id: validateId(body.id),
+    deviceId: validateId(body.deviceId),
+    at: timestamp(body.at),
+    capacityMl: body.capacityMl,
+  };
+  if (body.stable === false && body.remainingMl === null) return { ...base, stable: false, remainingMl: null };
+  if (body.stable !== true || typeof body.remainingMl !== 'number' || !Number.isInteger(body.remainingMl) || body.remainingMl < 0 || body.remainingMl > base.capacityMl) {
+    throw new ContractError('Тогтвортой үед үлдсэн хэмжээ 0–багтаамж байна; бусад үед null байна.');
+  }
+  return { ...base, stable: true, remainingMl: body.remainingMl };
+}
