@@ -21,8 +21,8 @@ npm run dev
 
 | Хаяг | Юу хийх вэ |
 | --- | --- |
-| `/` | Ус бүртгэх |
-| `/overview.html` | Өдрийн тойм: савандаа үлдсэн ус, зорилт, 7 хоногийн график |
+| `/` | Нүүр: суурин дээрх сав, ус нэмэх, өдрийн хэмжээ (тооцоолох, эмчийн заавар, AI), 7 хоногийн график |
+| `/entries.html` | Бүх бүртгэл |
 | `/history.html` | Түүх: шүүх, CSV татах |
 | `/settings.html` | Өдрийн зорилт, нөөц хадгалах/сэргээх |
 
@@ -58,5 +58,12 @@ bun run ios       # build → sync → Xcode нээнэ (зөвхөн Mac)
 - Шинэ HTML хуудас нэмбэл `vite.config.js`-д нэмэхэд л app-д орно
 - [Ус бүртгэх хэсэг](docs/entry.md)
 - [Тохиргоо ба нөөц](docs/settings.md)
+- [AI зөвлөгөө ба түлхүүр](docs/ai.md)
 - [Утсанд суулгах (PWA)](docs/pwa.md)
 - [Backend API](backend/README.md)
+
+## 1-р ажил: өгөгдлийн нэгдсэн дүрэм
+
+`shared/contracts.ts` нь веб/Capacitor апп, Worker-ийн нэг өгөгдлийн эх сурвалж. `src/data.ts` хуучин импортын замыг хадгална. Төхөөрөмжийн `deviceId`, давтагдахгүй үйлдлийн `id`, timestamp, хэмжээ болон хэмжилтийн JSON дүрмийг [docs/device-contract.md](docs/device-contract.md)-д тайлбарласан.
+
+`bun run test:contract` нь shared validation, D1 migration, retry/давхардал, хэрэглэгчийн засвар/устгалыг SQLite дээр шалгана. Бодит төхөөрөмж, апп–backend синк энэ шатанд ороогүй. Бодит серверийг шинэчлэхийн өмнө backend migration шаардлагатай; локал кодын өөрчлөлт deploy болсон гэсэн үг биш.

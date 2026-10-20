@@ -1,4 +1,5 @@
 import './style.css';
+import './shell.css';
 import './history.css';
 import './pwa';
 import { STORAGE_KEY, TYPES, defaults, dayKey, isEntryType, sortedEvents, validateState, type AppState, type EntryType, type WaterEntry } from './data';
@@ -209,22 +210,25 @@ function bindFilters() {
 function render() {
   app.innerHTML = `
     <a class="skip-link" href="#main">Агуулга руу очих</a>
-    <header class="site-header">
-      <div class="header-inner">
-        <a class="brand" href="/" aria-label="Дусал нүүр">${icon('drop')}Дусал<span>/ хэрэглээний түүх</span></a>
-        ${siteNav('history')}
+    <main id="main" class="home" tabindex="-1">
+      <div class="app-shell">
+        <header class="app-top">
+          <a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${icon('drop')}</span>Дусал</a>
+          ${siteNav('history')}
+          <span class="app-date">${dateLabel(dayKey())}</span>
+        </header>
+        <div class="history-body">
+          <div class="history-head">
+            <div><p class="panel-label">Хэрэглээний түүх</p><h1>Бүх бүртгэл</h1></div>
+            <button type="button" class="dark-button" id="export-csv">CSV татах</button>
+          </div>
+          <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+          ${filters()}
+          <p class="history-summary" id="summary" aria-live="polite"></p>
+          <div id="results"></div>
+        </div>
       </div>
-    </header>
-    <main id="main" tabindex="-1">
-      <div class="page-heading">
-        <div><p class="page-kicker">ХЭРЭГЛЭЭНИЙ ТҮҮХ</p><h1>Бүх бүртгэл</h1></div>
-        <button class="primary-button" id="export-csv">CSV татах</button>
-      </div>
-      <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-      ${filters()}
-      <p class="history-summary" id="summary" aria-live="polite"></p>
-      <div id="results"></div>
-      <footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
+      <footer class="history-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
     </main>
     <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
     ${Toast()}
