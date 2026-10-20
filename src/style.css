@@ -9,6 +9,7 @@
   --muted: #68717b;
   --line: #dfdfd9;
   --blue: #315dd5;
+  --spill: #c98bf0;
 }
 * { box-sizing: border-box; }
 body { margin: 0; }
@@ -58,7 +59,7 @@ main:focus { outline: none; }
 .entry-row time > span { display: block; font-size: 11px; margin-bottom: 3px; }
 .entry-type { display: flex; align-items: center; gap: 10px; }
 .entry-type i { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); flex-shrink: 0; }
-.spill .entry-type i { background: #9298a1; }
+.spill .entry-type i { background: var(--spill); }
 .pending .entry-type i { background: #ba8d3e; }
 .spill .entry-type { color: var(--muted); }
 .entry-row > strong { font-size: 18px; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
