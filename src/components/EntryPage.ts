@@ -13,7 +13,7 @@ export function EntryPage(events: readonly WaterEntry[], storageError: string): 
           ${icon('drop')}Дусал<span>/ усны бүртгэл</span>
         </a>
         <nav class="site-nav" aria-label="Хэсгүүд">
-          <a href="/overview.html">Өдрийн тойм</a><a href="/" aria-current="page">Ус бүртгэх</a>
+          <a href="/overview.html">Өдрийн тойм</a><a href="/" aria-current="page">Ус бүртгэх</a><a href="/settings.html">Тохиргоо</a>
         </nav>
         <span class="connection">Гараар бүртгэж байна</span>
       </div>
