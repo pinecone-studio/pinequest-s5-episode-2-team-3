@@ -16,6 +16,7 @@
   "shortcuts": [
     { "name": "Ус бүртгэх", "url": "/" },
     { "name": "Өдрийн тойм", "url": "/overview.html" },
+    { "name": "Түүх", "url": "/history.html" },
     { "name": "Тохиргоо", "url": "/settings.html" }
   ]
 }
