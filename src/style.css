@@ -85,19 +85,55 @@ dialog form > label:not(:first-child) { margin-top: 20px; }
 .toast.visible { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
 .toast button { border: 0; background: transparent; color: #c7d5ff; text-decoration: underline; white-space: nowrap; padding: 5px 0; min-height: 32px; }
 @media (max-width: 760px) {
-  .header-inner { padding: 0 20px; min-height: 69px; }
+  .header-inner { padding: 0 20px; min-height: 64px; }
   .brand > span { display: none; }
   .connection { font-size: 11px; }
-  main { padding: 29px 20px 0; }
-  h1 { font-size: 26px; }
-  .primary-button { padding: 10px 14px; font-size: 13px; }
-  .quick-add { gap: 7px; }
-  .quick-add button { padding: 8px 10px; }
-  .entry-row { grid-template-columns: 85px 1fr auto; gap: 8px 12px; }
-  .entry-actions { grid-column: 2 / -1; justify-content: flex-start; gap: 25px; }
-  .entry-actions .text-button { min-height: 32px; padding: 3px 0; font-size: 12px; }
-  .entry-row > strong { font-size: 19px; }
-  footer { margin-top: 45px; flex-wrap: wrap; gap: 8px; }
-  dialog { padding: 23px; }
-  .toast { font-size: 12px; gap: 16px; }
+  main { padding: 26px 20px calc(100px + env(safe-area-inset-bottom)); }
+  h1 { font-size: 27px; }
+  .page-heading { margin-bottom: 25px; }
+  .primary-button { min-height: 48px; padding: 12px 16px; font-size: 16px; }
+  #add-entry {
+    position: fixed;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 20px;
+    right: 20px;
+    z-index: 5;
+    min-height: 52px;
+    border-radius: 8px;
+    box-shadow: 0 0 0 12px #faf9f6, 0 5px 20px #222b3820;
+  }
+  .quick-add { gap: 9px; padding-bottom: 24px; }
+  .quick-add > span { width: 100%; font-size: 13px; margin-bottom: 3px; }
+  .quick-add button { flex: 1; min-height: 48px; padding: 10px 6px; font-size: 14px; }
+  .entry-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; padding: 18px 0; font-size: 16px; }
+  .entry-row time { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; font-size: 12px; }
+  .entry-row time > span { margin: 0; font-size: 12px; }
+  .entry-row > strong { font-size: 23px; }
+  .entry-actions { grid-column: 1 / -1; justify-content: flex-start; gap: 9px; flex-wrap: wrap; }
+  .entry-actions .text-button { min-height: 44px; padding: 9px 12px; font-size: 14px; border: 1px solid var(--line); border-radius: 5px; }
+  .entry-actions .text-button:hover { background: #eef0f4; text-decoration: none; }
+  footer { margin-top: 35px; flex-wrap: wrap; gap: 8px; }
+  input, select { min-width: 0; min-height: 48px; font-size: 16px; }
+  input[type=datetime-local] { max-width: 100%; }
+  label { font-size: 14px; }
+  dialog {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100% - 12px);
+    max-height: calc(100dvh - 12px);
+    margin: auto 0 0;
+    border-radius: 16px 16px 0 0;
+    padding: 22px 20px calc(20px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: 20px;
+  }
+  .dialog-heading { margin-bottom: 20px; }
+  .icon-button { min-width: 44px; min-height: 44px; }
+  .amount-presets button { flex: 1; min-height: 44px; font-size: 14px; }
+  .dialog-actions { margin-top: 23px; }
+  .dialog-actions .text-button { min-height: 48px; padding-inline: 8px; font-size: 15px; }
+  .dialog-actions .primary-button { min-width: 140px; }
+  .toast { bottom: calc(88px + env(safe-area-inset-bottom)); font-size: 14px; gap: 16px; padding: 10px 14px; }
+  .toast button { min-height: 44px; font-size: 14px; }
 }
