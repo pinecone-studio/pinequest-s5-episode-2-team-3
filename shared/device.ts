@@ -1,4 +1,4 @@
-import { ContractError, validateDeviceReading, validateId, type DeviceReading } from './contracts';
+import { CONTRACT_VERSION, ContractError, validateDeviceReading, validateEntry, validateId, type DeviceReading, type WaterEntry } from './contracts';
 
 export const MIN_CHANGE_ML = 10;
 export const MAX_STABLE_GAP_MS = 5 * 60_000;
@@ -51,4 +51,14 @@ export function validateDeviceCache(value: unknown): DeviceCache {
   const devices = body.devices.map(validateDeviceStatus);
   if (new Set(devices.map(d => d.reading.deviceId)).size !== devices.length) throw new ContractError('Давхардсан төхөөрөмжийн ID байна.');
   return { selectedId: body.selectedId === null ? null : validateId(body.selectedId), devices };
+}
+
+// The base decides when water was drunk; it reports only the amount. The user may later mark it spilled.
+export function validateDeviceEvent(value: unknown): WaterEntry & { deviceId: string } {
+  const body = value as Record<string, unknown> | null;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ContractError('Өгөгдлийн бүтэц буруу байна.');
+  if (body.version !== CONTRACT_VERSION) throw new ContractError('Төхөөрөмжийн өгөгдлийн хувилбар буруу байна.');
+  if (body.type !== undefined) throw new ContractError('Суурь зөвхөн уусан хэмжээг илгээнэ; төрөл заахгүй.');
+  const entry = validateEntry({ id: body.id, amount: body.amount, type: 'drink', at: body.at, deviceId: validateId(body.deviceId) });
+  return { ...entry, deviceId: entry.deviceId! };
 }

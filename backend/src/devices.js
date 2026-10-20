@@ -1,6 +1,7 @@
 import { validateDeviceReading, ContractError } from '../../shared/contracts.ts';
-import { classify, validateDeviceStatus } from '../../shared/device.ts';
+import { classify, validateDeviceEvent, validateDeviceStatus } from '../../shared/device.ts';
 import { readJson } from './body.js';
+import { insertEvent } from './events.js';
 
 const result = (status, body) => ({ status, body });
 async function digest(text) {
@@ -22,12 +23,26 @@ export async function listDevices(db) {
   const { results } = await db.prepare('SELECT reading, received_at, outcome FROM device_states ORDER BY device_id').all();
   return results.map(row => validateDeviceStatus({ reading: JSON.parse(row.reading), receivedAt: row.received_at, outcome: row.outcome }));
 }
+const FUTURE_LIMIT_MS = 5 * 60_000;
+function checkClock(at) {
+  if (Date.parse(at) > Date.now() + FUTURE_LIMIT_MS) throw new ContractError('Төхөөрөмжийн цаг ирээдүйд байна. UTC цагаа тохируулна уу.');
+}
+// A drink the base detected. Same receipt rules as /api/events, so a retry never doubles it,
+// never overwrites the user's spill correction and never resurrects a deleted entry.
+export async function ingestDeviceEvent(request, env, deviceId) {
+  const denied = await authenticate(request, env, deviceId);
+  if (denied) return denied;
+  const event = validateDeviceEvent(await readJson(request, 4096));
+  if (event.deviceId !== deviceId) throw new ContractError('Хаяг болон үйлдлийн төхөөрөмжийн ID зөрж байна.');
+  checkClock(event.at);
+  return insertEvent(env.DB, event);
+}
 export async function ingestReading(request, env, deviceId) {
   const denied = await authenticate(request, env, deviceId);
   if (denied) return denied;
   const reading = validateDeviceReading(await readJson(request, 4096));
   if (reading.deviceId !== deviceId) throw new ContractError('Хаяг болон хэмжилтийн төхөөрөмжийн ID зөрж байна.');
-  if (Date.parse(reading.at) > Date.now() + 5 * 60_000) throw new ContractError('Төхөөрөмжийн цаг ирээдүйд байна. UTC цагаа тохируулна уу.');
+  checkClock(reading.at);
   const payload = JSON.stringify(reading);
   const eventId = 'dev-' + (await digest(`${deviceId}\n${reading.id}`)).slice(0, 60);
   const db = env.DB;
