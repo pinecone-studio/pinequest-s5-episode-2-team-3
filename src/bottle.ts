@@ -40,60 +40,79 @@ function remaining(events: readonly WaterEntry[], bottle: BottleState): number {
   return rest === 0 ? 0 : bottle.capacity - rest;
 }
 
-// Body geometry inside the 200×300 viewBox; water level moves within it.
-const BODY_TOP = 92, BODY_BOTTOM = 284;
+// Body geometry inside the 240×400 viewBox; water level moves within it.
+const BODY_TOP = 118, BODY_BOTTOM = 320;
 let shownFrac: number | null = null;
 
 const levelY = (frac: number) => (BODY_BOTTOM - BODY_TOP) * (1 - frac);
+const BODY = 'M98 74 V62 H142 V74 C142 90 172 94 172 130 V300 A20 20 0 0 1 152 320 H88 A20 20 0 0 1 68 300 V130 C68 94 98 90 98 74Z';
 
+export function bottleStatus(events: readonly WaterEntry[]): { left: number; capacity: number; frac: number } {
+  const bottle = readBottle();
+  const left = remaining(events, bottle);
+  return { left, capacity: bottle.capacity, frac: left / bottle.capacity };
+}
+
+// The bottle standing on the smart base, with its own small controls underneath.
 export function bottleSection(events: readonly WaterEntry[]): string {
   const bottle = readBottle();
   const left = remaining(events, bottle);
   const frac = left / bottle.capacity;
   const low = frac <= 0.15;
   const startFrac = shownFrac ?? frac;
-  return `<section class="bottle-card${low ? ' low' : ''}" aria-labelledby="bottle-title" data-frac="${frac}">
+  const wave = (y: number, amp: number) => `M-240 ${y} q30 -${amp} 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 V460 H-240Z`;
+  return `<div class="bottle-card${low ? ' low' : ''}" data-frac="${frac}">
     <div class="bottle-art" aria-hidden="true">
-      <svg viewBox="0 0 200 300">
+      <svg viewBox="0 0 240 400">
         <defs>
-          <clipPath id="bottle-clip"><path d="M72 72 V60 H128 V72 C128 84 168 88 168 122 V256 A28 28 0 0 1 140 284 H60 A28 28 0 0 1 32 256 V122 C32 88 72 84 72 72Z"/></clipPath>
+          <clipPath id="bottle-clip"><path d="${BODY}"/></clipPath>
+          <linearGradient id="g-glass" x1="0" x2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".55" stop-color="#eef5ff" stop-opacity=".75"/><stop offset="1" stop-color="#d7e6fb" stop-opacity=".9"/></linearGradient>
+          <linearGradient id="g-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc8ff"/><stop offset="1" stop-color="#2f6fe0"/></linearGradient>
+          <linearGradient id="g-cap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4558"/><stop offset="1" stop-color="#12161f"/></linearGradient>
+          <linearGradient id="g-sleeve" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5eead4"/><stop offset="1" stop-color="#0f9488"/></linearGradient>
+          <linearGradient id="g-base" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b4454"/><stop offset="1" stop-color="#0d1118"/></linearGradient>
+          <radialGradient id="g-shadow"><stop offset="0" stop-color="#1d2734" stop-opacity=".35"/><stop offset="1" stop-color="#1d2734" stop-opacity="0"/></radialGradient>
+          <radialGradient id="g-led"><stop offset="0" stop-color="#9ff3ff"/><stop offset="1" stop-color="#9ff3ff" stop-opacity="0"/></radialGradient>
         </defs>
+        <ellipse cx="120" cy="384" rx="104" ry="12" fill="url(#g-shadow)"/>
         <g class="bottle-body">
-          <path class="glass" d="M72 72 V60 H128 V72 C128 84 168 88 168 122 V256 A28 28 0 0 1 140 284 H60 A28 28 0 0 1 32 256 V122 C32 88 72 84 72 72Z"/>
+          <path class="glass" d="${BODY}" fill="url(#g-glass)"/>
           <g clip-path="url(#bottle-clip)">
             <g class="water" style="transform: translateY(${levelY(startFrac)}px)">
-              <path class="wave back" d="M-200 ${BODY_TOP} q25 -10 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 V400 H-200Z"/>
-              <path class="wave front" d="M-200 ${BODY_TOP + 4} q25 -9 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 V400 H-200Z"/>
-              <circle class="bubble b1" cx="70" cy="270" r="4"/><circle class="bubble b2" cx="120" cy="276" r="3"/><circle class="bubble b3" cx="96" cy="280" r="5"/>
+              <path class="wave back" d="${wave(BODY_TOP, 9)}"/>
+              <path class="wave front" d="${wave(BODY_TOP + 5, 8)}" fill="url(#g-water)"/>
+              <circle class="bubble b1" cx="96" cy="300" r="4"/><circle class="bubble b2" cx="146" cy="306" r="3"/><circle class="bubble b3" cx="120" cy="312" r="5"/>
             </g>
           </g>
-          <path class="outline" d="M72 72 V60 H128 V72 C128 84 168 88 168 122 V256 A28 28 0 0 1 140 284 H60 A28 28 0 0 1 32 256 V122 C32 88 72 84 72 72Z"/>
-          <rect class="shine" x="46" y="128" width="8" height="70" rx="4"/>
-          <rect class="cap" x="64" y="30" width="72" height="32" rx="10"/>
-          <circle class="cap-light" cx="100" cy="46" r="7"/>
+          <path class="outline" d="${BODY}"/>
+          <rect class="shine" x="80" y="136" width="9" height="118" rx="4.5"/>
+          <rect class="shine soft" x="152" y="150" width="5" height="60" rx="2.5"/>
+          <rect class="cap" x="90" y="26" width="60" height="38" rx="11" fill="url(#g-cap)"/>
+          <circle cx="120" cy="45" r="14" fill="url(#g-led)" class="cap-glow"/>
+          <circle class="cap-light" cx="120" cy="45" r="6"/>
           <g class="face">
-            <g class="eyes"><circle cx="80" cy="168" r="7"/><circle cx="120" cy="168" r="7"/></g>
-            <circle class="glint" cx="82" cy="166" r="2.4"/><circle class="glint" cx="122" cy="166" r="2.4"/>
-            <ellipse class="blush" cx="66" cy="184" rx="9" ry="5"/><ellipse class="blush" cx="134" cy="184" rx="9" ry="5"/>
-            <path class="mouth" d="${low ? 'M90 192 Q100 184 110 192' : 'M88 186 Q100 198 112 186'}"/>
+            <g class="eyes"><circle cx="102" cy="206" r="7"/><circle cx="138" cy="206" r="7"/></g>
+            <circle class="glint" cx="104" cy="204" r="2.4"/><circle class="glint" cx="140" cy="204" r="2.4"/>
+            <ellipse class="blush" cx="89" cy="222" rx="8" ry="4.5"/><ellipse class="blush" cx="151" cy="222" rx="8" ry="4.5"/>
+            <path class="mouth" d="${low ? 'M111 230 Q120 222 129 230' : 'M109 224 Q120 236 131 224'}"/>
           </g>
         </g>
-        <path class="sip-drop" d="M100 4 C100 4 92 15 92 20 A8 8 0 0 0 108 20 C108 15 100 4 100 4Z"/>
+        <rect x="60" y="298" width="120" height="40" rx="13" fill="url(#g-sleeve)"/>
+        <rect x="70" y="305" width="100" height="5" rx="2.5" fill="#ffffff" opacity=".45"/>
+        <rect x="34" y="334" width="172" height="40" rx="16" fill="url(#g-base)"/>
+        <rect x="48" y="338" width="144" height="3" rx="1.5" fill="#ffffff" opacity=".18"/>
+        <circle cx="184" cy="354" r="12" fill="url(#g-led)" class="base-glow"/>
+        <circle cx="184" cy="354" r="4.5" fill="#9ff3ff"/>
+        <path class="sip-drop" d="M120 2 C120 2 112 13 112 18 A8 8 0 0 0 128 18 C128 13 120 2 120 2Z"/>
       </svg>
     </div>
-    <div class="bottle-info">
-      <h2 id="bottle-title" class="bottle-label">Савандаа одоо</h2>
-      <p class="bottle-amount"><strong>${number(left)}</strong> мл <span>/ ${number(bottle.capacity)} мл</span></p>
-      <p class="bottle-weight">≈ ${number(left)} г ус · ${Math.round(frac * 100)}%</p>
-      <p class="bottle-status" role="status">${low ? 'Сав хоосорч байна — дүүргээрэй' : 'Уух бүрт ус багасна'}</p>
-      <div class="bottle-actions">
-        <button class="primary-button" id="bottle-refill" type="button">Дүүргэсэн</button>
-        <label class="visually-hidden" for="bottle-capacity">Савны багтаамж</label>
-        <select id="bottle-capacity">${CAPACITIES.map(c => `<option value="${c}" ${c === bottle.capacity ? 'selected' : ''}>${number(c)} мл сав</option>`).join('')}</select>
-      </div>
-      <p class="bottle-note">${bottle.refilledAt ? `Сүүлд ${new Date(bottle.refilledAt).toTimeString().slice(0, 5)}-д дүүргэсэн` : 'Хоосрох бүрт дахин дүүргэсэн гэж тооцно'}</p>
+    <div class="bottle-meta">
+      <span class="meta-pill"><b>${number(left)}</b> / ${number(bottle.capacity)} мл савандаа</span>
+      <label class="visually-hidden" for="bottle-capacity">Савны багтаамж</label>
+      <select id="bottle-capacity" class="meta-select">${CAPACITIES.map(c => `<option value="${c}" ${c === bottle.capacity ? 'selected' : ''}>${number(c)} мл сав</option>`).join('')}</select>
+      <button class="meta-button" id="bottle-refill" type="button">Дүүргэсэн</button>
     </div>
-  </section>`;
+  </div>`;
 }
 
 // Animate from the previously shown level to the new one; wobble + drop when water went down.
