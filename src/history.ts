@@ -1,5 +1,6 @@
 import './style.css';
 import './history.css';
+import './pwa';
 import { STORAGE_KEY, TYPES, defaults, dayKey, sortedEvents, validateState, type AppState, type WaterEntry } from './data';
 import { dateLabel, escape, number, time } from './format';
 import { icon } from './components/Icon';
