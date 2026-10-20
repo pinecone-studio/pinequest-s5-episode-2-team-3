@@ -37,12 +37,29 @@ function summarize(events: readonly WaterEntry[], key: string): DaySummary {
   return summary;
 }
 
+function status(drink: number): { text: string; tone: 'ok' | 'short' | 'over' } {
+  const { goal, mode } = state;
+  const diff = goal - drink;
+  if (mode === 'goal') {
+    if (diff > 0) return { text: `Зорилтод хүрэхэд ${number(diff)} мл дутуу`, tone: 'short' };
+    return { text: diff < 0 ? `Зорилт биеллээ · ${number(-diff)} мл илүү` : 'Зорилт биеллээ', tone: 'ok' };
+  }
+  if (diff >= 0) return { text: `Хязгаар хүртэл ${number(diff)} мл үлдсэн`, tone: 'short' };
+  return { text: `Хязгаараас ${number(-diff)} мл хэтэрсэн`, tone: 'over' };
+}
+
 function summarySection(key: string): string {
   const day = summarize(state.events, key);
+  const percent = Math.round((day.drink / state.goal) * 100);
+  const { text, tone } = status(day.drink);
+  const target = state.mode === 'goal' ? 'Өдрийн зорилт' : 'Өдрийн дээд хязгаар';
   return `<section class="summary" aria-labelledby="summary-title">
     <h2 id="summary-title" class="visually-hidden">Өдрийн дүн</h2>
     <p class="summary-label">Уусан</p>
     <p class="summary-total"><strong>${number(day.drink)}</strong> мл</p>
+    <p class="summary-target">${target} <strong>${number(state.goal)} мл</strong> · ${percent}%</p>
+    <div class="progress ${tone}" role="progressbar" aria-label="${target}" aria-valuemin="0" aria-valuemax="${state.goal}" aria-valuenow="${Math.min(day.drink, state.goal)}" aria-valuetext="${number(day.drink)} / ${number(state.goal)} мл"><span style="width:${Math.min(percent, 100)}%"></span></div>
+    <p class="summary-status ${tone}">${tone === 'over' ? '<b aria-hidden="true">!</b>' : ''}${text}</p>
     <dl class="facts">
       <div><dt>Уусан бүртгэл</dt><dd>${day.drinkCount}</dd></div>
       <div><dt>Асгасан</dt><dd>${number(day.spill)} мл <small>дүнд ороогүй</small></dd></div>
