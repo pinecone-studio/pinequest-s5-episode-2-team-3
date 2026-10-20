@@ -1,0 +1,13 @@
+// Frontend: Vite build (index.html + overview.html) served as Workers static assets.
+// Deploy: `bun run deploy` (builds first, then uploads ./dist).
+{
+  "$schema": "https://unpkg.com/wrangler@4/config-schema.json",
+  "name": "dusal",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./dist",
+    // Serve /overview for overview.html, /overview.html redirects there.
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

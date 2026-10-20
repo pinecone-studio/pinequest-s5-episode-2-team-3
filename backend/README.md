@@ -10,7 +10,7 @@ npm run db:migrate:local
 npm run dev                    # http://localhost:8787
 ```
 
-Deploy хийх: `npm run db:migrate:remote && npm run deploy`.
+Deploy хийх: `npm run db:migrate:remote && npm run deploy` (тохиргоо: `wrangler.jsonc`).
 
 ## API
 
