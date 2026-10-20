@@ -354,7 +354,7 @@ function render() {
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${dropIcon}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-      <div class="app-body"><aside class="side">${planSection(readProfile())}${metricsSection()}</aside>${stageSection()}</div>
+      <div class="app-body">${stageSection()}<aside class="side">${planSection(readProfile())}${metricsSection()}</aside></div>
     </div>
     <div class="glass-card">${weekSection()}</div>
     <footer class="home-footer"><span>Дусал</span><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Нөөц ба тохиргоо</a></p></footer>

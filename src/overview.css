@@ -1,8 +1,9 @@
 /* Home: plan panel on the left, the bottle on its base in the centre. Shell styles live in shell.css. */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.app-body { display: grid; grid-template-columns: 410px minmax(0, 1fr); min-height: 640px; }
-.side { grid-template-columns: minmax(0, 1fr); padding: 22px; border-right: 1px solid var(--hair); background: rgba(255, 255, 255, .28); display: grid; gap: 20px; align-content: start; }
+/* Bottle stage on the left, plan panel on the right. */
+.app-body { display: grid; grid-template-columns: minmax(0, 1fr) 410px; min-height: 640px; }
+.side { grid-template-columns: minmax(0, 1fr); padding: 22px; border-left: 1px solid var(--hair); background: rgba(255, 255, 255, .28); display: grid; gap: 20px; align-content: start; }
 
 /* Plan card */
 .plan-card { background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); }
@@ -110,8 +111,7 @@
 @media (prefers-reduced-motion: reduce) { .bar-track i, .chart .band, .drink-chip { transition: none; } }
 @media (max-width: 1000px) {
   .app-body { grid-template-columns: minmax(0, 1fr); }
-  .stage { order: -1; }
-  .side { border-right: 0; border-top: 1px solid var(--hair); }
+  .side { border-left: 0; border-top: 1px solid var(--hair); }
 }
 @media (max-width: 560px) {
   .side { padding: 14px; }
