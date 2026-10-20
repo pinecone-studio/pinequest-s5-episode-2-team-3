@@ -118,6 +118,8 @@
   .source-tabs { gap: 8px; }
   .source-tabs button { font-size: 14px; }
   .stage { padding: 24px 14px; }
+  .drink-chips { width: 100%; gap: 8px; flex-wrap: nowrap; }
+  .drink-chip { flex: 1 1 0; min-width: 0; justify-content: center; gap: 4px; padding: 0 6px; font-size: clamp(14px, 4.2vw, 16px); white-space: nowrap; }
   .glass-card { padding: 16px; }
   .week-head { flex-direction: column; gap: 12px; }
   .legend { display: flex; gap: 18px; }
