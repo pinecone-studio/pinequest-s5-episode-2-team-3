@@ -1,3 +1,5 @@
+import { DevicePanel, bindDevicePanel } from './components/DevicePanel';
+import { deviceSummary, devices } from './devices';
 import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './shell.css';
@@ -54,9 +56,10 @@ function stageSection(): string {
   const drink = drankOn(state.events, today);
   const { text, tone } = status(drink);
   return `<section class="stage" aria-labelledby="stage-title">
-    <p class="stage-chip"><i aria-hidden="true"></i>Гараар бүртгэж байна</p>
+    <p class="stage-chip"><i aria-hidden="true"></i>${escape(deviceSummary())}</p>
     <h1 id="stage-title">${greeting()}</h1>
     <p class="stage-sub">Өнөөдөр <b>${number(drink)}</b> / ${number(state.goal)} мл уусан · <span class="${tone}">${tone === 'over' ? '! ' : ''}${text}</span></p>
+    <p class="stage-sub" data-device-note ${devices.cache.selectedId ? '' : 'hidden'}>Савнаас уусныг автоматаар бүртгэнэ. Доорх товчоор өөр аяга, савнаас уусан усаа нэмнэ.</p>
     <div class="drink-chips" role="group" aria-label="Уусан ус нэмэх">${[150, 250, 500].map(ml => `<button type="button" class="drink-chip" data-drink="${ml}"><span aria-hidden="true">+</span>${ml} мл</button>`).join('')}</div>
     <p class="undo-line" id="undo-line" role="status" ${undoId ? '' : 'hidden'}>Нэмлээ <button type="button" class="text-button" id="undo">Буцаах</button></p>
     ${bottleSection(state.events)}
@@ -71,7 +74,7 @@ function metricsSection(): string {
   const pct = (n: number) => Math.max(4, Math.min(100, Math.round(n * 100)));
   const bars = [
     { name: 'Уусан', value: `${Math.round((drink / state.goal) * 100)}%`, h: pct(drink / state.goal), cls: 'b-drink' },
-    { name: 'Савандаа', value: `${number(bottle.left)} мл`, h: pct(bottle.frac), cls: 'b-bottle' },
+    { name: 'Савандаа', value: bottle.left === null ? '?' : `${number(bottle.left)} мл`, h: pct(bottle.frac), cls: 'b-bottle' },
     { name: 'Үлдсэн', value: `${number(Math.max(0, state.goal - drink))} мл`, h: pct(Math.max(0, state.goal - drink) / state.goal), cls: 'b-left' },
     { name: '7 хоног', value: `${number(Math.round(week))} мл`, h: pct(week / state.goal), cls: 'b-week' },
   ];
@@ -368,12 +371,23 @@ function bindChart() {
   });
 }
 
+function refreshMeasurement(): void {
+  const bottle = document.querySelector('.bottle-card');
+  if (bottle) { bottle.outerHTML = bottleSection(state.events); bindBottle(render); }
+  const metrics = document.querySelector('.metrics');
+  if (metrics) metrics.outerHTML = metricsSection();
+  document.querySelector<HTMLElement>('[data-device-note]')?.toggleAttribute('hidden', !devices.cache.selectedId);
+  const chip = document.querySelector('.stage-chip');
+  if (chip) chip.textContent = deviceSummary();
+}
+
 function render() {
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home" tabindex="-1">
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${dropIcon}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       ${SyncStatus()}
+      ${DevicePanel()}
       <div class="app-body">${stageSection()}<aside class="side">${planSection(readProfile())}${metricsSection()}</aside></div>
     </div>
     <div class="glass-card">${weekSection()}</div>
@@ -384,6 +398,7 @@ function render() {
   bindPlan();
   bindChart();
   bindBottle(render);
+  bindDevicePanel(refreshMeasurement);
   bindSyncStatus();
 }
 

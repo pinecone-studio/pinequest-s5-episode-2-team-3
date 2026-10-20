@@ -50,3 +50,5 @@
   .bottle-art, .bottle-art .water, .bottle-art .wave, .bottle-art .eyes, .bottle-art .bubble, .bottle-art .cap-glow, .bottle-art .base-glow,
   .bottle-card.sip .bottle-body, .bottle-card.sip .sip-drop { animation: none; transition: none; }
 }
+
+.bottle-card.unknown .water, .bottle-card.unknown .cap-glow, .bottle-card.unknown .base-glow { opacity: .15; animation: none; }

@@ -1,0 +1,9 @@
+.device-panel { margin: 16px 0; padding: 16px; border: 1px solid #d7e5e4; border-radius: 12px; background: #fff; color: #284b49; font-size: 13px; line-height: 1.5; }
+.device-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.device-heading h2 { margin: 0; font-size: 16px; }
+.device-panel button { min-height: 44px; padding: 8px 14px; border: 1px solid #b5ceca; border-radius: 8px; background: #f6faf9; color: inherit; cursor: pointer; }
+.device-panel label { display: block; margin: 12px 0 4px; }
+.device-panel select { width: 100%; min-height: 44px; font: inherit; }
+.device-panel p { margin: 8px 0 0; }
+.device-panel .device-time { color: #5d6870; }
+.device-panel .device-warning, .device-panel .device-error { color: #914530; }
