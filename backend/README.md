@@ -10,7 +10,7 @@ npm run db:migrate:local
 npm run dev                    # http://localhost:8787
 ```
 
-Deploy хийх: `npm run db:migrate:remote && npm run deploy`.
+Deploy хийх: `npm run db:migrate:remote && npm run deploy` (тохиргоо: `wrangler.jsonc`).
 
 ## API
 
@@ -21,5 +21,7 @@ Deploy хийх: `npm run db:migrate:remote && npm run deploy`.
 | GET | `/api/state` | `{ goal, mode, events }` — вэбийн `dusal-v1` бүтэцтэй ижил |
 | GET | `/api/events?from=&to=` | ISO огноогоор шүүнэ, шинэ нь эхэндээ |
 | POST | `/api/events` | `{ id?, amount: 1–5000, type: "drink" \| "spill" \| "pending", at }` |
+| PATCH | `/api/events/:id` | `amount`, `type`, `at`-ын аль нэгийг өөрчилнө |
+| DELETE | `/api/events/:id` | 204 буцаана |
 
 Одоогоор нэвтрэлт (auth) байхгүй, нэг хэрэглэгчийнх.
