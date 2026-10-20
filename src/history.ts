@@ -6,6 +6,7 @@ import { dateLabel, escape, number, time } from './format';
 import { icon } from './components/Icon';
 import { openEntryDialog } from './components/EntryDialog';
 import { Toast, notify } from './components/Toast';
+import { closeTypeMenu, openTypeMenu, typeTrigger } from './components/TypeMenu';
 import { siteNav } from './nav';
 import { downloadCsv, entriesCsv } from './csv';
 
@@ -60,6 +61,17 @@ function commit(change: (next: AppState) => void): boolean {
 
 function changed(message: string, undo?: () => void) { renderResults(); notify(message, undo); }
 
+// Drink and spill are the only final types; a pending entry gets resolved here too.
+function setType(id: string | undefined, type: unknown) {
+  const previous = state.events.find(event => event.id === id)?.type;
+  if (!previous || type === previous || (type !== 'drink' && type !== 'spill')) return;
+  if (!commit(next => { next.events.find(event => event.id === id)!.type = type; })) return;
+  changed(`${TYPES[type]} болгож өөрчиллөө.`, () => {
+    if (commit(next => { const event = next.events.find(item => item.id === id); if (event) event.type = previous; })) changed('Өөрчлөлтийг буцаалаа.');
+  });
+  app.querySelector<HTMLButtonElement>(`[data-type-menu="${id}"]`)?.focus();
+}
+
 function openEdit(id: string | undefined) {
   const entry = state.events.find(item => item.id === id);
   if (!entry) return;
@@ -105,7 +117,7 @@ function groupByDay(events: readonly WaterEntry[]): [string, WaterEntry[]][] {
 function row(event: WaterEntry): string {
   return `<li class="history-row ${event.type}">
     <time datetime="${event.at}">${time(event.at)}</time>
-    <span class="entry-type"><i></i>${TYPES[event.type]}</span>
+    <div class="type-cell">${typeTrigger(event.id, event.type, `${time(event.at)} цагийн ${event.amount} мл`)}</div>
     <strong>${number(event.amount)} <small>мл</small></strong>
     <button class="text-button subdued" data-edit="${event.id}"
       aria-label="${dateLabel(dayKey(new Date(event.at)))} ${time(event.at)} цагийн ${event.amount} мл бүртгэл засах">Засах</button>
@@ -217,10 +229,24 @@ function render() {
   bindFilters();
   app.querySelector<HTMLButtonElement>('#export-csv')!.onclick = exportCsv;
   app.querySelector<HTMLDivElement>('#results')!.onclick = event => {
-    const button = (event.target as Element).closest<HTMLButtonElement>('[data-edit]');
-    if (button) openEdit(button.dataset.edit);
+    const target = event.target as Element;
+    const trigger = target.closest<HTMLButtonElement>('[data-type-menu]');
+    if (trigger) toggleTypeMenu(trigger);
+    const edit = target.closest<HTMLButtonElement>('[data-edit]');
+    if (edit) openEdit(edit.dataset.edit);
+  };
+  app.querySelector<HTMLDivElement>('#results')!.onkeydown = event => {
+    const trigger = (event.target as Element).closest<HTMLButtonElement>('[data-type-menu]');
+    if (trigger && event.key === 'ArrowDown') { event.preventDefault(); toggleTypeMenu(trigger); }
   };
   renderResults();
+}
+
+function toggleTypeMenu(trigger: HTMLButtonElement) {
+  if (trigger.getAttribute('aria-expanded') === 'true') { closeTypeMenu(true); return; }
+  const id = trigger.dataset.typeMenu;
+  const entry = state.events.find(item => item.id === id);
+  if (entry) openTypeMenu(trigger, entry.type, type => setType(id, type));
 }
 
 window.addEventListener('storage', event => {
