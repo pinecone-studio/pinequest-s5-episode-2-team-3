@@ -70,8 +70,17 @@ function results(events: readonly WaterEntry[]): string {
   `).join('');
 }
 
+// Only "drink" counts toward the total, same as the daily overview.
+function summary(events: readonly WaterEntry[]): string {
+  const drink = events.reduce((sum, event) => event.type === 'drink' ? sum + event.amount : sum, 0);
+  return `<span><strong>${number(events.length)}</strong> бүртгэл</span>
+    <span>Уусан нийт <strong>${number(drink)}</strong> мл</span>`;
+}
+
 function renderResults() {
-  app.querySelector<HTMLDivElement>('#results')!.innerHTML = results(state.events.filter(matches));
+  const events = state.events.filter(matches);
+  app.querySelector<HTMLParagraphElement>('#summary')!.innerHTML = summary(events);
+  app.querySelector<HTMLDivElement>('#results')!.innerHTML = results(events);
 }
 
 function filters(): string {
@@ -129,6 +138,7 @@ function render() {
       </div>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       ${filters()}
+      <p class="history-summary" id="summary" aria-live="polite"></p>
       <div id="results"></div>
       <footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
     </main>

@@ -1,6 +1,8 @@
 .history-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 16px; align-items: end; padding-bottom: 28px; margin-bottom: 28px; border-bottom: 1px solid var(--line); }
 .history-filters :is(input, select) { height: 44px; }
 .history-filters .text-button { min-height: 44px; }
+.history-summary { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; font-size: 13px; color: var(--muted); }
+.history-summary strong { font-size: 20px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; margin-right: 3px; }
 
 .day-group { margin-top: 28px; }
 .day-group:first-child { margin-top: 0; }
