@@ -1,68 +1,64 @@
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.page-date { margin-top: 6px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-.day-picker { display: flex; align-items: center; gap: 6px; }
-.day-picker input { width: auto; min-height: 40px; padding: 7px 10px; font-variant-numeric: tabular-nums; }
-.day-picker .icon-button { font-size: 22px; line-height: 1; color: var(--ink); }
-.day-picker .icon-button:disabled { color: #c3c7cc; cursor: default; background: transparent; }
-.day-picker .text-button { margin-left: 6px; }
+/* Home: bottle and today on the left, the daily amount on the right */
+.home-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; align-items: start; padding-bottom: 36px; border-bottom: 1px solid var(--line); }
+.home-left .bottle-card { border-bottom: 0; margin-bottom: 0; padding-bottom: 12px; grid-template-columns: 180px minmax(0, 1fr); }
 
-.summary { padding-bottom: 30px; border-bottom: 1px solid var(--line); }
-.summary-label { font-size: 12px; color: var(--muted); }
-.summary-total { font-size: 18px; color: var(--muted); margin-top: 2px; }
-.summary-total strong { font-size: 56px; line-height: 1.1; font-weight: 600; letter-spacing: -2px; color: var(--ink); font-variant-numeric: tabular-nums; }
-.summary-target { margin-top: 8px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.summary-target strong { color: var(--ink); font-weight: 500; }
-.progress { margin-top: 16px; height: 10px; border-radius: 5px; background: #e9ebef; overflow: hidden; }
-.progress span { display: block; height: 100%; border-radius: 5px; background: var(--blue); transition: width .4s; }
+.today-label { font-size: 16px; font-weight: 500; color: var(--muted); }
+.today-total { font-size: 20px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.today-total strong { font-size: 44px; line-height: 1.1; font-weight: 600; letter-spacing: -1px; color: var(--ink); }
+.progress { margin-top: 14px; height: 12px; border-radius: 6px; background: #e9ebef; overflow: hidden; }
+.progress span { display: block; height: 100%; border-radius: 6px; background: var(--blue); transition: width .4s; }
 .progress.ok span { background: #2f8a5b; }
 .progress.over span { background: #ad4239; }
-.summary-status { margin-top: 12px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.summary-status { margin-top: 10px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
 .summary-status.ok { color: #2f6e4b; }
 .summary-status.over { color: #ad4239; }
-.summary-status b { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #ad4239; color: white; font-size: 12px; }
+.summary-status b { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #ad4239; color: white; font-size: 13px; }
+.drink-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+.drink-button { min-height: 64px; border: 2px solid var(--blue); border-radius: 12px; background: #fff; color: var(--blue); font-size: 20px; font-weight: 700; }
+.drink-button:hover { background: #edf2fd; }
+.drink-button:active { transform: scale(.97); }
+.undo-line { margin-top: 10px; font-size: 16px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.undo-line .text-button { font-size: 16px; }
 
-.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 26px 0 0; }
-.facts div { border-top: 1px solid var(--line); padding-top: 12px; }
-.facts dt { font-size: 12px; color: var(--muted); }
-.facts dd { margin: 4px 0 0; font-size: 18px; font-variant-numeric: tabular-nums; }
-.facts small { display: block; font-size: 11px; color: var(--muted); }
-.facts a { font-size: 13px; color: var(--blue); text-decoration: underline; margin-left: 4px; }
+.plan-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 26px; }
+.plan-card h2 { font-size: 22px; margin-bottom: 18px; }
+.plan-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.plan-fields label { display: grid; gap: 6px; margin: 0; font-size: 16px; color: var(--muted); }
+.plan-fields .doctor, .plan-fields .wide { grid-column: 1 / -1; }
+.plan-fields input, .plan-fields select { min-height: 52px; font-size: 20px; color: var(--ink); min-width: 0; }
+.plan-result { margin-top: 22px; padding: 18px; border-radius: 12px; background: #edf2fd; }
+.plan-amount { font-size: 22px; color: var(--muted); }
+.plan-amount strong { font-size: 56px; line-height: 1; font-weight: 700; color: var(--blue); letter-spacing: -1px; }
+.plan-how { margin-top: 8px; font-size: 16px; color: var(--muted); }
+.plan-save { width: 100%; margin-top: 16px; min-height: 56px; font-size: 18px; }
+.plan-saved { margin-top: 10px; font-size: 16px; color: #2f6e4b; min-height: 1.5em; }
+.plan-note { margin-top: 6px; font-size: 15px; color: var(--muted); }
 
 .week { margin-top: 30px; }
-.week-total { font-size: 14px; color: var(--muted); margin-bottom: 12px; font-variant-numeric: tabular-nums; }
-.week-total strong { color: var(--ink); font-weight: 500; }
 .chart { position: relative; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .chart .grid { stroke: #ebebe6; stroke-width: 1; }
-.chart .axis { font-size: 12px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.chart .axis { font-size: 13px; fill: var(--muted); font-variant-numeric: tabular-nums; }
 .chart .axis.strong { fill: var(--ink); font-weight: 600; }
 .chart .bar { fill: var(--blue); opacity: .38; transition: opacity .15s; }
 .chart .selected .bar, .chart .day:hover .bar { opacity: 1; }
-.chart .value { font-size: 13px; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums; }
+.chart .value { font-size: 14px; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums; }
 .chart .goal-line { stroke: var(--ink); stroke-width: 1; opacity: .55; }
-.chart .goal-label { font-size: 12px; fill: var(--muted); }
-.chart .hit { fill: transparent; cursor: pointer; outline: none; }
+.chart .goal-label { font-size: 13px; fill: var(--muted); }
+.chart .hit { fill: transparent; outline: none; }
 .chart .hit:focus-visible { fill: #315dd514; }
-.chart-tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--ink); color: white; border-radius: 5px; padding: 6px 10px; font-size: 12px; white-space: nowrap; pointer-events: none; display: flex; flex-direction: column; align-items: center; font-variant-numeric: tabular-nums; }
-.chart-tip span { color: #c5ccd6; font-size: 11px; }
-.chart-table { margin-top: 10px; font-size: 13px; }
-.chart-table summary { cursor: pointer; color: var(--blue); padding: 8px 0; width: max-content; }
-.table-wrap { overflow-x: auto; }
-.chart-table table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-.chart-table th, .chart-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-.chart-table th { font-weight: 500; color: var(--muted); font-size: 12px; }
-.chart-table td:nth-child(n+3), .chart-table th:nth-child(n+3) { text-align: right; }
-.chart-table tr.selected td { font-weight: 600; }
+.chart-tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--ink); color: white; border-radius: 5px; padding: 6px 10px; font-size: 14px; white-space: nowrap; pointer-events: none; display: flex; flex-direction: column; align-items: center; font-variant-numeric: tabular-nums; }
+.chart-tip span { color: #c5ccd6; font-size: 13px; }
+footer a { color: var(--blue); }
 
 @media (prefers-reduced-motion: reduce) { .progress span, .chart .bar { transition: none; } }
+@media (max-width: 900px) {
+  .home-grid { grid-template-columns: 1fr; gap: 28px; }
+}
 @media (max-width: 760px) {
   main { padding-bottom: 30px; }
-  .page-heading { flex-wrap: wrap; }
-  .day-picker { width: 100%; }
-  .day-picker input { flex: 1; min-height: 44px; }
-  .summary-total strong { font-size: 48px; }
-  .facts { grid-template-columns: 1fr; gap: 0; }
-  .facts div { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0; }
-  .facts dd { margin: 0; text-align: right; }
+  .home-left .bottle-card { grid-template-columns: 130px minmax(0, 1fr); }
+  .plan-card { padding: 20px; }
 }

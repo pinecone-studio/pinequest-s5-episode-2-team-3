@@ -1,6 +1,7 @@
 import type { WaterEntry } from '../data';
 import { escape } from '../format';
 import { icon } from './Icon';
+import { siteNav } from '../nav';
 import { EntryList } from './EntryList';
 import { Toast } from './Toast';
 
@@ -9,13 +10,10 @@ export function EntryPage(events: readonly WaterEntry[], storageError: string): 
     <a class="skip-link" href="#main">Агуулга руу очих</a>
     <header class="site-header">
       <div class="header-inner">
-        <a class="brand" href="#main" aria-label="Дусал нүүр">
+        <a class="brand" href="/" aria-label="Дусал нүүр">
           ${icon('drop')}Дусал<span>/ усны бүртгэл</span>
         </a>
-        <nav class="site-nav" aria-label="Хэсгүүд">
-          <a href="/overview.html">Өдрийн тойм</a><a href="/" aria-current="page">Ус бүртгэх</a><a href="/settings.html">Тохиргоо</a>
-        </nav>
-        <span class="connection">Гараар бүртгэж байна</span>
+        ${siteNav()}
       </div>
     </header>
     <main id="main" tabindex="-1">
