@@ -1,6 +1,12 @@
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .page-date { margin-top: 6px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
+.day-picker { display: flex; align-items: center; gap: 6px; }
+.day-picker input { width: auto; min-height: 40px; padding: 7px 10px; font-variant-numeric: tabular-nums; }
+.day-picker .icon-button { font-size: 22px; line-height: 1; color: var(--ink); }
+.day-picker .icon-button:disabled { color: #c3c7cc; cursor: default; background: transparent; }
+.day-picker .text-button { margin-left: 6px; }
+
 .summary { padding-bottom: 30px; border-bottom: 1px solid var(--line); }
 .summary-label { font-size: 12px; color: var(--muted); }
 .summary-total { font-size: 18px; color: var(--muted); margin-top: 2px; }
@@ -26,6 +32,9 @@
 @media (prefers-reduced-motion: reduce) { .progress span { transition: none; } }
 @media (max-width: 760px) {
   main { padding-bottom: 30px; }
+  .page-heading { flex-wrap: wrap; }
+  .day-picker { width: 100%; }
+  .day-picker input { flex: 1; min-height: 44px; }
   .summary-total strong { font-size: 48px; }
   .facts { grid-template-columns: 1fr; gap: 0; }
   .facts div { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0; }

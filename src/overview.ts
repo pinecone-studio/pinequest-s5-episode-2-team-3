@@ -10,6 +10,7 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 let state: AppState = defaults();
 let storageError = '';
 let today = dayKey();
+let selected = today;
 
 interface DaySummary { drink: number; drinkCount: number; spill: number; pending: number }
 
@@ -68,14 +69,43 @@ function summarySection(key: string): string {
   </section>`;
 }
 
+function shiftDay(key: string, days: number): string {
+  const date = new Date(`${key}T12:00`);
+  date.setDate(date.getDate() + days);
+  return dayKey(date);
+}
+
+function select(key: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || key > today) return;
+  selected = key;
+  render();
+}
+
+function dayPicker(): string {
+  return `<div class="day-picker"><button class="icon-button" id="prev-day" aria-label="Өмнөх өдөр">‹</button><label class="visually-hidden" for="day-input">Өдөр сонгох</label><input id="day-input" type="date" max="${today}" value="${selected}"/><button class="icon-button" id="next-day" aria-label="Дараах өдөр" ${selected >= today ? 'disabled' : ''}>›</button>${selected !== today ? '<button class="text-button" id="go-today">Өнөөдөр</button>' : ''}</div>`;
+}
+
+function bind() {
+  document.querySelector('#prev-day')?.addEventListener('click', () => select(shiftDay(selected, -1)));
+  document.querySelector('#next-day')?.addEventListener('click', () => select(shiftDay(selected, 1)));
+  document.querySelector('#go-today')?.addEventListener('click', () => select(today));
+  document.querySelector<HTMLInputElement>('#day-input')?.addEventListener('change', event => select((event.target as HTMLInputElement).value));
+}
+
 function render() {
-  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Дусал нүүр">${dropIcon}Дусал<span>/ өдрийн тойм</span></a><nav class="site-nav" aria-label="Хэсгүүд"><a href="/overview.html" aria-current="page">Өдрийн тойм</a><a href="/">Ус бүртгэх</a></nav></div></header><main id="main" tabindex="-1"><div class="page-heading"><div><p class="page-kicker">ӨДРИЙН ТОЙМ</p><h1>Өнөөдөр</h1><p class="page-date">${dateLabel(today)}</p></div></div><p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>${summarySection(today)}<footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer></main>`;
+  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Дусал нүүр">${dropIcon}Дусал<span>/ өдрийн тойм</span></a><nav class="site-nav" aria-label="Хэсгүүд"><a href="/overview.html" aria-current="page">Өдрийн тойм</a><a href="/">Ус бүртгэх</a></nav></div></header><main id="main" tabindex="-1"><div class="page-heading"><div><p class="page-kicker">ӨДРИЙН ТОЙМ</p><h1>${selected === today ? 'Өнөөдөр' : dateLabel(selected)}</h1>${selected === today ? `<p class="page-date">${dateLabel(today)}</p>` : ''}</div>${dayPicker()}</div><p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>${summarySection(selected)}<footer><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer></main>`;
+  bind();
 }
 
 window.addEventListener('storage', event => {
   if (event.key === STORAGE_KEY || event.key === null) { load(); render(); }
 });
 // Roll over to the new day at midnight without a reload.
-setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 60_000);
+setInterval(() => {
+  if (dayKey() === today) return;
+  if (selected === today) selected = dayKey();
+  today = dayKey();
+  render();
+}, 60_000);
 load();
 render();
