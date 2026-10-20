@@ -1,15 +1,19 @@
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <Arduino.h>
 #include <HTTPClient.h>
 #include <HX711.h>
 #include <Preferences.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <Wire.h>
 #include <esp_timer.h>
 #include <sys/time.h>
 #include "config.h"
 #include "intake.h"
 #include "payload.h"
 #include "queue.h"
+#include "screen.h"
 
 #if __has_include("secrets.h")
 #include "secrets.h"
@@ -36,6 +40,9 @@ uint32_t nextUploadMs = 0;
 uint32_t backoffMs = 0;
 uint32_t lastReadingMs = 0;
 int lastSentRemaining = -2;
+int lastDrinkMl = 0;
+Adafruit_SSD1306 display(128, 64, &Wire, -1);
+bool hasDisplay = false;
 
 uint64_t uptimeMs() { return static_cast<uint64_t>(esp_timer_get_time() / 1000); }
 
@@ -125,6 +132,7 @@ void recordDrink(int amountMl) {
   drink.atMs = drink.timed ? now : static_cast<int64_t>(uptimeMs());
   queue.push(drink);
   saveQueue();
+  lastDrinkMl = amountMl;
 }
 
 void onChange(const dusal::Update& update) {
@@ -209,6 +217,31 @@ void updateNetwork() {
   sendReading();
 }
 
+void drawScreen() {
+  static uint32_t lastDraw = 0;
+  if (!hasDisplay || millis() - lastDraw < 500) return;
+  lastDraw = millis();
+  dusal::ScreenState state;
+  state.calibrated = calibration.valid();
+  state.phase = tracker.phase();
+  state.remainingMl = tracker.remainingMl();
+  state.hasTare = tracker.hasTare();
+  state.lastDrinkMl = lastDrinkMl;
+  state.wifi = WiFi.status() == WL_CONNECTED;
+  state.clock = clockValid;
+  state.unsent = queue.size();
+  state.dropped = queue.dropped();
+  const dusal::ScreenLines lines = dusal::renderScreen(state);
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(2);
+  display.setCursor(0, 0);
+  display.print(lines.big);
+  display.setTextSize(1);
+  for (int i = 0; i < 3; i++) { display.setCursor(0, 32 + i * 11); display.print(lines.line[i]); }
+  display.display();
+}
+
 void printStatus() {
   Serial.printf("boot %lu | wifi %s | clock %s | unsent %u | dropped %lu | rejected %lu | remaining %d ml\n",
                 static_cast<unsigned long>(bootId), WiFi.status() == WL_CONNECTED ? "ok" : "off", clockValid ? "ok" : "not set",
@@ -239,6 +272,9 @@ void setup() {
   if (prefs.isKey("tare")) tracker.restoreTare(prefs.getFloat("tare", 0));
   loadQueue();
   scale.begin(PIN_HX711_DT, PIN_HX711_SCK);
+  Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
+  hasDisplay = display.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADDRESS);
+  if (!hasDisplay) Serial.println("OLED not found: check SDA/SCL and the I2C address; continuing without it");
   Serial.println(calibration.valid() ? "calibrated" : "not calibrated: empty base -> 'zero', then known weight -> 'cal <grams>'");
 
   networkEnabled = dusal::validDeviceId(DEVICE_ID);
@@ -265,6 +301,7 @@ void loop() {
   }
 
   updateNetwork();
+  drawScreen();
 
   static uint32_t lastSample = 0;
   if (millis() - lastSample < SAMPLE_INTERVAL_MS || !scale.is_ready()) return;
