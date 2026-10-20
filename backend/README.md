@@ -17,5 +17,6 @@ Deploy хийх: `npm run db:migrate:remote && npm run deploy`.
 | Method | Зам | Тайлбар |
 | --- | --- | --- |
 | GET | `/api/health` | `{ ok: true }` |
+| GET / PUT | `/api/settings` | `{ goal: 50–10000, mode: "goal" \| "limit" }` |
 
 Одоогоор нэвтрэлт (auth) байхгүй, нэг хэрэглэгчийнх.
