@@ -1,0 +1,37 @@
+.settings-section { padding: 28px 0; border-top: 1px solid var(--line); max-width: 640px; }
+.settings-section h2 { margin-bottom: 16px; }
+.mode-options { border: 0; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mode-options legend { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.mode-option { display: flex; gap: 10px; align-items: flex-start; padding: 14px; border: 1px solid var(--line); border-radius: 6px; background: white; cursor: pointer; margin: 0; }
+.mode-option:has(input:checked) { border-color: var(--blue); background: #f3f5fc; }
+.mode-option input { width: auto; margin: 3px 0 0; accent-color: var(--blue); }
+.mode-option strong { display: block; font-weight: 600; }
+.mode-option small { display: block; color: var(--muted); font-size: 12px; }
+#goal-form #goal { max-width: 220px; }
+#goal-form .primary-button { margin-top: 18px; }
+.primary-button:disabled { opacity: .45; cursor: not-allowed; }
+
+.backup-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; }
+.backup-row + .backup-row { border-top: 1px solid var(--line); }
+.backup-row p { font-size: 13px; color: var(--muted); }
+.file-button { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 14px; cursor: pointer; white-space: nowrap; margin: 0; }
+.file-button:hover { background: #eeefeb; }
+.file-button:focus-within { outline: 2px solid var(--blue); outline-offset: 4px; }
+.file-button input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+.restore-preview { margin-top: 12px; padding: 18px; border: 1px solid #c9d3f2; border-radius: 8px; background: #f6f8fd; }
+.restore-preview:focus { outline: none; }
+.restore-preview h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.restore-preview .file-name { font-size: 12px; color: var(--muted); word-break: break-all; }
+.restore-preview dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+.restore-preview dt { font-size: 12px; color: var(--muted); }
+.restore-preview dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+.restore-preview dd small { display: block; font-size: 12px; color: var(--muted); }
+.restore-warning { font-size: 13px; color: #ad4239; }
+.restore-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+@media (max-width: 760px) {
+  .mode-options, .restore-preview dl { grid-template-columns: 1fr; }
+  .backup-row { flex-direction: column; align-items: stretch; }
+  .backup-row .primary-button, .file-button { justify-content: center; }
+}
