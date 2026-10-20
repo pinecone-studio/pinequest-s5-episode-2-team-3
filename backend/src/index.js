@@ -1,9 +1,6 @@
 import { PlanError, suggestPlan } from './plan.js';
 
-const TYPES = ['drink', 'spill', 'pending'];
-const ID_RE = /^[a-zA-Z0-9-]{1,64}$/;
-
-class ValidationError extends Error {}
+import { CONTRACT_VERSION, ContractError, validateId, validateSettings, validateEntry, validateEventPatch } from '../../shared/contracts.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -15,34 +12,17 @@ const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...cors } });
 const fail = (status, error) => json({ error }, status);
 
-function checkSettings(body) {
-  if (!body || !Number.isInteger(body.goal) || body.goal < 50 || body.goal > 10000 || !['goal', 'limit'].includes(body.mode)) {
-    throw new ValidationError('Өдрийн тохиргоо буруу байна.');
-  }
-  return { goal: body.goal, mode: body.mode };
+function toEvent(row) {
+  if (!row) return null;
+  const { device_id, ...event } = row;
+  if (device_id !== null && device_id !== undefined) event.deviceId = device_id;
+  return validateEntry(event);
 }
 
-// `partial` is used by PATCH, where every field is optional.
-function checkEvent(body, partial = false) {
-  if (!body || typeof body !== 'object') throw new ValidationError('Бүртгэл буруу байна.');
-  const out = {};
-  if (!partial || 'amount' in body) {
-    if (!Number.isInteger(body.amount) || body.amount < 1 || body.amount > 5000) throw new ValidationError('Хэмжээ 1-5000 мл байх ёстой.');
-    out.amount = body.amount;
-  }
-  if (!partial || 'type' in body) {
-    if (!TYPES.includes(body.type)) throw new ValidationError('Бүртгэлийн төрөл буруу байна.');
-    out.type = body.type;
-  }
-  if (!partial || 'at' in body) {
-    if (typeof body.at !== 'string' || !Number.isFinite(Date.parse(body.at))) throw new ValidationError('Огноо буруу байна.');
-    out.at = new Date(body.at).toISOString();
-  }
-  return out;
-}
+const EVENT_COLUMNS = 'id, amount, type, at, device_id';
 
 async function readBody(request) {
-  try { return await request.json(); } catch { throw new ValidationError('JSON буруу байна.'); }
+  try { return await request.json(); } catch { throw new ContractError('JSON буруу байна.'); }
 }
 
 async function getSettings(db) {
@@ -51,10 +31,10 @@ async function getSettings(db) {
 
 async function listEvents(db, from, to) {
   const { results } = await db
-    .prepare('SELECT id, amount, type, at FROM events WHERE at >= ?1 AND at < ?2 ORDER BY at DESC')
+    .prepare(`SELECT ${EVENT_COLUMNS} FROM events WHERE at >= ?1 AND at < ?2 ORDER BY at DESC`)
     .bind(from ?? '0000', to ?? '9999')
     .all();
-  return results;
+  return results.map(toEvent);
 }
 
 async function route(request, env) {
@@ -62,7 +42,7 @@ async function route(request, env) {
   const db = env.DB;
   const method = request.method;
 
-  if (pathname === '/api/health') return json({ ok: true, ai: Boolean(env.ANTHROPIC_API_KEY) });
+  if (pathname === '/api/health') return json({ ok: true, ai: Boolean(env.ANTHROPIC_API_KEY), contractVersion: CONTRACT_VERSION });
 
   if (pathname === '/api/plan' && method === 'POST') return json(await suggestPlan(await readBody(request), env));
 
@@ -74,7 +54,7 @@ async function route(request, env) {
   if (pathname === '/api/settings') {
     if (method === 'GET') return json(await getSettings(db));
     if (method === 'PUT') {
-      const { goal, mode } = checkSettings(await readBody(request));
+      const { goal, mode } = validateSettings(await readBody(request));
       await db.prepare('UPDATE settings SET goal = ?1, mode = ?2 WHERE id = 1').bind(goal, mode).run();
       return json({ goal, mode });
     }
@@ -86,35 +66,44 @@ async function route(request, env) {
     }
     if (method === 'POST') {
       const body = await readBody(request);
-      const event = checkEvent(body);
-      const id = body.id ?? crypto.randomUUID();
-      if (typeof id !== 'string' || !ID_RE.test(id)) throw new ValidationError('id буруу байна.');
-      try {
-        await db.prepare('INSERT INTO events (id, amount, type, at) VALUES (?1, ?2, ?3, ?4)')
-          .bind(id, event.amount, event.type, event.at).run();
-      } catch (err) {
-        if (String(err).includes('UNIQUE')) return fail(409, 'Энэ id-тай бүртгэл байна.');
-        throw err;
-      }
-      return json({ id, ...event }, 201);
+      const event = validateEntry({ ...body, id: body?.id ?? crypto.randomUUID() });
+      if (event.deviceId && !body?.id) throw new ContractError('Төхөөрөмжийн бүртгэл тогтмол ID-тай байх ёстой.');
+      const payload = JSON.stringify(event);
+      const [receiptInsert, , receipts, rows] = await db.batch([
+        db.prepare('INSERT INTO event_receipts (id, payload) VALUES (?1, ?2) ON CONFLICT(id) DO NOTHING').bind(event.id, payload),
+        db.prepare(`INSERT INTO events (id, amount, type, at, device_id)
+          SELECT ?1, ?2, ?3, ?4, ?5 FROM event_receipts WHERE id = ?1 AND payload = ?6 AND deleted = 0
+          ON CONFLICT(id) DO NOTHING`).bind(event.id, event.amount, event.type, event.at, event.deviceId ?? null, payload),
+        db.prepare('SELECT payload, deleted FROM event_receipts WHERE id = ?1').bind(event.id),
+        db.prepare(`SELECT ${EVENT_COLUMNS} FROM events WHERE id = ?1`).bind(event.id),
+      ]);
+      const receipt = receipts.results[0];
+      if (receipt.payload !== payload) return fail(409, 'Энэ ID өөр анхны өгөгдөлтэй бүртгэгдсэн байна.');
+      if (receipt.deleted) return new Response(null, { status: 204, headers: cors });
+      return json(toEvent(rows.results[0]), receiptInsert.meta.changes ? 201 : 200);
     }
   }
 
   const match = pathname.match(/^\/api\/events\/([^/]+)$/);
   if (match) {
-    const id = decodeURIComponent(match[1]);
+    let decoded;
+    try { decoded = decodeURIComponent(match[1]); } catch { throw new ContractError('ID буруу байна.'); }
+    const id = validateId(decoded);
     if (method === 'PATCH') {
-      const changes = checkEvent(await readBody(request), true);
+      const changes = validateEventPatch(await readBody(request));
       const keys = Object.keys(changes);
       if (keys.length) {
         const sets = keys.map((key, i) => `${key} = ?${i + 2}`).join(', ');
         await db.prepare(`UPDATE events SET ${sets} WHERE id = ?1`).bind(id, ...keys.map(k => changes[k])).run();
       }
-      const event = await db.prepare('SELECT id, amount, type, at FROM events WHERE id = ?1').bind(id).first();
-      return event ? json(event) : fail(404, 'Бүртгэл олдсонгүй.');
+      const event = await db.prepare(`SELECT ${EVENT_COLUMNS} FROM events WHERE id = ?1`).bind(id).first();
+      return event ? json(toEvent(event)) : fail(404, 'Бүртгэл олдсонгүй.');
     }
     if (method === 'DELETE') {
-      const { meta } = await db.prepare('DELETE FROM events WHERE id = ?1').bind(id).run();
+      const [, { meta }] = await db.batch([
+        db.prepare('UPDATE event_receipts SET deleted = 1 WHERE id = ?1').bind(id),
+        db.prepare('DELETE FROM events WHERE id = ?1').bind(id),
+      ]);
       return meta.changes ? new Response(null, { status: 204, headers: cors }) : fail(404, 'Бүртгэл олдсонгүй.');
     }
   }
@@ -128,7 +117,7 @@ export default {
     try {
       return await route(request, env);
     } catch (err) {
-      if (err instanceof ValidationError) return fail(400, err.message);
+      if (err instanceof ContractError) return fail(400, err.message);
       if (err instanceof PlanError) return fail(err.status, err.message);
       console.error(err);
       return fail(500, 'Серверийн алдаа.');
