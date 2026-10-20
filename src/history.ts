@@ -166,6 +166,9 @@ function exportCsv() {
   if (events.length) downloadCsv(`dusal-history-${dayKey()}.csv`, entriesCsv(events));
 }
 
+// Pending entries only come from the smart bottle; offer that filter once one exists (or it's selected).
+const hasPending = () => filter.type === 'pending' || state.events.some(event => event.type === 'pending');
+
 function filters(): string {
   const today = dayKey();
   return `<form class="history-filters" id="filters" aria-label="Шүүлтүүр">
@@ -181,7 +184,7 @@ function filters(): string {
       <label for="filter-type">Төрөл</label>
       <select id="filter-type" name="type">
         <option value="all">Бүгд</option>
-        ${Object.entries(TYPES).map(([type, label]) => `<option value="${type}" ${filter.type === type ? 'selected' : ''}>${label}</option>`).join('')}
+        ${Object.entries(TYPES).filter(([type]) => type !== 'pending' || hasPending()).map(([type, label]) => `<option value="${type}" ${filter.type === type ? 'selected' : ''}>${label}</option>`).join('')}
       </select>
     </div>
     <button type="button" class="text-button" id="clear-filters">Цэвэрлэх</button>
