@@ -1,0 +1,56 @@
+.bottle-card { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: center; padding: 8px 0 30px; margin-bottom: 30px; border-bottom: 1px solid var(--line); }
+.bottle-art svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.bottle-art .glass { fill: #eef6ff; }
+.bottle-art .outline { fill: none; stroke: var(--ink); stroke-width: 6; stroke-linejoin: round; }
+.bottle-art .cap { fill: var(--blue); stroke: var(--ink); stroke-width: 6; }
+.bottle-art .cap-light { fill: none; stroke: #9fe3ff; stroke-width: 4; }
+.bottle-art .shine { fill: #ffffff; opacity: .7; }
+.bottle-art .wave.back { fill: #7cc4f2; }
+.bottle-art .wave.front { fill: #4ea8e6; opacity: .9; }
+.bottle-art .bubble { fill: #ffffff; opacity: .55; }
+.bottle-art .eyes circle { fill: var(--ink); }
+.bottle-art .glint { fill: #ffffff; }
+.bottle-art .blush { fill: #ff9ec4; opacity: .85; }
+.bottle-art .mouth { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+.bottle-art .sip-drop { fill: #4ea8e6; stroke: var(--ink); stroke-width: 3; opacity: 0; }
+
+/* Level change, waves, blinking, bubbles */
+.bottle-art .water { transition: transform 1.2s cubic-bezier(.3, 1.3, .5, 1); }
+.bottle-art .wave { animation: bottle-wave 3.2s linear infinite; }
+.bottle-art .wave.front { animation-duration: 2.2s; animation-direction: reverse; }
+@keyframes bottle-wave { to { transform: translateX(100px); } }
+.bottle-art .eyes { transform-box: fill-box; transform-origin: center; animation: bottle-blink 4.5s infinite; }
+@keyframes bottle-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.bottle-art .bubble { animation: bottle-bubble 3.5s ease-in infinite; }
+.bottle-art .b2 { animation-delay: 1.2s; }
+.bottle-art .b3 { animation-delay: 2.3s; }
+@keyframes bottle-bubble { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .55; } 100% { transform: translateY(-150px); opacity: 0; } }
+
+/* After a sip: the bottle wobbles and a drop jumps out of the cap */
+.bottle-art .bottle-body { transform-box: fill-box; transform-origin: 50% 100%; }
+.bottle-card.sip .bottle-body { animation: bottle-wobble .9s ease-out; }
+@keyframes bottle-wobble { 20% { transform: rotate(-6deg); } 45% { transform: rotate(4deg); } 70% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }
+.bottle-card.sip .sip-drop { animation: bottle-sip 1s ease-out; }
+@keyframes bottle-sip { 0% { opacity: 0; transform: translateY(30px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px); } }
+
+.bottle-label { font-size: 12px; font-weight: 400; color: var(--muted); }
+.bottle-amount { font-size: 18px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.bottle-amount strong { font-size: 56px; line-height: 1.1; font-weight: 600; letter-spacing: -2px; color: var(--ink); }
+.bottle-amount span { font-size: 15px; }
+.bottle-weight { margin-top: 4px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bottle-status { margin-top: 12px; font-size: 15px; }
+.bottle-card.low .bottle-status { color: #ad4239; }
+.bottle-card.low .wave.front { fill: #8fb9d9; }
+.bottle-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.bottle-actions select { width: auto; }
+.bottle-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bottle-art .water, .bottle-art .wave, .bottle-art .eyes, .bottle-art .bubble,
+  .bottle-card.sip .bottle-body, .bottle-card.sip .sip-drop { animation: none; transition: none; }
+}
+@media (max-width: 760px) {
+  .bottle-card { grid-template-columns: 130px minmax(0, 1fr); gap: 20px; }
+  .bottle-amount strong { font-size: 42px; }
+}
