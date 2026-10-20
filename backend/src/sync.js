@@ -1,5 +1,6 @@
+import { readJson } from './body.js';
 import { mutation, canonical } from '../../shared/sync.ts';
-import { ContractError, validateState } from '../../shared/contracts.ts';
+import { validateState } from '../../shared/contracts.ts';
 
 export async function readSnapshot(db) {
   const [clock, settings, events] = await db.batch([
@@ -11,22 +12,7 @@ export async function readSnapshot(db) {
 }
 
 export async function applySnapshot(request, db) {
-  // Bound a full snapshot before parsing; receipts store only a hash, never a second event history.
-  const reader = request.body?.getReader();
-  if (!reader) throw new ContractError('JSON буруу байна.');
-  const chunks = []; let size = 0;
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    size += value.length;
-    if (size > 5_000_000) { await reader.cancel(); return { status: 413, body: { error: 'Өгөгдөл 5 MB-ээс их байна.' } }; }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(size); let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-  let body;
-  try { body = JSON.parse(new TextDecoder().decode(bytes)); } catch { throw new ContractError('JSON буруу байна.'); }
-  const input = mutation(body);
+  const input = mutation(await readJson(request));
   input.state = canonical(input.state);
   const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(input))))).map(b => b.toString(16).padStart(2, '0')).join('');
   const events = JSON.stringify(input.state.events);
