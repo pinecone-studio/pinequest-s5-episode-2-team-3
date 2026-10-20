@@ -74,9 +74,11 @@ function planSection(p: Profile): string {
   if (!draft && source !== 'ai') draft = suggestion(p);
   const d = draft;
   const aiOff = aiReady === false;
-  const aiControls = source !== 'ai' ? '' : `<label class="wide">Нэмэлт мэдээлэл <small>(заавал биш)</small><textarea id="plan-note" name="note" rows="2" maxlength="500" placeholder="Жишээ: өдөр бүр гүйдэг, гадаа халуун">${escape(aiNote)}</textarea></label>
-        ${aiOff ? '<p class="ai-off wide">AI одоогоор идэвхжээгүй байна. Түүнийг тохируулах хүртэл «Тооцоолох» эсвэл «Эмчийн заавар»-ыг ашиглаарай.</p>' : ''}
-        <button type="button" class="ai-button" id="ask-ai" ${aiAsking || aiOff ? 'disabled' : ''}>${aiAsking ? 'AI бодож байна…' : d ? 'AI-аас дахин асуух' : 'AI-аас асуух'}</button>`;
+  const aiControls = source !== 'ai' ? '' : `<div class="ai-row wide">
+          <label class="visually-hidden" for="plan-note">Нэмэлт мэдээлэл</label>
+          <input id="plan-note" name="note" type="text" maxlength="200" placeholder="Жишээ: гүйдэг, халуун" value="${escape(aiNote)}"/>
+          <button type="button" class="ai-button" id="ask-ai" ${aiAsking || aiOff ? 'disabled' : ''}>${aiAsking ? 'Бодож байна…' : d ? 'Дахин асуух' : 'AI-аас асуух'}</button>
+        </div>`;
   const result = d ? `<div class="plan-result" aria-live="polite">
         ${source === 'ai' ? '<p class="ai-chip">AI-ийн зөвлөгөө</p>' : ''}
         <div class="plan-amount">
@@ -89,11 +91,12 @@ function planSection(p: Profile): string {
         <p class="plan-kind" id="plan-kind">${d.mode === 'limit' ? 'өдөрт хамгийн ихдээ' : 'өдөрт дор хаяж'}</p>
         <p class="plan-how" id="plan-how">${escape(d.how)}</p>
         <p class="plan-warning" id="plan-warning" ${d.warning ? '' : 'hidden'}>${escape(d.warning)}</p>
-      </div>` : `<div class="plan-result plan-empty" aria-live="polite">${aiAsking ? '<p><strong>AI бодож байна…</strong></p><p>Хэдэн секунд хүлээнэ үү.</p>' : '<p><strong>Мэдээллээ шалгаад «AI-аас асуух» дарна уу.</strong></p><p>AI таны өдөрт уух усны хэмжээг гаргаж, яагаад гэдгийг тайлбарлана.</p>'}</div>`;
+      </div>` : `<div class="plan-result plan-empty" aria-live="polite">${aiAsking ? '<p><strong>AI бодож байна…</strong></p><p>Хэдэн секунд хүлээнэ үү.</p>' : aiOff ? '<p><strong>AI одоогоор идэвхжээгүй байна.</strong></p><p>«Тооцоолох» эсвэл «Эмчийн заавар»-ыг ашиглаарай.</p>' : '<p><strong>«AI-аас асуух» дарна уу.</strong></p><p>AI өдөрт уух хэмжээг гаргаж, шалтгааныг тайлбарлана.</p>'}</div>`;
   return `<section class="plan-card" aria-labelledby="plan-title">
     <h2 id="plan-title">Миний өдрийн хэмжээ</h2>
     <div class="source-tabs" role="radiogroup" aria-label="Хэрхэн гаргах вэ">${(Object.keys(SOURCES) as Source[]).map(s => `<button type="button" role="radio" aria-checked="${s === source}" data-source="${s}">${SOURCES[s]}</button>`).join('')}</div>
     <form id="plan-form" novalidate>
+      <div class="plan-body">
       <div class="plan-fields" ${source === 'doctor' ? 'hidden' : ''}>
         <label>Нас<input id="plan-age" name="age" type="number" inputmode="numeric" min="4" max="110" value="${p.age}"/></label>
         <label>Жин, кг<input id="plan-weight" name="weight" type="number" inputmode="numeric" min="10" max="250" value="${p.weight}"/></label>
@@ -102,11 +105,10 @@ function planSection(p: Profile): string {
         ${aiControls}
       </div>
       <div class="plan-fields" ${source === 'doctor' ? '' : 'hidden'}>
-        <label class="wide">Эмчийн заасан хэмжээ, мл<input id="plan-doctor" name="doctorLimit" type="number" inputmode="numeric" min="500" max="4000" value="${p.doctorLimit}"/></label>
-        <fieldset class="wide doctor-mode"><legend>Эмч юу гэж заасан бэ?</legend>
-          <label><input type="radio" name="doctorMode" value="goal" ${p.doctorMode === 'goal' ? 'checked' : ''}/> Дор хаяж ийм хэмжээ уух</label>
-          <label><input type="radio" name="doctorMode" value="limit" ${p.doctorMode === 'limit' ? 'checked' : ''}/> Үүнээс хэтрүүлэхгүй</label>
-        </fieldset>
+        <label>Хэмжээ, мл<input id="plan-doctor" name="doctorLimit" type="number" inputmode="numeric" min="500" max="4000" value="${p.doctorLimit}"/></label>
+        <label class="span2">Эмч юу гэж заасан бэ?<select id="plan-doctor-mode" name="doctorMode"><option value="goal" ${p.doctorMode === 'goal' ? 'selected' : ''}>Дор хаяж ийм хэмжээ уух</option><option value="limit" ${p.doctorMode === 'limit' ? 'selected' : ''}>Үүнээс хэтрүүлэхгүй</option></select></label>
+        <p class="doctor-hint wide">Эмчийн бичсэн хэмжээг оруулна. Бөөр, зүрхний дутагдалтай бол заавал эмчийн хязгаарыг ашиглана.</p>
+      </div>
       </div>
       ${result}
       <p class="form-error" id="plan-error" role="alert" ${aiError ? '' : 'hidden'}>${escape(aiError)}</p>
