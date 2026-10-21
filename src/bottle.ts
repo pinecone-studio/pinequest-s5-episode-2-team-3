@@ -1,11 +1,11 @@
 import { devices } from './devices';
 import './bottle.css';
 import type { WaterEntry } from './data';
+import { number } from './format';
 
 // Bottle state lives in its own key so the shared `dusal-v1` format stays untouched.
 const BOTTLE_KEY = 'dusal-bottle-v1';
 const CAPACITIES = [500, 750, 1000];
-const number = (n: number) => new Intl.NumberFormat('en-US').format(n);
 
 interface BottleState { capacity: number; refilledAt: string | null }
 
