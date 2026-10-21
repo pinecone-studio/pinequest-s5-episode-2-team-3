@@ -1,4 +1,5 @@
 import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
+import { DevicePanel, bindDevicePanel } from './components/DevicePanel';
 import './style.css';
 import './shell.css';
 import './settings.css';
@@ -93,6 +94,7 @@ function render(): void {
           <div class="settings-head"><p class="panel-label">Тохиргоо</p><h1>Тохиргоо ба нөөц</h1></div>
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
           ${SyncStatus()}
+          ${DevicePanel()}
           ${goalSection()}
           ${backupSection()}
         </div>
@@ -102,6 +104,7 @@ function render(): void {
     ${Toast()}`;
   bind();
   bindSyncStatus();
+  bindDevicePanel(render);
 }
 
 async function reload(): Promise<void> {
