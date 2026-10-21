@@ -3,3 +3,9 @@ dist/
 .DS_Store
 .wrangler/
 /package-lock.json
+
+# Local Worker credentials must never be committed.
+.dev.vars
+.dev.vars.*
+.env.local
+.env.*.local
