@@ -21,6 +21,8 @@ let state: AppState = defaults();
 let storageError = '';
 let today = dayKey();
 let undoId: string | null = null;
+// Today's drinks removed by the demo reset, kept so «Буцаах» can put them back.
+let undoReset: WaterEntry[] | null = null;
 let undoTimer: ReturnType<typeof setTimeout> | undefined;
 // Secondary panels stay folded so the home shows only today's water; remember if the user opened them.
 let connectOpen = false;
@@ -243,16 +245,46 @@ async function addDrink(ml: number) {
   await reload();
   if (result !== 'saved') { storageError = saveMessage[result]; render(); return; }
   undoId = entry.id;
-  clearTimeout(undoTimer);
-  undoTimer = setTimeout(() => { undoId = null; document.querySelector<HTMLElement>('#undo-line')?.toggleAttribute('hidden', true); }, 10_000);
+  undoReset = null;
+  offerUndo();
   render();
 }
 
-async function undo() {
-  if (!undoId) return;
-  const id = undoId;
+// Demo helper: empty today's ring by removing today's drinks, so the fill can be shown again.
+async function resetToday() {
+  const removed = state.events.filter(e => e.type === 'drink' && dayKey(new Date(e.at)) === today);
+  if (!removed.length) return;
+  const ids = new Set(removed.map(e => e.id));
+  const result = await save({ ...state, events: state.events.filter(e => !ids.has(e.id)) });
+  await reload();
+  if (result !== 'saved') { storageError = saveMessage[result]; render(); return; }
+  undoReset = removed;
   undoId = null;
-  const result = await save({ ...state, events: state.events.filter(e => e.id !== id) });
+  offerUndo();
+  render();
+}
+
+function offerUndo() {
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => {
+    undoId = null;
+    undoReset = null;
+    document.querySelector<HTMLElement>('#undo-line')?.toggleAttribute('hidden', true);
+  }, 10_000);
+}
+
+async function undo() {
+  let events: WaterEntry[];
+  if (undoReset) {
+    const known = new Set(state.events.map(e => e.id));
+    events = [...state.events, ...undoReset.filter(e => !known.has(e.id))];
+  } else if (undoId) {
+    const id = undoId;
+    events = state.events.filter(e => e.id !== id);
+  } else return;
+  undoId = null;
+  undoReset = null;
+  const result = await save({ ...state, events });
   await reload();
   if (result !== 'saved') storageError = saveMessage[result];
   render();
@@ -275,15 +307,17 @@ function render() {
         ${ringSection(drink, state.goal, state.mode)}
         <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Хязгаар' : 'Зорилт'} <b>${number(state.goal)} мл</b></button>
         ${drinkTiles()}
-        <p class="undo-line" id="undo-line" role="status" ${undoId ? '' : 'hidden'}>Нэмлээ <button type="button" class="text-button" id="undo">Буцаах</button></p>
+        <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Тэглэлээ' : 'Нэмлээ'} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         <div class="plan-wrap" id="plan-wrap" ${planOpen ? '' : 'hidden'}>${planSection(readProfile())}</div>
         ${connectSection()}
+        <button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button>
       </div>
     </div>
     <footer class="home-footer"><span>Дусал</span><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Нөөц ба тохиргоо</a></p></footer>
   </main>`;
   bindHydration(drink, addDrink);
   document.querySelector('#undo')?.addEventListener('click', undo);
+  document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
   bindPlan();
   bindDevicePanel(refreshMeasurement);
   bindSyncStatus();
