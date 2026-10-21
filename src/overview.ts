@@ -12,7 +12,7 @@ import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
 import { dateLabel, escape, number } from './format';
-import { icon } from './components/Icon';
+import { brandMark } from './components/Icon';
 
 // 2000 → "2", 2150 → "2.15", 2500 → "2.5" (the old regex left "2.", which a number input rejects).
 const liters = (ml: number) => String(Number((ml / 1000).toFixed(2)));
@@ -300,7 +300,7 @@ function render() {
   const drink = drankOn(state.events, today);
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home" tabindex="-1">
     <div class="app-shell">
-      <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${icon('drop')}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
+      <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       <div class="hydro">
         <h1 class="hydro-title">Өнөөдөр</h1>
