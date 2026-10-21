@@ -71,3 +71,12 @@ self.addEventListener('fetch', event => {
   else if (url.pathname.startsWith('/assets/')) event.respondWith(asset(request));
   else event.respondWith(staleWhileRevalidate(request));
 });
+
+// Tapping a reminder brings the app forward (or opens it).
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const open = list.find(client => 'focus' in client);
+    return open ? open.focus() : self.clients.openWindow('/');
+  }));
+});

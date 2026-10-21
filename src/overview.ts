@@ -9,6 +9,7 @@ import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
 import { needsOnboarding, showOnboarding } from './onboarding';
+import { bindSchedule, scheduleChip, startReminders } from './schedule';
 import { dateLabel, escape, number } from './format';
 import { brandMark } from './components/Icon';
 
@@ -291,6 +292,7 @@ function render() {
         <div class="hydro-head"><h1 class="hydro-title">Өнөөдөр</h1>${streak.chip}</div>
         ${buddySection(drink, state.goal, state.mode)}
         <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Эмчийн хязгаар' : 'Зорилт'} <b>${number(state.goal)} мл</b></button>
+        ${scheduleChip(state)}
         ${drinkTiles()}
         ${streak.week}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Тэглэлээ' : 'Нэмлээ'} <button type="button" class="text-button" id="undo">Буцаах</button></p>
@@ -303,6 +305,7 @@ function render() {
   </main>`;
   bindHydration(drink, addDrink, render);
   bindStreakCalendar(state.events, state.goal, state.mode);
+  bindSchedule(() => state, render);
   document.querySelector('#undo')?.addEventListener('click', undo);
   document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
   bindPlan();
@@ -331,6 +334,7 @@ window.addEventListener('storage', event => {
 setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 60_000);
 void reload().then(() => {
   render();
+  startReminders(() => state);
   // First visit: ask a few questions and start with the computed daily amount.
   if (needsOnboarding()) showOnboarding(async plan => {
     const result = await save({ ...state, goal: plan.ml, mode: plan.mode });
