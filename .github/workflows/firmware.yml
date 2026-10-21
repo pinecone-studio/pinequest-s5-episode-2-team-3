@@ -1,0 +1,31 @@
+# Compiles the smart base firmware on every change, so it stays buildable before the hardware exists.
+name: firmware
+
+on:
+  pull_request:
+    paths: ['firmware/**', '.github/workflows/firmware.yml']
+  push:
+    branches: [main]
+    paths: ['firmware/**', '.github/workflows/firmware.yml']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Core logic tests (no board needed)
+        run: sh firmware/test/run.sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('firmware/platformio.ini') }}
+      - name: Install PlatformIO
+        run: pip install platformio==6.1.16
+      - name: Build for ESP32-S3
+        # The real secrets.h is git-ignored; the template is enough to compile. Nothing is uploaded.
+        run: |
+          cp firmware/include/secrets.example.h firmware/include/secrets.h
+          pio run -d firmware
