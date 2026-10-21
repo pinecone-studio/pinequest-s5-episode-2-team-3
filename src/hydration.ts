@@ -1,5 +1,6 @@
 import './hydration.css';
 import { number } from './format';
+import { dayKey, type WaterEntry } from './data';
 import { AVATARS, avatarSvg, openAvatarPicker, readAvatar } from './avatars';
 
 // Home: a bottle buddy that fills toward the daily goal, a swipeable row of cup sizes and one big add button.
@@ -50,6 +51,138 @@ export function buddySection(drink: number, goal: number, mode: 'goal' | 'limit'
       <p class="buddy-sub">${sub}</p>
     </div>
   </div>`;
+}
+
+// Daily streak, Duolingo style: consecutive days that met the goal (or, under a doctor's limit,
+// days with drinks logged that stayed within it). Today only adds once it counts, so an
+// unfinished today never breaks the streak.
+const WEEKDAYS = ['Ням', 'Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба'];
+type Mode = 'goal' | 'limit';
+
+function dayTotals(events: readonly WaterEntry[]): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const e of events) if (e.type === 'drink') { const k = dayKey(new Date(e.at)); totals.set(k, (totals.get(k) ?? 0) + e.amount); }
+  return totals;
+}
+
+function dayCounter(events: readonly WaterEntry[], goal: number, mode: Mode): (key: string) => boolean {
+  const totals = dayTotals(events);
+  return k => { const t = totals.get(k) ?? 0; return mode === 'goal' ? t >= goal : t > 0 && t <= goal; };
+}
+
+// How each day went, as a small water drop whose face changes: beaming at the goal, smiling,
+// calm, a little sad when little was drunk, sad with a tear and a soft red rim on a missed day.
+type Mood = 'great' | 'good' | 'ok' | 'low' | 'missed' | 'wait' | 'over';
+const MOOD_LABEL: Record<Mood, string> = { great: 'Биелсэн', good: '75%+', ok: '50%+', low: 'Бага', missed: 'Алгассан', wait: 'Хүлээж байна', over: 'Хэтэрсэн' };
+const DROP = 'M12 2C12 2 4 11 4 17a8 8 0 0 0 16 0C20 11 12 2 12 2Z';
+const FACES: Record<Mood, string> = {
+  great: '<path d="M7.8 16.2q1.3-1.5 2.6 0M13.6 16.2q1.3-1.5 2.6 0" class="ln"/><path d="M9 18.6q3 3.6 6 0Z" class="fill"/>',
+  good: '<circle cx="9.2" cy="16" r="1.2"/><circle cx="14.8" cy="16" r="1.2"/><path d="M9.6 18.8q2.4 2.2 4.8 0" class="ln"/>',
+  ok: '<circle cx="9.2" cy="16" r="1.2"/><circle cx="14.8" cy="16" r="1.2"/><path d="M10 19.8h4" class="ln"/>',
+  low: '<circle cx="9.2" cy="16.3" r="1.2"/><circle cx="14.8" cy="16.3" r="1.2"/><path d="M9.6 20.6q2.4-2 4.8 0" class="ln"/>',
+  missed: '<path d="M7.8 14.8l2.4-1.1M16.2 14.8l-2.4-1.1" class="ln"/><circle cx="9.2" cy="16.4" r="1.2"/><circle cx="14.8" cy="16.4" r="1.2"/><path d="M9.8 20.8q2.2-1.8 4.4 0" class="ln"/><path d="M8.4 18.2q-.7 1.1 0 1.6q.7-.5 0-1.6Z" class="tear"/>',
+  wait: '<circle cx="9.2" cy="16" r="1.2"/><circle cx="14.8" cy="16" r="1.2"/><circle cx="12" cy="19.8" r="1.1" class="ring"/>',
+  over: '<path d="M7.8 14.6l2.6-1M16.2 14.6l-2.6-1" class="ln"/><circle cx="9.2" cy="16.4" r="1.2"/><circle cx="14.8" cy="16.4" r="1.2"/><path d="M9.6 20.6q2.4-2 4.8 0" class="ln"/>',
+};
+const dropFace = (m: Mood) => `<svg class="drop drop-${m}" viewBox="0 0 24 26" role="img" aria-label="${MOOD_LABEL[m]}"><path d="${DROP}" class="body"/>${m === 'great' ? '<circle cx="7.6" cy="18.6" r="1.3" class="blush"/><circle cx="16.4" cy="18.6" r="1.3" class="blush"/>' : ''}<path d="M8.6 9.6q-1.4 2-1.8 4" class="shine"/>${FACES[m]}</svg>`;
+const LEGEND = {
+  goal: (['great', 'good', 'ok', 'low', 'missed'] as Mood[]).map(m => `<span>${dropFace(m)}${MOOD_LABEL[m]}</span>`).join(''),
+  limit: (['great', 'over', 'missed'] as Mood[]).map(m => `<span>${dropFace(m)}${m === 'great' ? 'Хязгаарт багтсан' : MOOD_LABEL[m]}</span>`).join(''),
+};
+// Days before the first ever drink are not "missed": the app simply wasn't in use yet.
+function dayMood(events: readonly WaterEntry[], goal: number, mode: Mode): (key: string) => Mood | null {
+  const totals = dayTotals(events), today = dayKey();
+  const first = [...totals.keys()].sort()[0] ?? today;
+  return k => {
+    const t = totals.get(k) ?? 0;
+    if (!t) return k === today ? 'wait' : k < first ? null : 'missed';
+    if (mode === 'limit') return t <= goal ? 'great' : 'over';
+    const f = t / goal;
+    return f >= 1 ? 'great' : f >= .75 ? 'good' : f >= .5 ? 'ok' : 'low';
+  };
+}
+
+const noon = (d: Date) => { const x = new Date(d); x.setHours(12, 0, 0, 0); return x; };
+const daysBack = (back: number) => { const d = noon(new Date()); d.setDate(d.getDate() - back); return d; };
+
+function currentStreak(counts: (k: string) => boolean): number {
+  let streak = 0;
+  for (let back = counts(dayKey(daysBack(0))) ? 0 : 1; counts(dayKey(daysBack(back))); back++) streak++;
+  return streak;
+}
+
+export function streakParts(events: readonly WaterEntry[], goal: number, mode: Mode): { chip: string; week: string } {
+  const counts = dayCounter(events, goal, mode), mood = dayMood(events, goal, mode);
+  const streak = currentStreak(counts);
+  const chip = `<button type="button" class="streak${streak ? ' hot' : ''}" data-calendar aria-label="${streak} өдөр дараалан, календарь нээх"><span aria-hidden="true">🔥</span>${streak}</button>`;
+  const week = `<div class="week-wrap"><ol class="week-strip" aria-label="Сүүлийн 7 хоног">${[6, 5, 4, 3, 2, 1, 0].map(back => {
+    const d = daysBack(back), m = mood(dayKey(d));
+    return `<li class="m-${m ?? 'none'}${back === 0 ? ' today' : ' past'}"><span class="wd">${WEEKDAYS[d.getDay()]}</span><span class="mark">${m ? dropFace(m) : ''}</span></li>`;
+  }).join('')}</ol><button type="button" class="text-button cal-open" data-calendar>Сарын календарь →</button></div>`;
+  return { chip, week };
+}
+
+// A month calendar of goal days with the current and best streak; ‹ › walk through months.
+export function bindStreakCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): void {
+  document.querySelectorAll<HTMLButtonElement>('[data-calendar]').forEach(b => b.addEventListener('click', () => openCalendar(events, goal, mode)));
+}
+
+function openCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): void {
+  const counts = dayCounter(events, goal, mode), mood = dayMood(events, goal, mode);
+  const keys = events.filter(e => e.type === 'drink').map(e => dayKey(new Date(e.at))).sort();
+  let best = 0;
+  if (keys.length) {
+    let run = 0;
+    for (const d = noon(new Date(`${keys[0]}T12:00`)), end = noon(new Date()); d <= end; d.setDate(d.getDate() + 1)) {
+      run = counts(dayKey(d)) ? run + 1 : 0;
+      best = Math.max(best, run);
+    }
+  }
+  const today = dayKey();
+  let month = noon(new Date()); month.setDate(1);
+  const box = document.createElement('div');
+  box.className = 'cal';
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  box.setAttribute('aria-labelledby', 'cal-title');
+  document.body.append(box);
+  const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+
+  function draw(): void {
+    const y = month.getFullYear(), m = month.getMonth();
+    const first = (new Date(y, m, 1).getDay() + 6) % 7; // Monday-first
+    const len = new Date(y, m + 1, 0).getDate();
+    let met = 0;
+    const cells = Array.from({ length: first }, () => '<li class="pad"></li>');
+    for (let d = 1; d <= len; d++) {
+      const k = dayKey(new Date(y, m, d, 12));
+      if (counts(k)) met++;
+      if (k > today) { cells.push(`<li class="future"><span class="n">${d}</span></li>`); continue; }
+      const face = mood(k);
+      cells.push(`<li class="m-${face ?? 'none'}${k === today ? ' today' : ' past'}"><span class="n">${d}</span><span class="f">${face ? dropFace(face) : ''}</span></li>`);
+    }
+    box.innerHTML = `<div class="cal-card">
+      <div class="cal-top"><h2 id="cal-title">Streak</h2><button type="button" class="cal-close" aria-label="Хаах">✕</button></div>
+      <div class="cal-stats">
+        <div><b>🔥 ${currentStreak(counts)}</b><span>Одоогийн</span></div>
+        <div><b>🏆 ${best}</b><span>Хамгийн урт</span></div>
+        <div><b>✅ ${met}</b><span>Энэ сард</span></div>
+      </div>
+      <div class="cal-nav"><button type="button" data-m="-1" aria-label="Өмнөх сар">‹</button><b>${y} оны ${m + 1}-р сар</b><button type="button" data-m="1" aria-label="Дараах сар">›</button></div>
+      <ol class="cal-grid" aria-label="${y} оны ${m + 1}-р сар">${['Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя', 'Ня'].map(w => `<li class="wd">${w}</li>`).join('')}${cells.join('')}</ol>
+      <p class="cal-legend">${LEGEND[mode]}</p>
+      <p class="cal-note">${mode === 'goal' ? `Өдрийн зорилт ${number(goal)} мл` : `Эмчийн хязгаар ${number(goal)} мл`}</p>
+    </div>`;
+    box.querySelector('.cal-close')!.addEventListener('click', close);
+    box.querySelectorAll<HTMLButtonElement>('[data-m]').forEach(b => b.addEventListener('click', () => {
+      month = new Date(month.getFullYear(), month.getMonth() + Number(b.dataset.m), 1, 12); draw();
+    }));
+    box.querySelector<HTMLButtonElement>('.cal-close')!.focus();
+  }
+  box.addEventListener('click', e => { if (e.target === box) close(); });
+  draw();
 }
 
 export function drinkTiles(): string {
