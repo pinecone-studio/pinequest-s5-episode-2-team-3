@@ -58,6 +58,8 @@ export function bindHydration(drink: number, add: (ml: number) => unknown): void
     const frac = Number(ring.dataset.frac);
     const fill = ring.querySelector<SVGCircleElement>('.ring-fill')!;
     const grew = frac > shownFrac + 0.001;
+    // Crossing the goal plays the water filling the ring; afterwards it simply stays full.
+    if (frac >= 1 && shownFrac < 1) ring.classList.add('filling');
     requestAnimationFrame(() => requestAnimationFrame(() => {
       fill.style.strokeDashoffset = String(CIRC * (1 - frac));
       if (grew) ring.classList.add('pulse');
