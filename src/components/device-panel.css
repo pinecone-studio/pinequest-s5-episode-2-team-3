@@ -6,4 +6,4 @@
 .device-panel select { width: 100%; min-height: 44px; font: inherit; }
 .device-panel p { margin: 8px 0 0; }
 .device-panel .device-time { color: #5d6870; }
-.device-panel .device-warning, .device-panel .device-error { color: #914530; }
+.device-panel .device-error { color: #914530; }

@@ -37,6 +37,8 @@ export async function ingestDeviceEvent(request, env, deviceId) {
   checkClock(event.at);
   return insertEvent(env.DB, event);
 }
+// Status only: the base counts drinks itself (ingestDeviceEvent), so a reading never creates one.
+// The outcome is kept for display; the revision check keeps an older reading from replacing a newer one.
 export async function ingestReading(request, env, deviceId) {
   const denied = await authenticate(request, env, deviceId);
   if (denied) return denied;
@@ -44,7 +46,6 @@ export async function ingestReading(request, env, deviceId) {
   if (reading.deviceId !== deviceId) throw new ContractError('Хаяг болон хэмжилтийн төхөөрөмжийн ID зөрж байна.');
   checkClock(reading.at);
   const payload = JSON.stringify(reading);
-  const eventId = 'dev-' + (await digest(`${deviceId}\n${reading.id}`)).slice(0, 60);
   const db = env.DB;
   const gate = 'EXISTS (SELECT 1 FROM device_readings WHERE device_id = ?1 AND id = ?2 AND payload = ?3 AND processed = 0)';
   for (let tries = 0; tries < 5; tries++) {
@@ -53,9 +54,9 @@ export async function ingestReading(request, env, deviceId) {
     const change = classify(before, reading);
     const expectedRevision = previous?.revision ?? 0;
     const statements = [
-      db.prepare(`INSERT INTO device_readings (device_id, id, payload, outcome, event_id)
-        SELECT ?1, ?2, ?3, ?4, ?5 WHERE COALESCE((SELECT revision FROM device_states WHERE device_id = ?1), 0) = ?6
-        ON CONFLICT(device_id, id) DO NOTHING`).bind(deviceId, reading.id, payload, change.outcome, change.amount ? eventId : null, expectedRevision),
+      db.prepare(`INSERT INTO device_readings (device_id, id, payload, outcome)
+        SELECT ?1, ?2, ?3, ?4 WHERE COALESCE((SELECT revision FROM device_states WHERE device_id = ?1), 0) = ?5
+        ON CONFLICT(device_id, id) DO NOTHING`).bind(deviceId, reading.id, payload, change.outcome, expectedRevision),
     ];
     if (change.outcome !== 'stale') statements.push(
       db.prepare(`INSERT INTO device_states (device_id, revision, reading, received_at, baseline_ml, last_stable_at, outcome)
@@ -64,19 +65,15 @@ export async function ingestReading(request, env, deviceId) {
         received_at = excluded.received_at, baseline_ml = excluded.baseline_ml, last_stable_at = excluded.last_stable_at, outcome = excluded.outcome`)
         .bind(deviceId, reading.id, payload, expectedRevision + 1, new Date().toISOString(), change.next.baselineMl, change.next.lastStableAt, change.outcome),
     );
-    if (change.amount) statements.push(
-      db.prepare(`INSERT INTO events (id, amount, type, at, device_id) SELECT ?4, ?5, 'drink', ?6, ?1 WHERE ${gate}`)
-        .bind(deviceId, reading.id, payload, eventId, change.amount, reading.at),
-    );
     statements.push(
       db.prepare(`UPDATE device_readings SET processed = 1 WHERE device_id = ?1 AND id = ?2 AND payload = ?3 AND processed = 0`).bind(deviceId, reading.id, payload),
-      db.prepare('SELECT payload, outcome, event_id, processed FROM device_readings WHERE device_id = ?1 AND id = ?2').bind(deviceId, reading.id),
+      db.prepare('SELECT payload, outcome FROM device_readings WHERE device_id = ?1 AND id = ?2').bind(deviceId, reading.id),
     );
     const applied = await db.batch(statements);
     const receipt = applied[applied.length - 1].results[0];
     if (!receipt) continue; // Another reading won the CAS; classify against its committed baseline.
     if (receipt.payload !== payload) return result(409, { error: 'Энэ хэмжилтийн ID өөр өгөгдөлтэй байна.' });
-    return result(200, { id: reading.id, deviceId, outcome: receipt.outcome, eventId: receipt.event_id });
+    return result(200, { id: reading.id, deviceId, outcome: receipt.outcome });
   }
   return result(503, { error: 'Төхөөрөмжийн өөр хэмжилт боловсруулж байна. Ижил ID-гаар дахин оролдоно уу.' });
 }

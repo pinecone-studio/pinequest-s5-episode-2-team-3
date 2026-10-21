@@ -109,30 +109,33 @@ test('refresh in flight preserves a newer selection and pausing discards its res
   expect(pausedClient.phase).toBe('paused');
   expect(pausedClient.cache.devices).toHaveLength(2);
 });
-test('ingestion → sync → cached bottle status, refill and user spill correction work together', async () => {
+test('base status + base drink → sync → cached bottle status; spill correction survives a retry', async () => {
   const db = new LocalD1(); databases.push(db);
   const local = localStore();
   const sync = new SyncClient(local, 'http://localhost', db.fetch);
   await sync.connect();
   const env = { DB: db, DEVICE_TOKENS: JSON.stringify({ 'bottle-01': TOKEN }) };
-  const send = async (id: string, amount: number, time: number) => {
-    const sample = { ...status().reading, id, at: new Date(Date.now() - 10_000 + time).toISOString(), remainingMl: amount, stable: true };
-    const response = await worker.fetch(new Request('http://localhost/api/devices/bottle-01/readings', {
-      method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` }, body: JSON.stringify(sample),
+  const post = async (path: 'readings' | 'events', body: unknown) => {
+    const response = await worker.fetch(new Request(`http://localhost/api/devices/bottle-01/${path}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` }, body: JSON.stringify(body),
     }), env);
-    expect(response.status).toBe(200);
+    expect(response.status).toBeLessThan(300);
   };
+  const at = (time: number) => new Date(Date.now() - 10_000 + time).toISOString();
+  const reading = (id: string, remainingMl: number, time: number) => post('readings', { ...status().reading, id, at: at(time), remainingMl, stable: true });
+  const drink = { version: 1, id: 'bottle-01-e-1', deviceId: 'bottle-01', at: at(1000), amount: 250 };
   const client = new DeviceClient(local, db.fetch, () => {}, () => sync.run());
-  await send('baseline', 750, 0);
-  await send('sip', 500, 1000);
+  await reading('baseline', 750, 0);
+  await reading('sip', 500, 1000);
+  await post('events', drink);
   await client.refresh(); await client.select('bottle-01');
   expect(client.selected!.reading.remainingMl).toBe(500);
-  expect((await local.read()).state.events).toHaveLength(1);
-  const entry = (await local.read()).state.events[0];
-  expect(entry.amount).toBe(250);
+  const entry = { id: drink.id, amount: 250, type: 'drink', at: drink.at, deviceId: 'bottle-01' };
+  expect((await local.read()).state.events).toEqual([entry]);
   await local.update(record => { record.state.events[0].type = 'spill'; });
   await sync.run();
-  await send('refill', 750, 2000);
+  await post('events', drink);
+  await reading('refill', 750, 2000);
   await client.refresh();
   expect(client.selected!.reading.remainingMl).toBe(750);
   expect((await local.read()).state.events).toEqual([{ ...entry, type: 'spill' }]);

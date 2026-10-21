@@ -20,15 +20,13 @@ function renderPanel(): void {
   if (document.activeElement === host.querySelector('select') && host.dataset.selected === (selected ?? '')) return;
   host.dataset.selected = selected ?? '';
   const missing = selected && !current;
-  const warning = current?.outcome === 'resync' ? 'Хэмжилт удаан тасарсан тул үлдэгдлийг дахин таарууллаа. Завсарт уусан хэмжээг автоматаар тооцоогүй; шаардлагатай бол гараар бүртгэнэ үү.' : '';
   host.innerHTML = `<div class="device-heading"><h2 id="device-title">Миний сав</h2><button type="button" data-device-refresh>Шинэчлэх</button></div>
-    <label for="device-select">Хэмжилт авах сав</label>
-    <select id="device-select"><option value="">Гараар бүртгэх</option>${missing ? `<option selected value="${escape(selected)}">${escape(selected)} · мэдээлэл алга</option>` : ''}${devices.cache.devices.map(d => `<option value="${escape(d.reading.deviceId)}" ${selected === d.reading.deviceId ? 'selected' : ''}>${escape(d.reading.deviceId)} · ${d.reading.capacityMl} мл</option>`).join('')}</select>
+    <label for="device-select">Ухаалаг суурь</label>
+    <select id="device-select"><option value="">Гараар бүртгэх</option>${missing ? `<option selected value="${escape(selected)}">${escape(selected)} · мэдээлэл алга</option>` : ''}${devices.cache.devices.map(d => `<option value="${escape(d.reading.deviceId)}" ${selected === d.reading.deviceId ? 'selected' : ''}>${escape(d.reading.deviceId)}</option>`).join('')}</select>
     <p role="status">${escape(deviceSummary())}</p>
     ${devices.message ? `<p>${escape(devices.message)}</p>` : ''}
     ${!devices.cache.devices.length && devices.phase === 'ready' ? '<p>Хэмжилт илгээсэн сав хараахан алга.</p>' : ''}
     ${current ? `<p class="device-time">Сүүлчийн хэмжилт: ${escape(new Date(current.reading.at).toLocaleString('mn-MN'))}</p>` : ''}
-    ${warning ? `<p class="device-warning" role="alert">${warning}</p>` : ''}
     <p class="device-error" role="alert" hidden></p>`;
   async function act(action: () => Promise<void>) {
     host!.querySelectorAll<HTMLButtonElement | HTMLSelectElement>('button, select').forEach(e => { e.disabled = true; });

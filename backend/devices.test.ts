@@ -1,7 +1,7 @@
 import { afterEach, expect, test, spyOn } from 'bun:test';
 import { LocalD1 } from './test-db';
 import worker from './src/index.js';
-import { classify, MAX_STABLE_GAP_MS, validateDeviceStatus } from '../shared/device';
+import { validateDeviceStatus } from '../shared/device';
 import type { DeviceReading } from '../shared/contracts';
 
 // Public synthetic fixture, not a real deployed device credential.
@@ -24,91 +24,56 @@ function setup() {
 }
 afterEach(() => databases.splice(0).forEach(db => db.sqlite.close()));
 
-test('first measurement is a baseline; stable decreases create drink, refill never adds intake', async () => {
+const remaining = async (s: ReturnType<typeof setup>, i = 0) => (await s.devices())[i].reading.remainingMl;
+
+test('readings update bottle status only; the base, not the server, creates drinks', async () => {
   const s = setup();
-  expect((await (await s.send(reading('r1', 750, 0))).json()).outcome).toBe('baseline');
-  expect(await s.events()).toEqual([]);
-  const ack = await (await s.send(reading('r2', 500, 10))).json();
-  expect(ack.outcome).toBe('drink');
-  expect(ack.eventId).toMatch(/^dev-[a-f0-9]{60}$/);
-  expect(await s.events()).toEqual([{ id: ack.eventId, amount: 250, type: 'drink', at: reading('r2', 500, 10).at, deviceId: 'bottle-01' }]);
+  expect((await (await s.send(reading('r1', 750, 0))).json())).toEqual({ id: 'r1', deviceId: 'bottle-01', outcome: 'baseline' });
+  expect((await (await s.send(reading('r2', 500, 10))).json()).outcome).toBe('drink');
   expect((await (await s.send(reading('r3', 700, 20))).json()).outcome).toBe('refill');
-  expect(await s.events()).toHaveLength(1);
+  expect(await s.events()).toEqual([]);
   expect(validateDeviceStatus((await s.devices())[0]).reading.remainingMl).toBe(700);
 });
-test('lifting is unknown, never empty; a stable zero counts the remaining drink', async () => {
+test('lifting is unknown, never empty', async () => {
   const s = setup();
   await s.send(reading('full', 750, 0));
   await s.send(reading('lifted', null, 10));
-  expect(await s.events()).toEqual([]);
-  expect((await s.devices())[0].reading.remainingMl).toBeNull();
+  expect(await remaining(s)).toBeNull();
   await s.send(reading('returned', 500, 20));
-  await s.send(reading('empty', 0, 30));
-  expect((await s.events()).map((e: any) => e.amount).sort((a: number, b: number) => a - b)).toEqual([250, 500]);
+  expect(await remaining(s)).toBe(500);
+  expect(await s.events()).toEqual([]);
 });
-test('retry never duplicates or overwrites corrections, and never resurrects deleted intake', async () => {
+test('a retry returns the same answer; a reused ID with different data is refused', async () => {
   const s = setup();
   await s.send(reading('a', 750, 0));
   const sample = reading('b', 500, 10);
   const ack = await (await s.send(sample)).json();
-  await s.db.call('PATCH', `/api/events/${ack.eventId}`, { type: 'spill' });
   expect(await (await s.send(sample)).json()).toEqual(ack);
-  expect((await s.events())[0].type).toBe('spill');
-  await s.db.call('DELETE', `/api/events/${ack.eventId}`);
-  expect(await (await s.send(sample)).json()).toEqual(ack);
-  expect(await s.events()).toEqual([]);
   expect((await s.send({ ...sample, remainingMl: 400 })).status).toBe(409);
-  expect((await s.devices())[0].reading.remainingMl).toBe(500);
+  expect(await remaining(s)).toBe(500);
 });
 test('old or equal timestamps cannot roll back the latest reading', async () => {
   const s = setup();
   await s.send(reading('start', 750, 0));
   await s.send(reading('latest', 500, 20));
   for (const sample of [reading('old', 700, 10), reading('same-time', 300, 20)]) expect((await (await s.send(sample)).json()).outcome).toBe('stale');
-  expect((await s.devices())[0].reading.remainingMl).toBe(500);
-  expect(await s.events()).toHaveLength(1);
+  expect(await remaining(s)).toBe(500);
 });
-test('small stable jitter is ignored; small consecutive drinks accumulate against one anchor', async () => {
-  const s = setup();
-  await s.send(reading('base', 750, 0));
-  for (const [id, value, time] of [['n1', 747, 10], ['n2', 750, 20], ['n3', 745, 30]] as const) {
-    expect((await (await s.send(reading(id, value, time))).json()).outcome).toBe('noise');
-  }
-  expect(await s.events()).toEqual([]);
-  await s.send(reading('small-sip', 738, 40));
-  expect((await s.events())[0].amount).toBe(12);
-});
-test('long stable gap and capacity change resync without inventing drinks', async () => {
-  const s = setup();
-  await s.send(reading('start', 750, 0));
-  const later = { ...reading('after-gap', 200, 1), at: new Date(origin + MAX_STABLE_GAP_MS + 1).toISOString() };
-  expect(classify({ reading: reading('start', 750, 0), baselineMl: 750, lastStableAt: reading('start', 750, 0).at }, later).outcome).toBe('resync');
-  // Historical times keep this synthetic long gap outside the future-clock rejection window.
-  const first = { ...reading('old-start', 700, 1), at: new Date(origin - MAX_STABLE_GAP_MS).toISOString() };
-  const other = setup();
-  await other.send(first);
-  expect((await (await other.send(reading('after-gap', 200, 10))).json()).outcome).toBe('resync');
-  expect((await (await other.send({ ...reading('capacity', 100, 20), capacityMl: 500 })).json()).outcome).toBe('baseline');
-  expect(await other.events()).toEqual([]);
-});
-test('concurrent duplicates and concurrent different readings preserve one serial baseline', async () => {
+test('concurrent duplicates and concurrent different readings keep the newest status', async () => {
   const s = setup();
   await s.send(reading('base', 750, 0));
   const sample = reading('same', 600, 10);
   const responses = await Promise.all([s.send(sample), s.send(sample)]);
   expect(await responses[0].json()).toEqual(await responses[1].json());
-  await Promise.all([s.send(reading('next-1', 500, 20)), s.send(reading('next-2', 400, 30))]);
-  expect((await s.devices())[0].reading.remainingMl).toBe(400);
-  expect((await s.events()).reduce((sum: number, e: any) => sum + e.amount, 0)).toBe(350);
+  await Promise.all([s.send(reading('next-2', 400, 30)), s.send(reading('next-1', 500, 20))]);
+  expect(await remaining(s)).toBe(400);
 });
-test('each device has its own baseline and credentials', async () => {
+test('each device has its own status and credentials', async () => {
   const s = setup();
   await s.send(reading('same-id', 750, 0));
   expect((await s.send(reading('same-id', 600, 0, 'bottle-02'), TOKEN, 'bottle-02')).status).toBe(401);
-  await s.send(reading('same-id', 600, 0, 'bottle-02'), TOKEN + '2', 'bottle-02');
-  await s.send(reading('sip', 500, 10, 'bottle-02'), TOKEN + '2', 'bottle-02');
-  expect((await s.events())[0]).toMatchObject({ deviceId: 'bottle-02', amount: 100 });
-  expect(await s.devices()).toHaveLength(2);
+  expect((await s.send(reading('same-id', 600, 0, 'bottle-02'), TOKEN + '2', 'bottle-02')).status).toBe(200);
+  expect((await s.devices()).map((d: any) => [d.reading.deviceId, d.reading.remainingMl])).toEqual([['bottle-01', 750], ['bottle-02', 600]]);
   expect(JSON.stringify(await s.devices())).not.toContain(TOKEN);
 });
 test('authentication and invalid data fail without touching state', async () => {
@@ -121,30 +86,24 @@ test('authentication and invalid data fail without touching state', async () => 
   expect((await worker.fetch(large, s.env)).status).toBe(413);
   expect((await worker.fetch(new Request('http://localhost/api/devices/bottle-01/readings', { method: 'POST' }), { DB: s.db })).status).toBe(503);
   expect(await s.devices()).toEqual([]);
-  expect(await s.events()).toEqual([]);
 });
-test('failed event insertion rolls back receipt and weight baseline, allowing a correct retry', async () => {
+test('a failed status write rolls back its receipt, allowing the same retry', async () => {
   const s = setup();
   await s.send(reading('base', 750, 0));
   const before = await s.devices();
-  s.db.sqlite.exec("CREATE TRIGGER fail_device BEFORE INSERT ON events BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END;");
+  s.db.sqlite.exec("CREATE TRIGGER fail_device BEFORE UPDATE ON device_states BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END;");
   const log = spyOn(console, 'error').mockImplementation(() => {});
   try { expect((await s.send(reading('sip', 500, 10))).status).toBe(500); } finally { log.mockRestore(); }
   expect(await s.devices()).toEqual(before);
   expect(s.db.sqlite.query("SELECT COUNT(*) AS n FROM device_readings WHERE id = 'sip'").get()).toEqual({ n: 0 });
   s.db.sqlite.exec('DROP TRIGGER fail_device');
   expect((await s.send(reading('sip', 500, 10))).status).toBe(200);
-  expect((await s.events())[0].amount).toBe(250);
+  expect(await remaining(s)).toBe(500);
 });
-test('app snapshot cannot reset hardware baseline; device drink changes the shared sync revision', async () => {
+test('status readings never touch the synced log or its revision', async () => {
   const s = setup();
-  await s.send(reading('base', 750, 0));
   const before = await (await s.db.call('GET', '/api/sync')).json();
+  await s.send(reading('base', 750, 0));
   await s.send(reading('sip', 500, 10));
-  const after = await (await s.db.call('GET', '/api/sync')).json();
-  expect(after.revision).toBeGreaterThan(before.revision);
-  expect((await s.db.call('POST', '/api/sync', { id: 'stale-app', baseRevision: before.revision, state: before.state })).status).toBe(409);
-  await s.db.call('POST', '/api/sync', { id: 'intentional-delete', baseRevision: after.revision, state: before.state });
-  await s.send(reading('next-sip', 450, 20));
-  expect((await s.events()).map((e: any) => e.amount)).toEqual([50]);
+  expect(await (await s.db.call('GET', '/api/sync')).json()).toEqual(before);
 });
