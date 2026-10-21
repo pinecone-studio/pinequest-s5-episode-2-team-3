@@ -1,5 +1,5 @@
 import { DevicePanel, bindDevicePanel } from './components/DevicePanel';
-import { deviceSummary, devices } from './devices';
+import { deviceSummary } from './devices';
 import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './shell.css';
@@ -7,7 +7,7 @@ import './overview.css';
 import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
-import { BOTTLE_KEY, bottleSection, bottleStatus, bindBottle } from './bottle';
+import { ringSection, drinkTiles, bindHydration } from './hydration';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
@@ -21,7 +21,12 @@ let state: AppState = defaults();
 let storageError = '';
 let today = dayKey();
 let undoId: string | null = null;
+// Today's drinks removed by the demo reset, kept so «Буцаах» can put them back.
+let undoReset: WaterEntry[] | null = null;
 let undoTimer: ReturnType<typeof setTimeout> | undefined;
+// Secondary panels stay folded so the home shows only today's water; remember if the user opened them.
+let connectOpen = false;
+let planOpen = false;
 
 async function reload() {
   const loaded = await load();
@@ -36,50 +41,12 @@ function amountOn(events: readonly WaterEntry[], key: string, type: 'drink' | 's
 // Only "drink" counts toward the daily total.
 const drankOn = (events: readonly WaterEntry[], key: string) => amountOn(events, key, 'drink');
 
-function status(drink: number): { text: string; tone: 'ok' | 'short' | 'over' } {
-  const diff = state.goal - drink;
-  if (state.mode === 'goal') {
-    return diff > 0 ? { text: `Дахиад ${number(diff)} мл уух`, tone: 'short' } : { text: 'Өнөөдрийн зорилт биеллээ', tone: 'ok' };
-  }
-  return diff >= 0 ? { text: `Хязгаар хүртэл ${number(diff)} мл`, tone: 'short' } : { text: `Хязгаараас ${number(-diff)} мл хэтэрсэн`, tone: 'over' };
-}
-
-function greeting(): string {
-  const h = new Date().getHours();
-  return h >= 5 && h < 11 ? 'Өглөөний мэнд!' : h >= 11 && h < 18 ? 'Өдрийн мэнд!' : 'Оройн мэнд!';
-}
-
-// Centre of the page: greeting, the quick drink chips (kept above the fold), then the bottle on its base.
-function stageSection(): string {
-  const drink = drankOn(state.events, today);
-  const { text, tone } = status(drink);
-  return `<section class="stage" aria-labelledby="stage-title">
-    <p class="stage-chip"><i aria-hidden="true"></i>${escape(deviceSummary())}</p>
-    <h1 id="stage-title">${greeting()}</h1>
-    <p class="stage-sub">Өнөөдөр <b>${number(drink)}</b> / ${number(state.goal)} мл уусан · <span class="${tone}">${tone === 'over' ? '! ' : ''}${text}</span></p>
-    <p class="stage-sub" data-device-note ${devices.cache.selectedId ? '' : 'hidden'}>Суурин дээрх савнаас уусныг суурь өөрөө тоолж бүртгэнэ; асгасан бол бүртгэлээс «Асгасан» болгоно. Доорх товчоор өөр аяга, савнаас уусан усаа нэмнэ.</p>
-    <div class="drink-chips" role="group" aria-label="Уусан ус нэмэх">${[150, 250, 500].map(ml => `<button type="button" class="drink-chip" data-drink="${ml}"><span aria-hidden="true">+</span>${ml} мл</button>`).join('')}</div>
-    <p class="undo-line" id="undo-line" role="status" ${undoId ? '' : 'hidden'}>Нэмлээ <button type="button" class="text-button" id="undo">Буцаах</button></p>
-    ${bottleSection(state.events)}
-  </section>`;
-}
-
-// Four vertical bars summarising today, in the side panel.
-function metricsSection(): string {
-  const drink = drankOn(state.events, today);
-  const bottle = bottleStatus(state.events);
-  const week = Array.from({ length: 7 }, (_, i) => drankOn(state.events, shiftDay(today, -i))).reduce((a, b) => a + b, 0) / 7;
-  const pct = (n: number) => Math.max(4, Math.min(100, Math.round(n * 100)));
-  const bars = [
-    { name: 'Уусан', value: `${Math.round((drink / state.goal) * 100)}%`, h: pct(drink / state.goal), cls: 'b-drink' },
-    { name: 'Савандаа', value: bottle.left === null ? '?' : `${number(bottle.left)} мл`, h: pct(bottle.frac), cls: 'b-bottle' },
-    { name: 'Үлдсэн', value: `${number(Math.max(0, state.goal - drink))} мл`, h: pct(Math.max(0, state.goal - drink) / state.goal), cls: 'b-left' },
-    { name: '7 хоног', value: `${number(Math.round(week))} мл`, h: pct(week / state.goal), cls: 'b-week' },
-  ];
-  return `<section class="metrics" aria-labelledby="metrics-title">
-    <h2 id="metrics-title" class="panel-label">Өнөөдөр</h2>
-    <div class="bars">${bars.map(b => `<div class="bar-col"><span class="bar-name">${b.name}</span><div class="bar-track"><i class="${b.cls}" style="height:${b.h}%"></i></div><span class="bar-val">${b.value}</span></div>`).join('')}</div>
-  </section>`;
+// Server sync and the bottle picker, folded into one line above the stage.
+function connectSection(): string {
+  return `<details class="home-connect" ${connectOpen ? 'open' : ''}>
+    <summary><i aria-hidden="true"></i><span class="connect-text">${escape(deviceSummary())}</span><span class="connect-more">Холболт ба сав</span></summary>
+    <div class="connect-body">${SyncStatus()}${DevicePanel()}</div>
+  </details>`;
 }
 
 type Source = 'calc' | 'doctor' | 'ai';
@@ -278,164 +245,93 @@ async function addDrink(ml: number) {
   await reload();
   if (result !== 'saved') { storageError = saveMessage[result]; render(); return; }
   undoId = entry.id;
-  clearTimeout(undoTimer);
-  undoTimer = setTimeout(() => { undoId = null; document.querySelector<HTMLElement>('#undo-line')?.toggleAttribute('hidden', true); }, 10_000);
+  undoReset = null;
+  offerUndo();
   render();
 }
 
-async function undo() {
-  if (!undoId) return;
-  const id = undoId;
+// Demo helper: empty today's ring by removing today's drinks, so the fill can be shown again.
+async function resetToday() {
+  const removed = state.events.filter(e => e.type === 'drink' && dayKey(new Date(e.at)) === today);
+  if (!removed.length) return;
+  const ids = new Set(removed.map(e => e.id));
+  const result = await save({ ...state, events: state.events.filter(e => !ids.has(e.id)) });
+  await reload();
+  if (result !== 'saved') { storageError = saveMessage[result]; render(); return; }
+  undoReset = removed;
   undoId = null;
-  const result = await save({ ...state, events: state.events.filter(e => e.id !== id) });
+  offerUndo();
+  render();
+}
+
+function offerUndo() {
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => {
+    undoId = null;
+    undoReset = null;
+    document.querySelector<HTMLElement>('#undo-line')?.toggleAttribute('hidden', true);
+  }, 10_000);
+}
+
+async function undo() {
+  let events: WaterEntry[];
+  if (undoReset) {
+    const known = new Set(state.events.map(e => e.id));
+    events = [...state.events, ...undoReset.filter(e => !known.has(e.id))];
+  } else if (undoId) {
+    const id = undoId;
+    events = state.events.filter(e => e.id !== id);
+  } else return;
+  undoId = null;
+  undoReset = null;
+  const result = await save({ ...state, events });
   await reload();
   if (result !== 'saved') storageError = saveMessage[result];
   render();
 }
 
-const WEEKDAYS = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
-const compact = (n: number) => n >= 1000 ? `${Number((n / 1000).toFixed(1))}K` : String(n);
-
-function niceStep(max: number): number {
-  return [100, 250, 500, 1000, 2000, 5000].find(step => max / step <= 5) ?? 10000;
-}
-
-// Bar with a 4px rounded top and a square base on the baseline.
-function barPath(x: number, y: number, w: number, h: number): string {
-  const r = Math.min(4, h, w / 2);
-  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
-}
-
-function shiftDay(key: string, days: number): string {
-  const date = new Date(`${key}T12:00`);
-  date.setDate(date.getDate() + days);
-  return dayKey(date);
-}
-
-// Width inside main.home's gutter and the glass card's padding and border.
-function chartWidth(): number {
-  const inset = window.innerWidth <= 560 ? 34 : 54;
-  return Math.round(Math.max(260, Math.min(1200, window.innerWidth - 40) - inset));
-}
-
-function weekSection(): string {
-  const days = Array.from({ length: 7 }, (_, i) => shiftDay(today, i - 6))
-    .map(key => ({ key, drink: amountOn(state.events, key, 'drink'), spill: amountOn(state.events, key, 'spill') }));
-  const avg = (type: 'drink' | 'spill') => number(Math.round(days.reduce((sum, day) => sum + day[type], 0) / 7));
-  // Draw at the real content width so text stays at its CSS size on phones.
-  const W = chartWidth(), H = 230, left = 40, right = 8, top = 18, bottom = 44;
-  const plotW = W - left - right, plotH = H - top - bottom;
-  const peak = Math.max(state.goal, ...days.map(day => Math.max(day.drink, day.spill))) * 1.1;
-  const step = niceStep(peak);
-  const yMax = Math.ceil(peak / step) * step;
-  const y = (value: number) => top + plotH - (value / yMax) * plotH;
-  const slot = plotW / 7, barW = Math.min(20, slot * 0.28), gap = 4;
-  const ticks = Array.from({ length: Math.floor(yMax / step) + 1 }, (_, i) => i * step);
-  const goalLabel = state.mode === 'goal' ? 'Зорилт' : 'Хязгаар';
-  const grid = ticks.map(t => `<line class="grid" x1="${left}" x2="${W - right}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${left - 8}" y="${y(t) + 4}" text-anchor="end">${compact(t)}</text>`).join('');
-  const bar = (type: 'drink' | 'spill', x: number, value: number) =>
-    value > 0 ? `<path class="bar ${type}" d="${barPath(x, y(value), barW, (value / yMax) * plotH)}"/>` : '';
-  const bars = days.map((day, i) => {
-    const cx = left + slot * i + slot / 2;
-    const date = new Date(`${day.key}T12:00`);
-    const isToday = day.key === today;
-    return `<g class="day">
-      <rect class="band" x="${left + slot * i + 4}" y="${top - 8}" width="${slot - 8}" height="${plotH + 8}" rx="10"/>
-      ${bar('drink', cx - gap / 2 - barW, day.drink)}
-      ${bar('spill', cx + gap / 2, day.spill)}
-      <text class="axis${isToday ? ' strong' : ''}" x="${cx}" y="${H - bottom + 20}" text-anchor="middle">${WEEKDAYS[date.getDay()]}</text>
-      <text class="axis" x="${cx}" y="${H - bottom + 36}" text-anchor="middle">${date.getDate()}</text>
-      <rect class="hit" x="${left + slot * i}" y="${top}" width="${slot}" height="${plotH + bottom}" tabindex="0" data-day="${day.key}" data-cx="${cx / W}" data-cy="${(y(Math.max(day.drink, day.spill)) - 8) / H}" aria-label="${dateLabel(day.key)}: уусан ${number(day.drink)} мл, асгасан ${number(day.spill)} мл"/>
-    </g>`;
-  }).join('');
-  return `<section class="week" aria-labelledby="week-title">
-    <div class="week-head">
-      <div>
-        <p class="panel-label">Сүүлийн 7 хоног</p>
-        <h2 id="week-title">Уусан ба асгасан ус</h2>
-        <p class="week-avg">Өдөрт дунджаар ${avg('drink')} мл уусан · ${avg('spill')} мл асгасан</p>
-      </div>
-      <ul class="legend" aria-label="Тайлбар">
-        <li><i class="key drink"></i>Уусан</li>
-        <li><i class="key spill"></i>Асгасан</li>
-      </ul>
-    </div>
-    <div class="chart">
-      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Сүүлийн 7 хоногийн уусан болон асгасан ус, өдөр бүрээр">
-        ${grid}
-        <line class="goal-line" x1="${left}" x2="${W - right}" y1="${y(state.goal)}" y2="${y(state.goal)}"/>
-        <text class="goal-label" x="${W - right}" y="${y(state.goal) - 6}" text-anchor="end">${goalLabel} ${number(state.goal)}</text>
-        ${bars}
-      </svg>
-      <div class="chart-tip" role="status" hidden></div>
-    </div>
-  </section>`;
-}
-
-function bindChart() {
-  const chart = document.querySelector<HTMLDivElement>('.chart');
-  const tip = chart?.querySelector<HTMLDivElement>('.chart-tip');
-  if (!chart || !tip) return;
-  chart.querySelectorAll<SVGRectElement>('.hit').forEach(hit => {
-    const key = hit.dataset.day!;
-    const show = () => {
-      const row = (type: 'drink' | 'spill', label: string) =>
-        `<span class="tip-row"><i class="key ${type}"></i><strong>${number(amountOn(state.events, key, type))} мл</strong>${label}</span>`;
-      tip.innerHTML = `<span class="tip-date">${dateLabel(key)}</span>${row('drink', 'Уусан')}${row('spill', 'Асгасан')}`;
-      tip.style.top = `${Number(hit.dataset.cy) * 100}%`;
-      tip.hidden = false;
-      // Keep the tooltip inside the card near the edge days.
-      const half = tip.offsetWidth / 2, width = chart.offsetWidth;
-      tip.style.left = `${Math.min(Math.max(Number(hit.dataset.cx) * width, half), width - half)}px`;
-    };
-    const hide = () => { tip.hidden = true; };
-    hit.addEventListener('pointerenter', show);
-    hit.addEventListener('pointerleave', hide);
-    hit.addEventListener('focus', show);
-    hit.addEventListener('blur', hide);
-  });
-}
-
+// A new bottle reading only changes the one-line summary on the home.
 function refreshMeasurement(): void {
-  const bottle = document.querySelector('.bottle-card');
-  if (bottle) { bottle.outerHTML = bottleSection(state.events); bindBottle(render); }
-  const metrics = document.querySelector('.metrics');
-  if (metrics) metrics.outerHTML = metricsSection();
-  document.querySelector<HTMLElement>('[data-device-note]')?.toggleAttribute('hidden', !devices.cache.selectedId);
-  const chip = document.querySelector('.stage-chip');
-  if (chip) chip.textContent = deviceSummary();
+  const summary = document.querySelector('.connect-text');
+  if (summary) summary.textContent = deviceSummary();
 }
 
 function render() {
+  const drink = drankOn(state.events, today);
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home" tabindex="-1">
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${icon('drop')}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-      ${SyncStatus()}
-      ${DevicePanel()}
-      <div class="app-body">${stageSection()}<aside class="side">${planSection(readProfile())}${metricsSection()}</aside></div>
+      <div class="hydro">
+        <h1 class="hydro-title">Өнөөдөр</h1>
+        ${ringSection(drink, state.goal, state.mode)}
+        <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Хязгаар' : 'Зорилт'} <b>${number(state.goal)} мл</b></button>
+        ${drinkTiles()}
+        <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Тэглэлээ' : 'Нэмлээ'} <button type="button" class="text-button" id="undo">Буцаах</button></p>
+        <div class="plan-wrap" id="plan-wrap" ${planOpen ? '' : 'hidden'}>${planSection(readProfile())}</div>
+        ${connectSection()}
+        <button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button>
+      </div>
     </div>
-    <div class="glass-card">${weekSection()}</div>
     <footer class="home-footer"><span>Дусал</span><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Нөөц ба тохиргоо</a></p></footer>
   </main>`;
-  document.querySelectorAll<HTMLButtonElement>('[data-drink]').forEach(b => b.addEventListener('click', () => addDrink(Number(b.dataset.drink))));
+  bindHydration(drink, addDrink);
   document.querySelector('#undo')?.addEventListener('click', undo);
+  document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
   bindPlan();
-  bindChart();
-  bindBottle(render);
   bindDevicePanel(refreshMeasurement);
   bindSyncStatus();
+  document.querySelector<HTMLDetailsElement>('.home-connect')?.addEventListener('toggle', event => { connectOpen = (event.currentTarget as HTMLDetailsElement).open; });
+  document.querySelector<HTMLButtonElement>('#plan-toggle')?.addEventListener('click', event => {
+    planOpen = !planOpen;
+    (event.currentTarget as HTMLButtonElement).setAttribute('aria-expanded', String(planOpen));
+    document.querySelector<HTMLElement>('#plan-wrap')!.hidden = !planOpen;
+  });
 }
 
 onExternalChange(async () => { await reload(); render(); });
 window.addEventListener('storage', event => {
-  if ([BOTTLE_KEY, PROFILE_KEY, null].includes(event.key)) render();
-});
-let lastWidth = chartWidth();
-let resizeTimer: ReturnType<typeof setTimeout> | undefined;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => { if (chartWidth() !== lastWidth) { lastWidth = chartWidth(); render(); } }, 150);
+  if ([PROFILE_KEY, null].includes(event.key)) render();
 });
 // Roll over to the new day at midnight without a reload.
 setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 60_000);
