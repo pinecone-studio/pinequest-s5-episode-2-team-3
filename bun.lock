@@ -8,6 +8,7 @@
         "@capacitor/android": "7.6.9",
         "@capacitor/core": "7.6.9",
         "@capacitor/ios": "7.6.9",
+        "@capacitor/local-notifications": "7.0.7",
       },
       "devDependencies": {
         "@capacitor/cli": "7.6.9",
@@ -25,6 +26,8 @@
     "@capacitor/core": ["@capacitor/core@7.6.9", "", { "dependencies": { "tslib": "^2.1.0" } }, "sha512-4DOh/xySC9S5ryhUIqpOppasIyi2WiTdF0JuZ/2DEs+vf5eunRzHDdNYBp1snA3faHciTw/3SVGXfR+WkYxsMA=="],
 
     "@capacitor/ios": ["@capacitor/ios@7.6.9", "", { "peerDependencies": { "@capacitor/core": "^7.6.0" } }, "sha512-LANP81TfwuJk1zq9EuF+J5AJK71rKDgXB5XD+VFJQHC7BxSH4Dsma6DSMyrjFT03jtqc/0JTMEfSMBE7go3ZjA=="],
+
+    "@capacitor/local-notifications": ["@capacitor/local-notifications@7.0.7", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-3qSpa8PpVMONHqBOaJ4RbA/lB5vOdEngtep0myGmP3S56gShPScDCotbw7dwmQy3NCdY4Up9nH3ySrGvUh2jZg=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.12", "", { "os": "aix", "cpu": "ppc64" }, "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="],
 
