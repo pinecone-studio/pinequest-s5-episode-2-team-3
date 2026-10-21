@@ -68,3 +68,62 @@ main.home, .type-menu { --muted-2: #5f6877; }
   .history-row > strong { font-size: 19px; }
   .history-row .text-button { min-height: 44px; padding: 9px 14px; font-size: 14px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; }
 }
+
+/* The phone layout also applies on desktop, where the page keeps the phone's narrow column (shell.css). */
+main.home-app .history-body { padding: 18px 14px; gap: 14px; }
+main.home-app .history-filters { grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+main.home-app .history-filters > div:nth-child(3) { grid-column: 1 / -1; }
+main.home-app .history-filters #clear-filters { grid-column: 1 / -1; }
+main.home-app .history-filters input[type=date] { padding: 8px 10px; font-size: 15px; }
+main.home-app .day-group { padding: 4px 16px 6px; }
+main.home-app .history-footer { flex-direction: column; gap: 6px; }
+main.home-app .history-row { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'time amount edit' 'type type type'; gap: 10px 12px; padding: 14px 0; font-size: 15px; }
+main.home-app .history-row time { grid-area: time; }
+main.home-app .history-row > strong { grid-area: amount; }
+main.home-app .history-row .text-button { grid-area: edit; }
+main.home-app .type-cell { grid-area: type; }
+main.home-app .type-trigger { min-height: 44px; padding: 0 14px 0 16px; font-size: 14px; }
+main.home-app .history-row > strong { font-size: 19px; }
+main.home-app .history-row .text-button { min-height: 44px; padding: 9px 14px; font-size: 14px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; }
+
+/* Chart: tabs, period switcher, three figures, then bars against the goal line. */
+.hc { display: grid; gap: 12px; padding: 16px; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); }
+.hc-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: #f1f4f9; }
+.hc-tabs button { min-height: 38px; border: 0; border-radius: 10px; background: none; color: var(--muted-2); font-size: 14px; font-weight: 600; }
+.hc-tabs button[aria-selected="true"] { background: #fff; color: var(--ink-2); box-shadow: 0 1px 4px rgba(20, 32, 52, .1); }
+.hc-nav { display: flex; align-items: center; justify-content: space-between; }
+.hc-nav b { font-size: 15px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hc-nav button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: #f1f4f9; color: var(--ink-2); font-size: 20px; }
+.hc-nav button:disabled { opacity: .35; cursor: default; }
+.hc-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.hc-stats div { display: grid; gap: 2px; padding: 10px 12px; border-radius: 14px; background: #f7f9fc; }
+.hc-stats b { font-size: 20px; color: var(--ink-2); font-variant-numeric: tabular-nums; letter-spacing: -.4px; }
+.hc-stats span { font-size: 12px; color: var(--muted-2); line-height: 1.3; }
+.hc-picked { min-height: 38px; line-height: 1.45; margin: 0; font-size: 13px; color: var(--muted-2); text-align: center; font-variant-numeric: tabular-nums; }
+.hc-picked b { color: var(--ink-2); }
+.hc-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.hc-goal { stroke: #2f80ed; stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .6; }
+.hc-goal-label { font-size: 10px; font-weight: 600; fill: #2f80ed; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
+.hc-hit { fill: transparent; cursor: pointer; }
+.hc-track { fill: #f1f4f9; }
+/* Stack: drunk up to the goal (blue, lighter on a missed day), drunk beyond it, spilled.
+   A thin white seam keeps neighbouring parts apart. */
+.hc-seg { stroke: #fff; stroke-width: 1.2; transition: opacity .15s; }
+.hc-seg.drink { fill: #a9c7ea; }
+.hc-seg.drink.met { fill: #2f80ed; }
+.hc-seg.extra { fill: #0f9f8c; }
+.hc-seg.over { fill: #b8336a; }
+.hc-seg.spill { fill: #d0761a; }
+.hc-col.picked .hc-track { fill: #e3ecf8; }
+.hc-col:hover .hc-seg { opacity: .85; }
+.hc-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted-2); }
+.hc-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.hc-legend i { width: 10px; height: 10px; border-radius: 50%; }
+.hc-legend i.drink { background: #2f80ed; }
+.hc-legend i.extra { background: #0f9f8c; }
+.hc-legend i.over { background: #b8336a; }
+.hc-legend i.spill { background: #d0761a; }
+.hc-col.future .hc-track { opacity: .45; }
+.hc-tick { font-size: 10px; fill: #8a95a6; font-variant-numeric: tabular-nums; }
+.hc-tick.today { fill: #2f80ed; font-weight: 700; }
+.hc button:focus-visible { outline: 3px solid #2f80ed; outline-offset: 2px; }
