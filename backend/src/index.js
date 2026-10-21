@@ -1,5 +1,6 @@
 import { readJson, BodyError } from './body.js';
-import { ingestReading, listDevices } from './devices.js';
+import { ingestDeviceEvent, ingestReading, listDevices } from './devices.js';
+import { EVENT_COLUMNS, insertEvent, toEvent } from './events.js';
 import { readSnapshot, applySnapshot } from './sync.js';
 import { PlanError, suggestPlan } from './plan.js';
 
@@ -14,15 +15,7 @@ const cors = {
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...cors } });
 const fail = (status, error) => json({ error }, status);
-
-function toEvent(row) {
-  if (!row) return null;
-  const { device_id, ...event } = row;
-  if (device_id !== null && device_id !== undefined) event.deviceId = device_id;
-  return validateEntry(event);
-}
-
-const EVENT_COLUMNS = 'id, amount, type, at, device_id';
+const respond = ({ status, body }) => status === 204 ? new Response(null, { status, headers: cors }) : json(body, status);
 
 async function getSettings(db) {
   return db.prepare('SELECT goal, mode FROM settings WHERE id = 1').first();
@@ -47,10 +40,9 @@ async function route(request, env) {
 
   if (pathname === '/api/devices' && method === 'GET') return json(await listDevices(db));
   const readingPath = pathname.match(/^\/api\/devices\/([a-zA-Z0-9-]{1,64})\/readings$/);
-  if (readingPath && method === 'POST') {
-    const result = await ingestReading(request, env, readingPath[1]);
-    return json(result.body, result.status);
-  }
+  if (readingPath && method === 'POST') return respond(await ingestReading(request, env, readingPath[1]));
+  const deviceEventPath = pathname.match(/^\/api\/devices\/([a-zA-Z0-9-]{1,64})\/events$/);
+  if (deviceEventPath && method === 'POST') return respond(await ingestDeviceEvent(request, env, deviceEventPath[1]));
 
   if (pathname === '/api/sync') {
     if (method === 'GET') return json(await readSnapshot(db));
@@ -79,19 +71,7 @@ async function route(request, env) {
       const body = await readJson(request);
       const event = validateEntry({ ...body, id: body?.id ?? crypto.randomUUID() });
       if (event.deviceId && !body?.id) throw new ContractError('Төхөөрөмжийн бүртгэл тогтмол ID-тай байх ёстой.');
-      const payload = JSON.stringify(event);
-      const [receiptInsert, , receipts, rows] = await db.batch([
-        db.prepare('INSERT INTO event_receipts (id, payload) VALUES (?1, ?2) ON CONFLICT(id) DO NOTHING').bind(event.id, payload),
-        db.prepare(`INSERT INTO events (id, amount, type, at, device_id)
-          SELECT ?1, ?2, ?3, ?4, ?5 FROM event_receipts WHERE id = ?1 AND payload = ?6 AND deleted = 0
-          ON CONFLICT(id) DO NOTHING`).bind(event.id, event.amount, event.type, event.at, event.deviceId ?? null, payload),
-        db.prepare('SELECT payload, deleted FROM event_receipts WHERE id = ?1').bind(event.id),
-        db.prepare(`SELECT ${EVENT_COLUMNS} FROM events WHERE id = ?1`).bind(event.id),
-      ]);
-      const receipt = receipts.results[0];
-      if (receipt.payload !== payload) return fail(409, 'Энэ ID өөр анхны өгөгдөлтэй бүртгэгдсэн байна.');
-      if (receipt.deleted) return new Response(null, { status: 204, headers: cors });
-      return json(toEvent(rows.results[0]), receiptInsert.meta.changes ? 201 : 200);
+      return respond(await insertEvent(db, event));
     }
   }
 
