@@ -1,11 +1,13 @@
 import './schedule.css';
 import { dayKey, type AppState } from './data';
 import { number } from './format';
+import { nativeReminders, askPermission, scheduleNative, type NativeReminder } from './native-reminders';
 
 // Today's drinking schedule: the daily amount split evenly over waking hours (e.g. 07:00–22:00
 // every 2 hours → 8 × 250 ml). A slot is done once today's total reaches everything due up to
 // it. Reminders are smart: when a slot's time comes and the person is behind, one notification
-// says how much to drink; if they are on track, nothing is sent.
+// says how much to drink; if they are on track, nothing is sent. In the phone app the same slots
+// are scheduled with the system for the next week (see native-reminders.ts), skipping ones already met.
 const KEY = 'dusal-reminders-v1';
 const SENT_KEY = 'dusal-reminders-sent-v1';
 interface Settings { wake: string; sleep: string; every: number; on: boolean }
@@ -120,6 +122,7 @@ export function bindSchedule(state: () => AppState, redraw: () => void): void {
       const save = () => {
         const s = readSettings();
         writeSettings({ ...s, wake: (box.querySelector('#sched-wake') as HTMLInputElement).value || s.wake, sleep: (box.querySelector('#sched-sleep') as HTMLInputElement).value || s.sleep, every: Number((box.querySelector('#sched-every') as HTMLSelectElement).value) });
+        void planNative(state());
         draw();
       };
       box.querySelectorAll('#sched-form input, #sched-form select').forEach(el => el.addEventListener('change', save));
@@ -138,11 +141,51 @@ export function bindSchedule(state: () => AppState, redraw: () => void): void {
   });
 }
 
+// Phone app: the coming week's slots as system notifications. Today's passed or already-met
+// slots are left out, so drinking ahead quietly cancels the reminders it covers.
+let planned = '';
+async function planNative(state: AppState): Promise<void> {
+  if (!nativeReminders) return;
+  const s = readSettings();
+  const today = slots(state);
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const items: NativeReminder[] = [];
+  if (s.on) {
+    for (let day = 0; day < 7; day++) {
+      today.forEach((x, slot) => {
+        if (day === 0 && (x.state === 'done' || x.at <= nowMin)) return;
+        const at = new Date(now);
+        at.setDate(at.getDate() + day);
+        at.setHours(Math.floor(x.at / 60), x.at % 60, 0, 0);
+        items.push({ at, title: '💧 Ус уух цаг боллоо', body: `${number(x.ml)} мл уугаарай · өдрийн ${state.mode === 'limit' ? 'хязгаар' : 'зорилт'} ${number(state.goal)} мл. ${FACTS[(day * today.length + slot) % FACTS.length]}` });
+      });
+    }
+  }
+  planned = JSON.stringify([s, state.goal, state.mode, dayKey(), today.map(x => x.state === 'done')]);
+  try { await scheduleNative(items); } catch { /* the in-app schedule still works */ }
+}
+
 // Checks once a minute; for the latest due slot the person is behind on, sends one notification.
 let ticking = false;
 export function startReminders(state: () => AppState): void {
   if (ticking) return;
   ticking = true;
+  if (nativeReminders) {
+    // First launch of the phone app: reminders are on by default once notifications are allowed.
+    const first = (() => { try { return localStorage.getItem(KEY) === null; } catch { return false; } })();
+    void (async () => {
+      if (first) writeSettings({ ...readSettings(), on: await askPermission().catch(() => false) });
+      await planNative(state());
+    })();
+    // Re-plan only when something that changes the plan does (a drink, the goal, the day, settings).
+    setInterval(() => {
+      const st = state();
+      const key = JSON.stringify([readSettings(), st.goal, st.mode, dayKey(), slots(st).map(x => x.state === 'done')]);
+      if (key !== planned) void planNative(st);
+    }, 30_000);
+    return;
+  }
   const tick = async () => {
     const s = readSettings();
     if (!s.on || !('Notification' in window) || Notification.permission !== 'granted') return;
