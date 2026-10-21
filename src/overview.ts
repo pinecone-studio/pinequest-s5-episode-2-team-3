@@ -20,6 +20,7 @@ let state: AppState = defaults();
 let storageError = '';
 let today = dayKey();
 let undoId: string | null = null;
+let undoAmount = 0;
 // Today's drinks removed by the demo reset, kept so «Буцаах» can put them back.
 let undoReset: WaterEntry[] | null = null;
 let undoTimer: ReturnType<typeof setTimeout> | undefined;
@@ -236,6 +237,7 @@ async function addDrink(ml: number) {
   await reload();
   if (result !== 'saved') { storageError = saveMessage[result]; render(); return; }
   undoId = entry.id;
+  undoAmount = ml;
   undoReset = null;
   offerUndo();
   render();
@@ -294,8 +296,8 @@ function render() {
         <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Эмчийн хязгаар' : 'Зорилт'} <b>${number(state.goal)} мл</b></button>
         ${scheduleChip(state)}
         ${drinkTiles()}
+        <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${streak.week}
-        <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Тэглэлээ' : 'Нэмлээ'} <button type="button" class="text-button" id="undo">Буцаах</button></p>
       </div>
     </div>
     <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>

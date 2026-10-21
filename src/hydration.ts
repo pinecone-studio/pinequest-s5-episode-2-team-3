@@ -3,7 +3,7 @@ import { number } from './format';
 import { dayKey, type WaterEntry } from './data';
 import { AVATARS, avatarSvg, openAvatarPicker, readAvatar } from './avatars';
 
-// Home: a bottle buddy that fills toward the daily goal, a swipeable row of cup sizes and one big add button.
+// Home: a bottle buddy that fills toward the daily goal, a row of cups that add on a tap, and «Өөр» to swipe any amount.
 // Tapping the button sends a drop into the bottle before the entry is saved.
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -29,8 +29,12 @@ const CUPS = [
   { ml: 500, icon: ICONS.bottle },
   { ml: 750, icon: ICONS.jug },
 ] as const;
-// The picked cup in ml (kept between renders); the pour handle starts from it.
-let cup = 250;
+// Cups add on a tap. The last item, «Өөр», opens the amount you swipe up or down instead.
+let pourOpen = false;
+// The amount to add, remembered between renders and across visits: the last amount poured.
+const LAST_KEY = 'dusal-last-pour-v1';
+let cup = (() => { try { const v = Number(localStorage.getItem(LAST_KEY)); return v >= 10 && v <= 3000 ? v : 250; } catch { return 250; } })();
+const remember = (ml: number) => { cup = ml; try { localStorage.setItem(LAST_KEY, String(ml)); } catch { /* default next time */ } };
 const POUR_MIN = 10, POUR_MAX = 3000, POUR_STEP_PX = 6, POUR_CANCEL_PX = 70;
 
 export function buddySection(drink: number, goal: number, mode: 'goal' | 'limit'): string {
@@ -187,44 +191,20 @@ function openCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): 
 
 export function drinkTiles(): string {
   return `<div class="adder">
-    <div class="cups" id="cups" role="radiogroup" aria-label="Аяганы хэмжээ (хажуу тийш гүйлгэнэ)">${CUPS.map(c =>
-      `<button type="button" class="cup${c.ml === cup ? ' on' : ''}" role="radio" aria-checked="${c.ml === cup}" data-cup="${c.ml}">
-        <svg viewBox="0 0 24 24" aria-hidden="true">${c.icon}</svg><span>${c.ml}</span></button>`).join('')}</div>
-    <div class="big-add" id="big-add" data-drink="${cup}" role="slider" tabindex="0" aria-valuemin="${POUR_MIN}" aria-valuemax="${POUR_MAX}" aria-valuenow="${cup}" aria-valuetext="${number(cup)} мл" aria-label="Нэмэх хэмжээ. Дээш доош шударч өөрчилнө, тавихад нэмэгдэнэ (Enter)">
+    <div class="cups" id="cups" role="group" aria-label="Ус нэмэх (хажуу тийш гүйлгэнэ)">${CUPS.map(c =>
+      `<button type="button" class="cup" data-drink="${c.ml}" aria-label="${c.ml} мл нэмэх">
+        <svg viewBox="0 0 24 24" aria-hidden="true">${c.icon}</svg><span>${c.ml}</span></button>`).join('')}
+      <button type="button" class="cup custom${pourOpen ? ' on' : ''}" id="pour-toggle" aria-expanded="${pourOpen}" aria-controls="pour-panel" aria-label="Өөр хэмжээ шударч оруулах">
+        <span class="custom-icon" aria-hidden="true">↕</span><span>Өөр</span></button></div>
+    <div class="pour-panel" id="pour-panel" ${pourOpen ? '' : 'hidden'}><div class="big-add" id="big-add" data-drink="${cup}" role="slider" tabindex="0" aria-valuemin="${POUR_MIN}" aria-valuemax="${POUR_MAX}" aria-valuenow="${cup}" aria-valuetext="${number(cup)} мл" aria-label="Нэмэх хэмжээ. Дээш доош шударч өөрчилнө, тавихад нэмэгдэнэ (Enter)">
       <span class="pour-arrow up" aria-hidden="true">▲</span>
       <span class="swipe-amount">+<b id="big-add-ml">${number(cup)}</b> мл</span>
       <span class="pour-arrow down" aria-hidden="true">▼</span>
-      <span class="swipe-text">Дээш доош шудар · тавихад нэмэгдэнэ</span></div>
+      <span class="swipe-text">Дээш доош шудар · тавихад нэмэгдэнэ</span></div></div>
   </div>`;
 }
 
 // Swipe the cup row; whichever cup sits in the middle becomes the big button's amount.
-function bindCups(): void {
-  const row = document.querySelector<HTMLElement>('#cups');
-  const add = document.querySelector<HTMLElement>('#big-add');
-  if (!row || !add) return;
-  const cups = [...row.querySelectorAll<HTMLButtonElement>('.cup')];
-  const pick = (ml: number) => {
-    cup = ml;
-    add.dataset.drink = String(ml);
-    add.setAttribute('aria-valuenow', String(ml)); add.setAttribute('aria-valuetext', `${number(ml)} мл`);
-    document.querySelector('#big-add-ml')!.textContent = number(ml);
-    cups.forEach(c => { const on = Number(c.dataset.cup) === ml; c.classList.toggle('on', on); c.setAttribute('aria-checked', String(on)); });
-  };
-  const centre = (el: HTMLElement, smooth: boolean) => row.scrollTo({ left: el.offsetLeft - (row.clientWidth - el.offsetWidth) / 2, behavior: smooth && !reducedMotion() ? 'smooth' : 'auto' });
-  centre(cups.find(c => Number(c.dataset.cup) === cup)!, false);
-  let frame = 0;
-  row.addEventListener('scroll', () => {
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(() => {
-      const mid = row.scrollLeft + row.clientWidth / 2;
-      const near = cups.reduce((a, b) => Math.abs(b.offsetLeft + b.offsetWidth / 2 - mid) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - mid) ? b : a);
-      if (Number(near.dataset.cup) !== cup) pick(Number(near.dataset.cup));
-    });
-  });
-  cups.forEach(c => c.addEventListener('click', () => { pick(Number(c.dataset.cup)); centre(c, true); }));
-}
-
 // Raise the water to its new level and count today's total up (or down after an undo),
 // then wire the add buttons. `add` saves the entry and re-renders the page.
 export function bindHydration(drink: number, add: (ml: number) => unknown, redraw: () => void): void {
@@ -268,8 +248,23 @@ export function bindHydration(drink: number, add: (ml: number) => unknown, redra
   });
 }
 
+function bindCups(): void {
+  const toggle = document.querySelector<HTMLButtonElement>('#pour-toggle');
+  const panel = document.querySelector<HTMLElement>('#pour-panel');
+  if (!toggle || !panel) return;
+  toggle.addEventListener('click', () => {
+    pourOpen = !pourOpen;
+    panel.hidden = !pourOpen;
+    toggle.classList.toggle('on', pourOpen);
+    toggle.setAttribute('aria-expanded', String(pourOpen));
+    if (pourOpen) panel.querySelector<HTMLElement>('#big-add')?.focus({ preventScroll: true });
+  });
+  // Keep the «Өөр» item in view when it is open.
+  if (pourOpen) toggle.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+
 // Adding is a swipe on the big amount (no button): press and drag up to pour more, down to pour less
-// (10 ml every few pixels, starting from the picked cup). The handle shows the amount and the
+// (10 ml every few pixels, starting from the last amount poured). The handle shows the amount and the
 // character's water rises with it as a preview; letting go adds it on top of today's total.
 // A tap without dragging only nudges the arrows. Letting go is undone two ways before it
 // counts: slide the finger sideways off the amount (it turns into "Цуцлах"), or bring it back
@@ -316,7 +311,7 @@ function bindPourHandle(buddy: HTMLElement | null, drink: number): void {
     if (startY === null) return;
     startY = null;
     add.classList.remove('ready', 'up', 'down', 'cancel'); text.textContent = IDLE;
-    if (commit && moved && !cancel && !home) { swiped = true; add.click(); return; }
+    if (commit && moved && !cancel && !home) { remember(Number(add.dataset.drink)); swiped = true; add.click(); return; }
     show(base); preview(null);
   };
   add.addEventListener('pointerup', () => finish(true));
@@ -324,7 +319,7 @@ function bindPourHandle(buddy: HTMLElement | null, drink: number): void {
   add.addEventListener('keydown', e => {
     const by = { ArrowUp: 10, ArrowDown: -10, PageUp: 100, PageDown: -100 }[e.key];
     if (by) { e.preventDefault(); show(Math.max(POUR_MIN, Math.min(POUR_MAX, Number(add.dataset.drink) + by))); }
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); swiped = true; add.click(); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); remember(Number(add.dataset.drink)); swiped = true; add.click(); }
   });
 }
 

@@ -1,4 +1,4 @@
-/* Home in the spirit of a simple tracker: one bottle buddy, a cup row to swipe, one big add button. */
+/* Home in the spirit of a simple tracker: one bottle buddy, a cup row and one amount to swipe. */
 /* One muted water blue for the water, the flying drop and the picked cup. */
 .hydro, .fx-drop, .fx-float, .avatar-picker { --water: #6b9bd1; --water-soft: #e3ecf6; }
 .hydro { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 16px; max-width: 400px; margin: 0 auto; padding: 22px 20px 26px; }
@@ -71,13 +71,17 @@
 .goal-pill::after { content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
 .goal-pill[aria-expanded="true"]::after { transform: translateY(1px) rotate(-135deg); }
 
-/* Adding: swipe the cup row (the centred cup is picked), then tap the big pill button. */
-.adder { display: grid; justify-items: center; gap: 14px; width: 100%; }
-.cups { position: relative; display: flex; gap: 10px; width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; padding: 6px calc(50% - 32px) 10px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); }
+/* Adding: tap a cup to add it; «Өөр» at the end opens an amount you swipe up or down. */
+.cups { position: relative; display: flex; gap: 10px; width: 100%; overflow-x: auto; scroll-snap-type: x proximity; padding: 6px 6px 10px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
 .cups::-webkit-scrollbar { display: none; }
-.cup { flex: 0 0 64px; scroll-snap-align: center; display: grid; justify-items: center; align-content: center; gap: 1px; height: 64px; border: 0; border-radius: 50%; background: #fff; color: #8a95a6; box-shadow: 0 4px 14px rgba(40, 70, 110, .1); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; transition: transform .2s, color .2s, box-shadow .2s; }
+.cup { flex: 0 0 64px; scroll-snap-align: start; display: grid; justify-items: center; align-content: center; gap: 1px; height: 64px; border: 0; border-radius: 50%; background: #fff; color: #8a95a6; box-shadow: 0 4px 14px rgba(40, 70, 110, .1); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; transition: transform .2s, color .2s, box-shadow .2s; }
 .cup svg { width: 20px; height: 20px; fill: currentColor; }
+.cup:active { transform: scale(.92); }
+.cup.custom .custom-icon { font-size: 20px; line-height: 1; }
+.pour-panel { display: grid; justify-items: center; width: 100%; }
+.pour-panel[hidden] { display: none; }
 .cup.on { color: #fff; background: var(--water); transform: scale(1.12); box-shadow: 0 8px 18px rgba(80, 120, 170, .35); }
+.adder { display: grid; justify-items: center; gap: 14px; width: 100%; }
 .buddy.pouring .buddy-wave { fill: #5aa2ff; }
 /* The amount to add, shown big with no button around it; swipe it up or down, let go to add. */
 .big-add { display: grid; justify-items: center; gap: 2px; width: min(300px, 100%); padding: 6px 0 4px; border-radius: 20px; color: #2f80ed; touch-action: none; cursor: ns-resize; user-select: none; transition: color .2s, background .2s; }
@@ -99,7 +103,9 @@
 @keyframes add-pop { 40% { transform: scale(1.12); } }
 
 
-.hydro .undo-line { margin-top: -6px; }
+.hydro .undo-line { margin: -2px 0 0; padding: 6px 8px 6px 14px; border-radius: 999px; background: #eef5ff; color: #1f4f99; font-size: 14px; }
+.hydro .undo-line b { color: #2f80ed; font-variant-numeric: tabular-nums; }
+.hydro .undo-line .text-button { min-height: 32px; padding: 0 12px; border-radius: 999px; background: #fff; font-weight: 700; }
 
 .fx-drop { position: fixed; left: 0; top: 0; z-index: 60; width: 24px; height: 24px; margin: -12px 0 0 -12px; pointer-events: none; filter: drop-shadow(0 3px 6px rgba(80, 120, 170, .3)); }
 .fx-drop svg { display: block; width: 100%; height: 100%; fill: var(--water); }
@@ -197,3 +203,16 @@
 .demo-reset { min-height: 34px; padding: 0 14px; border: 1px dashed #c3cedc; border-radius: 999px; background: transparent; color: var(--muted-2); font-size: 13px; }
 .demo-reset:hover:not(:disabled) { border-style: solid; color: var(--ink-2); background: rgba(255, 255, 255, .7); }
 .demo-reset:disabled { opacity: .45; cursor: default; }
+
+/* Short screens (most phones): shrink the character and the gaps so the amount to swipe
+   stays above the bottom tab bar without scrolling. */
+@media (max-height: 900px) {
+  .hydro { gap: 10px; padding-top: 12px; }
+  .buddy svg { width: min(140px, 38vw); }
+  .buddy-pct { font-size: 34px; }
+  .buddy-total b { font-size: 20px; }
+  .sched-chip { min-height: 40px; }
+  .cups { padding-top: 2px; padding-bottom: 6px; }
+  .cup { flex-basis: 56px; height: 56px; }
+  .swipe-amount b { font-size: 40px; }
+}
