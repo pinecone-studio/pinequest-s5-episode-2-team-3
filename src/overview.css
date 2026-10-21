@@ -1,9 +1,6 @@
-/* Home: plan panel on the left, the bottle on its base in the centre. Shell styles live in shell.css. */
+/* Home: progress ring and tiles live in hydration.css; this file styles the goal calculator,
+   the folded connection line and the footer. Shell styles live in shell.css. */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-
-/* Bottle stage on the left, plan panel on the right. */
-.app-body { display: grid; grid-template-columns: minmax(0, 1fr) 410px; min-height: 640px; }
-.side { grid-template-columns: minmax(0, 1fr); padding: 22px; border-left: 1px solid var(--hair); background: rgba(255, 255, 255, .28); display: grid; gap: 20px; align-content: start; }
 
 /* Plan card */
 .plan-card { background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); }
@@ -21,7 +18,6 @@
 .ai-button { min-height: 50px; padding: 0 16px; white-space: nowrap; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-size: 15px; font-weight: 600; }
 .ai-button:disabled { opacity: .5; }
 .ai-off { padding: 10px 12px; border-radius: 10px; background: #fff6e5; color: #7a4f00; font-size: 15px; }
-.doctor-hint { margin: 0; font-size: 14px; color: var(--muted-2); }
 
 .plan-result { margin-top: 14px; padding: 16px; border-radius: 16px; background: linear-gradient(180deg, #f3f7ff, #eaf1fd); }
 .plan-amount { display: flex; align-items: center; gap: 10px; }
@@ -40,84 +36,32 @@
 .plan-saved { margin-top: 8px; font-size: 15px; color: #2f6e4b; min-height: 1.4em; }
 .plan-note { margin-top: 4px; font-size: 13px; color: var(--muted-2); }
 
-/* Today bars */
-.bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 14px; border: 1px dashed #d4dae4; border-radius: 18px; background: rgba(255, 255, 255, .5); }
-.bar-col { display: grid; justify-items: center; gap: 8px; }
-.bar-name { font-size: 13px; color: var(--ink-2); }
-.bar-track { position: relative; width: 100%; height: 140px; border-radius: 14px; background: rgba(20, 32, 52, .05); overflow: hidden; }
-.bar-track i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 14px; transition: height .8s cubic-bezier(.3, 1.2, .5, 1); }
-.b-drink { background: linear-gradient(180deg, #d9ef8f, #8cbf3c); }
-.b-bottle { background: linear-gradient(180deg, #a6d8ff, #3b7ff0); }
-.b-left { background: linear-gradient(180deg, #f8dc98, #e2ab3f); }
-.b-week { background: linear-gradient(180deg, #4b5465, #161a22); }
-.bar-val { font-size: 13px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-
-/* Stage */
-.stage { display: grid; justify-items: center; align-content: start; gap: 6px; padding: 34px 24px 30px; text-align: center; background: radial-gradient(60% 50% at 50% 55%, rgba(255, 255, 255, .7), transparent); }
-/* A status label, not a control: no pill or shadow so it doesn't look clickable. */
-.stage-chip { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted-2); }
-.stage-chip i { width: 8px; height: 8px; border-radius: 50%; background: #9aa3b2; }
-.stage h1 { margin-top: 14px; font-size: clamp(34px, 4.4vw, 52px); font-weight: 700; letter-spacing: -1.2px; line-height: 1.1; color: var(--ink-2); }
-.stage-sub { font-size: 18px; color: var(--muted-2); }
-.stage-sub b { color: var(--ink-2); }
-.stage-sub .ok { color: #2f6e4b; }
-.stage-sub .over { color: #ad4239; font-weight: 600; }
-.drink-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
-.drink-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 52px; padding: 0 22px; border: 1px solid rgba(20, 32, 52, .08); border-radius: 999px; background: rgba(255, 255, 255, .85); color: var(--ink-2); font-size: 18px; font-weight: 600; box-shadow: 0 2px 10px rgba(20, 32, 52, .06); transition: transform .15s, box-shadow .15s; }
-.drink-chip span { color: #3b82f6; font-size: 20px; }
-.drink-chip:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(20, 32, 52, .1); }
-.drink-chip:active { transform: scale(.97); }
 .undo-line { margin-top: 8px; font-size: 16px; color: var(--muted-2); display: flex; align-items: center; gap: 8px; }
 .undo-line .text-button { font-size: 16px; }
-
-/* Week chart card */
-.glass-card { margin-top: 20px; padding: 22px 26px; background: var(--glass); border: 1px solid var(--glass-line); border-radius: 26px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 16px 40px rgba(40, 60, 90, .1); }
-.glass-card .week { --drink: #3b7ff0; --spill: #c98bf0; margin: 0; padding: 0; border: 0; }
-.week-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--hair); }
-.week-head .panel-label { margin-bottom: 4px; }
-.week-head h2 { font-size: 21px; font-weight: 600; letter-spacing: -.3px; color: var(--ink-2); }
-.week-avg { margin-top: 6px; font-size: 14px; color: var(--muted-2); }
-.legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 15px; color: var(--muted-2); }
-.legend li { display: flex; align-items: center; gap: 10px; }
-.key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-.key.drink { background: var(--drink); }
-.key.spill { background: var(--spill); }
-.chart { position: relative; }
-.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
-.chart .grid { stroke: rgba(20, 32, 52, .07); stroke-width: 1; }
-.chart .axis { font-size: 13px; fill: var(--muted-2); font-variant-numeric: tabular-nums; }
-.chart .axis.strong { fill: var(--ink-2); font-weight: 600; }
-.chart .band { fill: #fff; opacity: 0; transition: opacity .15s; }
-.chart .day:hover .band, .chart .day:focus-within .band { opacity: .7; }
-.chart .bar.drink { fill: var(--drink); }
-.chart .bar.spill { fill: var(--spill); }
-.chart .goal-line { stroke: var(--ink-2); stroke-width: 1; opacity: .4; }
-.chart .goal-label { font-size: 13px; fill: var(--muted-2); }
-.chart .hit { fill: transparent; outline: none; }
-.chart-tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--ink-2); color: white; border-radius: 12px; padding: 10px 12px; font-size: 14px; white-space: nowrap; pointer-events: none; display: grid; gap: 4px; font-variant-numeric: tabular-nums; box-shadow: 0 8px 24px rgba(20, 32, 52, .18); }
-.chart-tip .tip-date { color: #c5ccd6; font-size: 12px; }
-.chart-tip .tip-row { display: flex; align-items: center; gap: 8px; color: #c5ccd6; font-size: 13px; }
-.chart-tip .tip-row strong { color: white; font-size: 14px; font-weight: 600; }
-.chart-tip .key { width: 10px; height: 10px; }
 
 .home-footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px 6px 30px; font-size: 14px; color: var(--muted-2); border: 0; margin: 0; }
 .home-footer a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
 
-@media (prefers-reduced-motion: reduce) { .bar-track i, .chart .band, .drink-chip { transition: none; } }
-@media (max-width: 1000px) {
-  .app-body { grid-template-columns: minmax(0, 1fr); }
-  .side { border-left: 0; border-top: 1px solid var(--hair); }
-}
 @media (max-width: 560px) {
-  .side { padding: 14px; }
-  .stage { padding: 24px 14px; }
-  .drink-chips { width: 100%; gap: 8px; flex-wrap: nowrap; }
-  .drink-chip { flex: 1 1 0; min-width: 0; justify-content: center; gap: 4px; padding: 0 6px; font-size: clamp(14px, 4.2vw, 16px); white-space: nowrap; }
-  .glass-card { padding: 16px; }
-  .week-head { flex-direction: column; gap: 12px; }
-  .legend { display: flex; gap: 18px; }
   .home-footer { flex-direction: column; }
 }
+
+/* Sync + bottle picker fold into one line; the calculator opens from the goal pill. */
+.home-connect { margin: 14px 22px 0; border-radius: 16px; background: rgba(255, 255, 255, .55); box-shadow: inset 0 0 0 1px var(--hair); }
+.home-connect > summary { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 16px; font-size: 14px; color: var(--muted-2); cursor: pointer; list-style: none; }
+.home-connect > summary::-webkit-details-marker { display: none; }
+.home-connect > summary i { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: #34c38f; box-shadow: 0 0 0 4px rgba(52, 195, 143, .15); }
+.connect-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.connect-more { flex-shrink: 0; font-weight: 600; color: var(--ink-2); }
+.connect-more::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-3px) rotate(45deg); transition: transform .2s; }
+.home-connect[open] .connect-more::after { transform: translateY(1px) rotate(-135deg); }
+.connect-body { display: grid; gap: 12px; padding: 0 12px 12px; }
+.connect-body .sync-status, .connect-body .device-panel { margin: 0; }
+
+.plan-wrap:not([hidden]) { animation: plan-open .25s ease-out; }
+@keyframes plan-open { from { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .plan-wrap:not([hidden]), .connect-more::after { animation: none; transition: none; } }
+@media (max-width: 760px) { .home-connect { margin: 12px 12px 0; } .connect-text { font-size: 13px; } }
 
 /* One-screen calculator: numbered-feel steps, then the three suggestions as selectable cards. */
 .plan-step { margin: 16px 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--muted-2); }
