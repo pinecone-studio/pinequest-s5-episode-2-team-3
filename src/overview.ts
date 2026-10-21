@@ -8,6 +8,7 @@ import { buddySection, drinkTiles, streakParts, bindStreakCalendar, bindHydratio
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
+import { needsOnboarding, showOnboarding } from './onboarding';
 import { dateLabel, escape, number } from './format';
 import { brandMark } from './components/Icon';
 
@@ -328,6 +329,15 @@ window.addEventListener('storage', event => {
 });
 // Roll over to the new day at midnight without a reload.
 setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 60_000);
-void reload().then(render);
+void reload().then(() => {
+  render();
+  // First visit: ask a few questions and start with the computed daily amount.
+  if (needsOnboarding()) showOnboarding(async plan => {
+    const result = await save({ ...state, goal: plan.ml, mode: plan.mode });
+    await reload();
+    if (result !== 'saved') storageError = saveMessage[result];
+    render();
+  });
+});
 // The AI option and its button depend on whether the backend has AI turned on.
 checkAi().then(ready => { aiReady = ready; render(); });
