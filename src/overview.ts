@@ -11,13 +11,11 @@ import { BOTTLE_KEY, bottleSection, bottleStatus, bindBottle } from './bottle';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
+import { dateLabel, escape, number } from './format';
+import { icon } from './components/Icon';
 
-const dropIcon = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/></svg>';
-const number = (n: number) => new Intl.NumberFormat('en-US').format(n);
 // 2000 → "2", 2150 → "2.15", 2500 → "2.5" (the old regex left "2.", which a number input rejects).
 const liters = (ml: number) => String(Number((ml / 1000).toFixed(2)));
-const escape = (value: string) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
-const dateLabel = (key: string) => key.replaceAll('-', '.');
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let state: AppState = defaults();
 let storageError = '';
@@ -384,7 +382,7 @@ function refreshMeasurement(): void {
 function render() {
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home" tabindex="-1">
     <div class="app-shell">
-      <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${dropIcon}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
+      <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${icon('drop')}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       ${SyncStatus()}
       ${DevicePanel()}

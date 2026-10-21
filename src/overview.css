@@ -24,7 +24,6 @@
 .ai-row input { font-size: 16px; }
 .ai-button { min-height: 50px; padding: 0 16px; white-space: nowrap; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-size: 15px; font-weight: 600; }
 .ai-button:disabled { opacity: .5; }
-.ai-off { padding: 10px 12px; border-radius: 10px; background: #fff6e5; color: #7a4f00; font-size: 15px; }
 .doctor-hint { margin: 0; font-size: 14px; color: var(--muted-2); }
 
 .plan-result { margin-top: 14px; padding: 16px; border-radius: 16px; background: linear-gradient(180deg, #f3f7ff, #eaf1fd); }
