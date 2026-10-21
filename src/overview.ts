@@ -83,19 +83,26 @@ function metricsSection(): string {
 }
 
 type Source = 'calc' | 'doctor' | 'ai';
-const SOURCES: Record<Source, string> = { calc: 'Тооцоолох', doctor: 'Эмчийн заавар', ai: 'AI зөвлөгөө' };
+const SOURCES: Record<Source, string> = { calc: 'Тооцоолсон', doctor: 'Эмчийн заавар', ai: 'AI зөвлөгөө' };
+type Draft = { ml: number; mode: 'goal' | 'limit'; how: string; warning: string };
+// All three suggestions sit on one screen; `source` is the one picked, and `draft` its amount,
+// which the user may adjust before saving.
 let source: Source = 'calc';
-// The amount shown in the editable result; the user may adjust it before saving.
-let draft: { ml: number; mode: 'goal' | 'limit'; how: string; warning: string } | null = null;
-// AI tab: nothing is shown until the user asks; aiReady is null until /api/health answers.
+let draft: Draft | null = null;
+// The AI answer is kept apart so picking another option and coming back doesn't lose it.
+let aiPlan: Draft | null = null;
+// aiReady is null until /api/health answers.
 let aiAsking = false;
 let aiError = '';
 let aiReady: boolean | null = null;
 
-function suggestion(p: Profile): { ml: number; mode: 'goal' | 'limit'; how: string; warning: string } {
-  if (source === 'doctor') return { ml: p.doctorLimit, mode: p.doctorMode, how: 'Эмчийн заасан хэмжээ', warning: '' };
+const kindLabel = (mode: 'goal' | 'limit') => (mode === 'limit' ? 'хамгийн ихдээ' : 'дор хаяж');
+
+function suggestion(p: Profile, s: Source): Draft | null {
+  if (s === 'ai') return aiPlan;
+  if (s === 'doctor') return { ml: p.doctorLimit, mode: p.doctorMode, how: 'Эмчийн заасан хэмжээ', warning: '' };
   const plan = calcPlan(p);
-  return { ...plan, warning: plan.mode === 'limit' ? 'Хязгаарыг эмч тогтооно. «Эмчийн заавар» хэсэгт оруулна уу.' : '' };
+  return { ...plan, warning: plan.mode === 'limit' ? 'Хязгаарыг эмч тогтооно. «Эмчийн заавар»-т оруулна уу.' : '' };
 }
 
 // Compare the suggestion with the saved goal so it's clear what saving would change.
@@ -106,19 +113,24 @@ function versusGoal(d: { ml: number; mode: 'goal' | 'limit' }): { text: string; 
   return { text: `Одоогийн ${label}: ${number(state.goal)} мл${diff ? ` · ${diff > 0 ? '+' : '−'}${number(Math.abs(diff))} мл` : ''}`, same: false };
 }
 
+// One card per source; AI stays unselectable until it has answered.
+function optionCard(s: Source, p: Profile): string {
+  const d = suggestion(p, s);
+  const empty = aiAsking ? 'Бодож байна…' : aiReady === false ? 'Идэвхгүй' : 'Асуугаагүй';
+  return `<button type="button" class="plan-option" role="radio" aria-checked="${s === source}" data-source="${s}" ${d ? '' : 'disabled'}>
+    <span class="opt-name">${SOURCES[s]}</span>
+    ${d ? `<span class="opt-amount" data-opt-amount="${s}">${liters(d.ml)} л</span><span class="opt-kind" data-opt-kind="${s}">${kindLabel(d.mode)}</span>` : `<span class="opt-empty">${empty}</span>`}
+  </button>`;
+}
+
 function planSection(p: Profile): string {
   // Keep the user's own edits across re-renders; recompute only after a source or profile change.
-  if (!draft && source !== 'ai') draft = suggestion(p);
+  if (!draft) draft = suggestion(p, source);
   const d = draft;
   const vs = d && versusGoal(d);
   const aiOff = aiReady === false;
-  const aiControls = source !== 'ai' ? '' : `<div class="ai-row wide">
-          <label class="visually-hidden" for="plan-note">Нэмэлт мэдээлэл</label>
-          <input id="plan-note" name="note" type="text" maxlength="200" placeholder="Жишээ: гүйдэг, халуун" value="${escape(aiNote)}"/>
-          <button type="button" class="ai-button" id="ask-ai" ${aiAsking || aiOff ? 'disabled' : ''}>${aiAsking ? 'Бодож байна…' : d ? 'Дахин асуух' : 'AI-аас асуух'}</button>
-        </div>`;
   const result = d ? `<div class="plan-result" aria-live="polite">
-        ${source === 'ai' ? '<p class="ai-chip">AI-ийн зөвлөгөө</p>' : ''}
+        <p class="plan-picked">${SOURCES[source]}</p>
         <div class="plan-amount">
           <button type="button" class="step" id="plan-minus" aria-label="50 мл хасах">−</button>
           <label class="visually-hidden" for="plan-l">Өдрийн хэмжээ, литр</label>
@@ -126,29 +138,34 @@ function planSection(p: Profile): string {
           <span>л</span>
           <button type="button" class="step" id="plan-plus" aria-label="50 мл нэмэх">+</button>
         </div>
-        <p class="plan-kind" id="plan-kind">${d.mode === 'limit' ? 'өдөрт хамгийн ихдээ' : 'өдөрт дор хаяж'}</p>
+        <p class="plan-kind" id="plan-kind">өдөрт ${kindLabel(d.mode)}</p>
         <p class="plan-vs${vs!.same ? ' same' : ''}" id="plan-vs">${vs!.text}</p>
         <p class="plan-how" id="plan-how">${escape(d.how)}</p>
         <p class="plan-warning" id="plan-warning" ${d.warning ? '' : 'hidden'}>${escape(d.warning)}</p>
-      </div>` : `<div class="plan-result plan-empty" aria-live="polite">${aiAsking ? '<p><strong>AI бодож байна…</strong></p><p>Хэдэн секунд хүлээнэ үү.</p>' : aiOff ? '<p><strong>AI одоогоор идэвхжээгүй байна.</strong></p><p>«Тооцоолох» эсвэл «Эмчийн заавар»-ыг ашиглаарай.</p>' : '<p><strong>«AI-аас асуух» дарна уу.</strong></p><p>AI өдөрт уух хэмжээг гаргаж, шалтгааныг тайлбарлана.</p>'}</div>`;
+      </div>` : '';
   return `<section class="plan-card" aria-labelledby="plan-title">
     <h2 id="plan-title">Миний өдрийн хэмжээ</h2>
-    <div class="source-tabs" role="radiogroup" aria-label="Хэрхэн гаргах вэ">${(Object.keys(SOURCES) as Source[]).map(s => `<button type="button" role="radio" aria-checked="${s === source}" data-source="${s}">${SOURCES[s]}</button>`).join('')}</div>
     <form id="plan-form" novalidate>
-      <div class="plan-body">
-      <div class="plan-fields" ${source === 'doctor' ? 'hidden' : ''}>
+      <p class="plan-step">Таны мэдээлэл</p>
+      <div class="plan-fields">
         <label>Нас<input id="plan-age" name="age" type="number" inputmode="numeric" min="4" max="110" value="${p.age}"/></label>
         <label>Жин, кг<input id="plan-weight" name="weight" type="number" inputmode="numeric" min="10" max="250" value="${p.weight}"/></label>
         <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
         <label class="wide">Онош<select id="plan-condition" name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${p.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
-        ${aiControls}
       </div>
-      <div class="plan-fields" ${source === 'doctor' ? '' : 'hidden'}>
+      <p class="plan-step">Эмчийн заавар <small>байвал</small></p>
+      <div class="plan-fields">
         <label>Хэмжээ, мл<input id="plan-doctor" name="doctorLimit" type="number" inputmode="numeric" min="500" max="4000" value="${p.doctorLimit}"/></label>
         <label class="span2">Эмч юу гэж заасан бэ?<select id="plan-doctor-mode" name="doctorMode"><option value="goal" ${p.doctorMode === 'goal' ? 'selected' : ''}>Дор хаяж ийм хэмжээ уух</option><option value="limit" ${p.doctorMode === 'limit' ? 'selected' : ''}>Үүнээс хэтрүүлэхгүй</option></select></label>
-        <p class="doctor-hint wide">Эмчийн бичсэн хэмжээг оруулна. Бөөр, зүрхний дутагдалтай бол заавал эмчийн хязгаарыг ашиглана.</p>
       </div>
-      </div>
+      <p class="plan-step">AI-аас асуух <small>заавал биш</small></p>
+      ${aiOff ? '<p class="ai-off">AI одоогоор идэвхжээгүй байна.</p>' : `<div class="ai-row">
+        <label class="visually-hidden" for="plan-note">Нэмэлт мэдээлэл</label>
+        <input id="plan-note" name="note" type="text" maxlength="200" placeholder="Жишээ: гүйдэг, халуун" value="${escape(aiNote)}"/>
+        <button type="button" class="ai-button" id="ask-ai" ${aiAsking ? 'disabled' : ''}>${aiAsking ? 'Бодож байна…' : aiPlan ? 'Дахин асуух' : 'Асуух'}</button>
+      </div>`}
+      <p class="plan-step">Аль хэмжээг сонгох вэ?</p>
+      <div class="plan-options" role="radiogroup" aria-label="Хэмжээ сонгох">${(Object.keys(SOURCES) as Source[]).map(s => optionCard(s, p)).join('')}</div>
       ${result}
       <p class="form-error" id="plan-error" role="alert" ${aiError ? '' : 'hidden'}>${escape(aiError)}</p>
       <button type="submit" class="primary-button plan-save" ${d && !vs!.same ? '' : 'disabled'}>${vs?.same ? 'Зорилт болгосон' : 'Үүнийг зорилт болгох'}</button>
@@ -173,7 +190,7 @@ function bindPlan() {
   const showError = (text: string) => { error.textContent = text; error.hidden = !text; };
   const show = () => {
     if (!draft || !amount) return;
-    form.querySelector('#plan-kind')!.textContent = draft!.mode === 'limit' ? 'өдөрт хамгийн ихдээ' : 'өдөрт дор хаяж';
+    form.querySelector('#plan-kind')!.textContent = `өдөрт ${kindLabel(draft!.mode)}`;
     form.querySelector('#plan-how')!.textContent = draft!.how;
     const warning = form.querySelector<HTMLElement>('#plan-warning')!;
     warning.textContent = draft!.warning;
@@ -187,22 +204,31 @@ function bindPlan() {
     button.disabled = vs.same;
     button.textContent = vs.same ? 'Зорилт болгосон' : 'Үүнийг зорилт болгох';
   };
-  document.querySelectorAll<HTMLButtonElement>('[data-source]').forEach(b => b.addEventListener('click', () => {
+  // Profile and doctor fields feed the "calculated" and "doctor" cards live.
+  const refreshCards = (p: Profile) => {
+    (['calc', 'doctor'] as Source[]).forEach(s => {
+      const d = suggestion(p, s)!;
+      form.querySelector(`[data-opt-amount="${s}"]`)!.textContent = `${liters(d.ml)} л`;
+      form.querySelector(`[data-opt-kind="${s}"]`)!.textContent = kindLabel(d.mode);
+    });
+  };
+  form.querySelectorAll<HTMLButtonElement>('[data-source]').forEach(b => b.addEventListener('click', () => {
     source = b.dataset.source as Source;
-    draft = null;
+    draft = suggestion(readProfile(), source);
     aiError = '';
     render();
   }));
-  // Profile edits recompute the suggestion (AI waits for its button).
+  // Profile edits recompute the suggestions (AI waits for its button).
   form.addEventListener('input', event => {
     const target = event.target as HTMLElement;
     if (target === amount) return;
-    if (target.id === 'plan-note') { aiNote = (target as HTMLTextAreaElement).value; return; }
+    if (target.id === 'plan-note') { aiNote = (target as HTMLInputElement).value; return; }
     const p = readForm(form);
-    if (!validProfile(p)) { showError(source === 'doctor' ? 'Хэмжээ 500–4,000 мл байна.' : 'Нас 4–110, жин 10–250 кг, өндөр 90–230 см байна.'); return; }
+    if (!validProfile(p)) { showError('Нас 4–110, жин 10–250 кг, өндөр 90–230 см, эмчийн хэмжээ 500–4,000 мл байна.'); return; }
     showError('');
     writeProfile(p);
-    if (source !== 'ai') { draft = suggestion(p); show(); }
+    refreshCards(p);
+    if (source !== 'ai') { draft = suggestion(p, source); show(); }
   });
   const nudge = (delta: number) => {
     const ml = Math.round(Math.min(4000, Math.max(500, draft!.ml + delta)) / 50) * 50;
@@ -223,16 +249,17 @@ function bindPlan() {
     if (!validProfile(p)) { showError('Нас 4–110, жин 10–250 кг, өндөр 90–230 см байна.'); return; }
     aiAsking = true;
     aiError = '';
-    draft = null;
     render();
     try {
       const ai = await askAi({ age: p.age, weight: p.weight, height: p.height, condition: p.condition, note: aiNote });
-      draft = { ml: ai.ml, mode: ai.mode, how: ai.reason, warning: ai.warning };
+      aiPlan = { ml: ai.ml, mode: ai.mode, how: ai.reason, warning: ai.warning };
+      source = 'ai';
+      draft = aiPlan;
     } catch (err) {
       aiError = (err as Error).message;
     }
     aiAsking = false;
-    if (source === 'ai') render();
+    render();
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -413,4 +440,5 @@ window.addEventListener('resize', () => {
 // Roll over to the new day at midnight without a reload.
 setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 60_000);
 void reload().then(render);
-checkAi().then(ready => { aiReady = ready; if (source === 'ai') render(); });
+// The AI option and its button depend on whether the backend has AI turned on.
+checkAi().then(ready => { aiReady = ready; render(); });
