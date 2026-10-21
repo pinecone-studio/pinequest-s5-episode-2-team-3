@@ -34,6 +34,18 @@ main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-
 
 .panel-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 12px; }
 
+/* Pages marked .home-app look on desktop the way they do on a phone: one narrow column and a floating tab bar. */
+@media (min-width: 561px) {
+  main.home-app { max-width: 460px; padding-bottom: 110px; }
+  main.home-app .app-shell { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255, 255, 255, .82); }
+  main.home-app .app-date { display: none; }
+  main.home-app .app-top .site-nav { position: fixed; z-index: 40; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(428px, calc(100% - 32px)); justify-content: space-around; gap: 0; padding: 6px 8px; border-radius: 22px; border: 1px solid var(--hair); background: rgba(255, 255, 255, .94); box-shadow: 0 12px 30px rgba(40, 60, 90, .16); }
+  main.home-app .app-top .site-nav a { flex: 1 1 0; flex-direction: column; gap: 3px; padding: 6px 0; font-size: 12px; background: none; box-shadow: none; }
+  main.home-app .app-top .site-nav a[aria-current="page"] { background: none; box-shadow: none; color: #6b9bd1; }
+  main.home-app .nav-icon { width: 26px; height: 26px; }
+  main.home-app .home-footer { flex-direction: column; justify-content: center; text-align: center; }
+}
+
 @media (max-width: 560px) {
   main.home { padding-top: 12px; padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
   /* A blurred ancestor would pin the fixed tab bar to the card instead of the screen. */

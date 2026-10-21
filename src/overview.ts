@@ -1,13 +1,10 @@
-import { DevicePanel, bindDevicePanel } from './components/DevicePanel';
-import { deviceSummary } from './devices';
-import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './shell.css';
 import './overview.css';
 import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
-import { ringSection, drinkTiles, bindHydration } from './hydration';
+import { buddySection, drinkTiles, bindHydration } from './hydration';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
@@ -25,7 +22,6 @@ let undoId: string | null = null;
 let undoReset: WaterEntry[] | null = null;
 let undoTimer: ReturnType<typeof setTimeout> | undefined;
 // Secondary panels stay folded so the home shows only today's water; remember if the user opened them.
-let connectOpen = false;
 let planOpen = false;
 
 async function reload() {
@@ -42,13 +38,6 @@ function amountOn(events: readonly WaterEntry[], key: string, type: 'drink' | 's
 const drankOn = (events: readonly WaterEntry[], key: string) => amountOn(events, key, 'drink');
 
 // Server sync and the bottle picker, folded into one line above the stage.
-function connectSection(): string {
-  return `<details class="home-connect" ${connectOpen ? 'open' : ''}>
-    <summary><i aria-hidden="true"></i><span class="connect-text">${escape(deviceSummary())}</span><span class="connect-more">Холболт ба сав</span></summary>
-    <div class="connect-body">${SyncStatus()}${DevicePanel()}</div>
-  </details>`;
-}
-
 type Source = 'calc' | 'doctor' | 'ai';
 const SOURCES: Record<Source, string> = { calc: 'Тооцоолсон', doctor: 'Эмчийн заавар', ai: 'AI зөвлөгөө' };
 type Draft = { ml: number; mode: 'goal' | 'limit'; how: string; warning: string };
@@ -290,42 +279,43 @@ async function undo() {
   render();
 }
 
-// A new bottle reading only changes the one-line summary on the home.
-function refreshMeasurement(): void {
-  const summary = document.querySelector('.connect-text');
-  if (summary) summary.textContent = deviceSummary();
-}
-
 function render() {
   const drink = drankOn(state.events, today);
-  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home" tabindex="-1">
+  app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home home-app" tabindex="-1">
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       <div class="hydro">
         <h1 class="hydro-title">Өнөөдөр</h1>
-        ${ringSection(drink, state.goal, state.mode)}
-        <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Хязгаар' : 'Зорилт'} <b>${number(state.goal)} мл</b></button>
+        ${buddySection(drink, state.goal, state.mode)}
+        <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Эмчийн хязгаар' : 'Зорилт'} <b>${number(state.goal)} мл</b></button>
         ${drinkTiles()}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Тэглэлээ' : 'Нэмлээ'} <button type="button" class="text-button" id="undo">Буцаах</button></p>
-        <div class="plan-wrap" id="plan-wrap" ${planOpen ? '' : 'hidden'}>${planSection(readProfile())}</div>
-        ${connectSection()}
-        <button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button>
       </div>
     </div>
-    <footer class="home-footer"><span>Дусал</span><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Нөөц ба тохиргоо</a></p></footer>
+    <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>
+      <div class="plan-sheet"><button type="button" class="plan-close" id="plan-close" aria-label="Хаах">✕</button>${planSection(readProfile())}</div>
+    </div>
+    <footer class="home-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Холболт, нөөц ба тохиргоо</a></p></footer>
   </main>`;
-  bindHydration(drink, addDrink);
+  bindHydration(drink, addDrink, render);
   document.querySelector('#undo')?.addEventListener('click', undo);
   document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
   bindPlan();
-  bindDevicePanel(refreshMeasurement);
-  bindSyncStatus();
-  document.querySelector<HTMLDetailsElement>('.home-connect')?.addEventListener('toggle', event => { connectOpen = (event.currentTarget as HTMLDetailsElement).open; });
-  document.querySelector<HTMLButtonElement>('#plan-toggle')?.addEventListener('click', event => {
-    planOpen = !planOpen;
-    (event.currentTarget as HTMLButtonElement).setAttribute('aria-expanded', String(planOpen));
-    document.querySelector<HTMLElement>('#plan-wrap')!.hidden = !planOpen;
+  // The goal pill opens the calculator as a glass sheet over the home; ✕, the backdrop or Esc close it.
+  const sheet = document.querySelector<HTMLElement>('#plan-wrap')!;
+  const pill = document.querySelector<HTMLButtonElement>('#plan-toggle')!;
+  const setOpen = (open: boolean) => {
+    planOpen = open;
+    pill.setAttribute('aria-expanded', String(open));
+    sheet.hidden = !open;
+    if (open) sheet.querySelector<HTMLElement>('.plan-close')!.focus(); else pill.focus();
+  };
+  document.querySelector('#plan-close')!.addEventListener('click', () => setOpen(false));
+  sheet.addEventListener('click', event => { if (event.target === sheet) setOpen(false); });
+  sheet.addEventListener('keydown', event => { if (event.key === 'Escape') setOpen(false); });
+  pill.addEventListener('click', () => {
+    setOpen(!planOpen);
   });
 }
 

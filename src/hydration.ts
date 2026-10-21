@@ -1,12 +1,14 @@
 import './hydration.css';
 import { number } from './format';
+import { AVATARS, avatarSvg, openAvatarPicker, readAvatar } from './avatars';
 
-// Home: a progress ring toward the daily goal and four quick-add tiles underneath.
-// Tapping a tile sends a drop into the ring before the entry is saved.
+// Home: a bottle buddy that fills toward the daily goal, a swipeable row of cup sizes and one big add button.
+// Tapping the button sends a drop into the bottle before the entry is saved.
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const R = 88, CIRC = 2 * Math.PI * R;
-// Ring fill as last shown, so the next render sweeps from there (from empty on first paint).
+// Water offset from full for the chosen character (its own water band height).
+const levelY = (frac: number) => AVATARS[readAvatar()].waterH * (1 - frac);
+// Fill as last shown, so the next render rises from there (from empty on first paint).
 let shownFrac = 0;
 let shownDrink: number | null = null;
 
@@ -16,69 +18,180 @@ const ICONS = {
   bottle: '<path d="M10 2h4v3l2 2.5V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V7.5L10 5Z"/>',
   jug: '<path d="M9 2h6v2.5l2.5 3V20a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V7.5L9 4.5Z"/>',
 };
-const TILES = [
-  { ml: 150, name: 'Бага аяга', tone: 'blue', icon: ICONS.glass },
-  { ml: 250, name: 'Аяга', tone: 'green', icon: ICONS.mug },
-  { ml: 500, name: 'Сав', tone: 'amber', icon: ICONS.bottle },
-  { ml: 750, name: 'Том сав', tone: 'sky', icon: ICONS.jug },
+// Cup sizes to swipe through; the centred one is what the big button adds.
+const CUPS = [
+  { ml: 100, icon: ICONS.glass },
+  { ml: 150, icon: ICONS.glass },
+  { ml: 200, icon: ICONS.mug },
+  { ml: 250, icon: ICONS.mug },
+  { ml: 330, icon: ICONS.bottle },
+  { ml: 500, icon: ICONS.bottle },
+  { ml: 750, icon: ICONS.jug },
 ] as const;
+// The picked cup in ml (kept between renders); the pour handle starts from it.
+let cup = 250;
+const POUR_MIN = 10, POUR_MAX = 3000, POUR_STEP_PX = 6, POUR_CANCEL_PX = 70;
 
-export function ringSection(drink: number, goal: number, mode: 'goal' | 'limit'): string {
+export function buddySection(drink: number, goal: number, mode: 'goal' | 'limit'): string {
   const frac = Math.min(1, drink / goal);
+  // Under a doctor's limit the bottle never cheers for more: it warns as the limit gets close.
   const over = mode === 'limit' && drink > goal;
+  const near = mode === 'limit' && !over && drink >= goal * 0.8;
   const done = mode === 'goal' && drink >= goal;
   const diff = goal - drink;
-  const sub = over ? `+${number(-diff)} мл хэтэрсэн` : done ? 'Зорилт биеллээ' : mode === 'limit' ? `${number(diff)} мл үлдсэн` : `−${number(diff)} мл`;
-  return `<div class="ring${over ? ' over' : ''}${done ? ' done' : ''}" data-frac="${frac}" role="img" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл, ${Math.round((drink / goal) * 100)}%">
-    <svg viewBox="0 0 220 220" aria-hidden="true">
-      <circle class="ring-track" cx="110" cy="110" r="${R}"/>
-      <circle class="ring-fill" cx="110" cy="110" r="${R}" stroke-dasharray="${CIRC}" stroke-dashoffset="${CIRC * (1 - shownFrac)}"/>
-    </svg>
-    <div class="ring-center">
-      <p class="ring-pct">${Math.round((drink / goal) * 100)}%</p>
-      <p class="ring-total"><b id="today-drink">${number(drink)}</b><span>мл</span></p>
-      <p class="ring-sub">${sub}</p>
+  const sub = over ? `Эмчийн хязгаараас ${number(-diff)} мл хэтэрсэн` : near ? `Хязгаарт ойртож байна · ${number(diff)} мл үлдсэн` : done ? 'Зорилт биеллээ 🎉' : mode === 'limit' ? `Хязгаар хүртэл ${number(diff)} мл` : `Дахиад ${number(diff)} мл`;
+  const face = done ? 'beam' : over || near ? 'worried' : mode === 'goal' && frac < 0.25 ? 'sad' : 'happy';
+  return `<div class="buddy${over ? ' over' : ''}${near ? ' near' : ''}${done ? ' done' : ''}" data-frac="${frac}" data-goal="${goal}" role="img" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл, ${Math.round((drink / goal) * 100)}%">
+    <p class="buddy-pct">${Math.round((drink / goal) * 100)}<span>%</span></p>
+    <div class="buddy-stage">${avatarSvg(readAvatar(), face, levelY(shownFrac), done)}
+      <button type="button" class="avatar-btn" id="avatar-btn" aria-label="Дүр солих">✨</button></div>
+    <div class="buddy-text">
+      <p class="buddy-total"><b id="today-drink">${number(drink)}</b><span>/ ${number(goal)} мл</span></p>
+      <p class="buddy-sub">${sub}</p>
     </div>
   </div>`;
 }
 
 export function drinkTiles(): string {
-  return `<div class="tiles" role="group" aria-label="Уусан ус нэмэх">${TILES.map(t =>
-    `<button type="button" class="tile tone-${t.tone}" data-drink="${t.ml}" aria-label="${t.ml} мл ус нэмэх">
-      <span class="tile-name">${t.name}</span><span class="tile-ml">${t.ml} мл</span>
-      <svg class="tile-icon" viewBox="0 0 24 24" aria-hidden="true">${t.icon}</svg>
-    </button>`).join('')}</div>`;
+  return `<div class="adder">
+    <div class="cups" id="cups" role="radiogroup" aria-label="Аяганы хэмжээ (хажуу тийш гүйлгэнэ)">${CUPS.map(c =>
+      `<button type="button" class="cup${c.ml === cup ? ' on' : ''}" role="radio" aria-checked="${c.ml === cup}" data-cup="${c.ml}">
+        <svg viewBox="0 0 24 24" aria-hidden="true">${c.icon}</svg><span>${c.ml}</span></button>`).join('')}</div>
+    <div class="big-add" id="big-add" data-drink="${cup}" role="slider" tabindex="0" aria-valuemin="${POUR_MIN}" aria-valuemax="${POUR_MAX}" aria-valuenow="${cup}" aria-valuetext="${number(cup)} мл" aria-label="Нэмэх хэмжээ. Дээш доош шударч өөрчилнө, тавихад нэмэгдэнэ (Enter)">
+      <span class="pour-arrow up" aria-hidden="true">▲</span>
+      <span class="swipe-amount">+<b id="big-add-ml">${number(cup)}</b> мл</span>
+      <span class="pour-arrow down" aria-hidden="true">▼</span>
+      <span class="swipe-text">Дээш доош шудар · тавихад нэмэгдэнэ</span></div>
+  </div>`;
 }
 
-// Sweep the ring to its new value and count today's total up (or down after an undo),
-// then wire the tiles. `add` saves the entry and re-renders the page.
-export function bindHydration(drink: number, add: (ml: number) => unknown): void {
-  const ring = document.querySelector<HTMLElement>('.ring');
-  if (ring) {
-    const frac = Number(ring.dataset.frac);
-    const fill = ring.querySelector<SVGCircleElement>('.ring-fill')!;
+// Swipe the cup row; whichever cup sits in the middle becomes the big button's amount.
+function bindCups(): void {
+  const row = document.querySelector<HTMLElement>('#cups');
+  const add = document.querySelector<HTMLElement>('#big-add');
+  if (!row || !add) return;
+  const cups = [...row.querySelectorAll<HTMLButtonElement>('.cup')];
+  const pick = (ml: number) => {
+    cup = ml;
+    add.dataset.drink = String(ml);
+    add.setAttribute('aria-valuenow', String(ml)); add.setAttribute('aria-valuetext', `${number(ml)} мл`);
+    document.querySelector('#big-add-ml')!.textContent = number(ml);
+    cups.forEach(c => { const on = Number(c.dataset.cup) === ml; c.classList.toggle('on', on); c.setAttribute('aria-checked', String(on)); });
+  };
+  const centre = (el: HTMLElement, smooth: boolean) => row.scrollTo({ left: el.offsetLeft - (row.clientWidth - el.offsetWidth) / 2, behavior: smooth && !reducedMotion() ? 'smooth' : 'auto' });
+  centre(cups.find(c => Number(c.dataset.cup) === cup)!, false);
+  let frame = 0;
+  row.addEventListener('scroll', () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      const mid = row.scrollLeft + row.clientWidth / 2;
+      const near = cups.reduce((a, b) => Math.abs(b.offsetLeft + b.offsetWidth / 2 - mid) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - mid) ? b : a);
+      if (Number(near.dataset.cup) !== cup) pick(Number(near.dataset.cup));
+    });
+  });
+  cups.forEach(c => c.addEventListener('click', () => { pick(Number(c.dataset.cup)); centre(c, true); }));
+}
+
+// Raise the water to its new level and count today's total up (or down after an undo),
+// then wire the add buttons. `add` saves the entry and re-renders the page.
+export function bindHydration(drink: number, add: (ml: number) => unknown, redraw: () => void): void {
+  document.querySelector('#avatar-btn')?.addEventListener('click', () => openAvatarPicker(redraw));
+  const buddy = document.querySelector<HTMLElement>('.buddy');
+  if (buddy) {
+    const frac = Number(buddy.dataset.frac);
+    const water = buddy.querySelector<SVGGElement>('.buddy-water')!;
     const grew = frac > shownFrac + 0.001;
-    // Crossing the goal plays the water filling the ring; afterwards it simply stays full.
-    if (frac >= 1 && shownFrac < 1) ring.classList.add('filling');
+    if (shownDrink !== null && shownFrac < 1) {
+      if (buddy.classList.contains('done')) celebrate(drink);
+      if (buddy.classList.contains('over')) warnLimit(drink, Number(buddy.dataset.goal));
+    }
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      fill.style.strokeDashoffset = String(CIRC * (1 - frac));
-      if (grew) ring.classList.add('pulse');
+      water.style.transform = `translateY(${levelY(frac)}px)`;
+      if (grew) buddy.classList.add('pulse');
     }));
     shownFrac = frac;
   }
   if (shownDrink !== null) countUp(document.querySelector('#today-drink'), shownDrink, drink);
   shownDrink = drink;
 
-  document.querySelectorAll<HTMLButtonElement>('[data-drink]').forEach(tile => {
-    tile.addEventListener('click', async () => {
-      const ml = Number(tile.dataset.drink);
+  bindCups();
+  bindPourHandle(buddy, drink);
+  document.querySelectorAll<HTMLElement>('[data-drink]').forEach(button => {
+    button.addEventListener('click', async event => {
+      // A pointer tap on the amount (detail > 0) is not a swipe: nudge the arrows instead.
+      if (button.id === 'big-add' && event.detail > 0 && !swiped) {
+        button.classList.remove('nudge'); void button.offsetWidth; button.classList.add('nudge');
+        return;
+      }
+      swiped = false;
+      const ml = Number(button.dataset.drink);
       if (reducedMotion()) { add(ml); return; }
-      tile.classList.remove('tapped');
-      void tile.offsetWidth;
-      tile.classList.add('tapped');
-      await flyDrop(tile, ml);
+      button.classList.remove('tapped');
+      void button.offsetWidth;
+      button.classList.add('tapped');
+      await flyDrop(button, ml);
       add(ml);
     });
+  });
+}
+
+// Adding is a swipe on the big amount (no button): press and drag up to pour more, down to pour less
+// (10 ml every few pixels, starting from the picked cup). The handle shows the amount and the
+// character's water rises with it as a preview; letting go adds it on top of today's total.
+// A tap without dragging only nudges the arrows. Letting go is undone two ways before it
+// counts: slide the finger sideways off the amount (it turns into "Цуцлах"), or bring it back
+// to where it started. After adding, the undo line still offers «Буцаах». Keyboard: arrows
+// change it, Enter adds.
+let swiped = false;
+function bindPourHandle(buddy: HTMLElement | null, drink: number): void {
+  const add = document.querySelector<HTMLElement>('#big-add');
+  if (!add) return;
+  const label = add.querySelector('#big-add-ml')!, text = add.querySelector('.swipe-text')!;
+  const water = buddy?.querySelector<SVGGElement>('.buddy-water');
+  const goal = Number(buddy?.dataset.goal) || 1;
+  const show = (ml: number) => {
+    add.dataset.drink = String(ml);
+    label.textContent = number(ml);
+    add.setAttribute('aria-valuenow', String(ml)); add.setAttribute('aria-valuetext', `${number(ml)} мл`);
+  };
+  const preview = (ml: number | null) => {
+    if (!water) return;
+    water.style.transform = `translateY(${levelY(Math.min(1, (drink + (ml ?? 0)) / goal))}px)`;
+    buddy!.classList.toggle('pouring', ml !== null);
+  };
+  const IDLE = 'Дээш доош шудар · тавихад нэмэгдэнэ';
+  let startX = 0, startY: number | null = null, base = 0, moved = false, cancel = false, home = true;
+  add.addEventListener('pointerdown', e => {
+    startX = e.clientX; startY = e.clientY; base = Number(add.dataset.drink); moved = false; cancel = false;
+    add.setPointerCapture(e.pointerId);
+  });
+  add.addEventListener('pointermove', e => {
+    if (startY === null) return;
+    const dy = startY - e.clientY, dx = Math.abs(e.clientX - startX);
+    if (!moved && Math.abs(dy) < POUR_STEP_PX && dx < POUR_STEP_PX) return;
+    moved = true;
+    cancel = dx > POUR_CANCEL_PX;
+    home = Math.abs(dy) < POUR_STEP_PX;
+    const ml = Math.max(POUR_MIN, Math.min(POUR_MAX, base + Math.round(dy / POUR_STEP_PX) * 10));
+    show(ml); preview(cancel ? null : ml);
+    add.classList.toggle('cancel', cancel);
+    add.classList.toggle('ready', !cancel && !home);
+    add.classList.toggle('up', !cancel && dy > 0); add.classList.toggle('down', !cancel && dy < 0);
+    text.textContent = cancel ? '✕ Цуцлах · тавибал нэмэгдэхгүй' : home ? 'Эхэндээ буцсан · нэмэгдэхгүй' : 'Тавьвал нэмэгдэнэ · хажуу тийш = цуцлах';
+  });
+  const finish = (commit: boolean) => {
+    if (startY === null) return;
+    startY = null;
+    add.classList.remove('ready', 'up', 'down', 'cancel'); text.textContent = IDLE;
+    if (commit && moved && !cancel && !home) { swiped = true; add.click(); return; }
+    show(base); preview(null);
+  };
+  add.addEventListener('pointerup', () => finish(true));
+  add.addEventListener('pointercancel', () => finish(false));
+  add.addEventListener('keydown', e => {
+    const by = { ArrowUp: 10, ArrowDown: -10, PageUp: 100, PageDown: -100 }[e.key];
+    if (by) { e.preventDefault(); show(Math.max(POUR_MIN, Math.min(POUR_MAX, Number(add.dataset.drink) + by))); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); swiped = true; add.click(); }
   });
 }
 
@@ -87,12 +200,12 @@ function center(element: Element): { x: number; y: number } {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
-// A drop arcs from the tile into the ring; "+250 мл" rises from the ring as it lands.
+// A drop arcs from the add button into the bottle; "+250 мл" rises from it as it lands.
 // Both live on <body> so they survive the re-render that follows the save.
 async function flyDrop(from: Element, ml: number): Promise<void> {
-  const ring = document.querySelector('.ring');
-  if (!ring) return;
-  const start = center(from), end = center(ring);
+  const buddy = document.querySelector('.buddy svg');
+  if (!buddy) return;
+  const start = center(from), end = center(buddy);
   if (end.y < 0 || end.y > innerHeight) return;
   const drop = document.createElement('span');
   drop.className = 'fx-drop';
@@ -112,6 +225,46 @@ async function flyDrop(from: Element, ml: number): Promise<void> {
   label.style.top = `${end.y - 54}px`;
   document.body.append(label);
   label.addEventListener('animationend', () => label.remove());
+}
+
+// Doctor's limit crossed: no confetti, a calm warning card instead (tap to close).
+function warnLimit(drink: number, limit: number): void {
+  document.querySelector('.fx-cheer')?.remove();
+  const card = document.createElement('div');
+  card.className = 'fx-cheer warn';
+  card.setAttribute('role', 'alert');
+  card.innerHTML = `<div class="fx-cheer-card"><span class="fx-cheer-big">⚠️</span><b>Эмчийн хязгаараас хэтэрлээ</b><span>${number(drink)} / ${number(limit)} мл · Өнөөдөр дахиж уухаас зайлсхий</span></div>`;
+  document.body.append(card);
+  const close = () => card.remove();
+  card.addEventListener('click', close);
+  setTimeout(close, 4500);
+}
+
+// Goal reached: confetti falls over the page and a card cheers for a few seconds (tap to close).
+function celebrate(drink: number): void {
+  document.querySelector('.fx-cheer')?.remove();
+  const cheer = document.createElement('div');
+  cheer.className = 'fx-cheer';
+  cheer.setAttribute('role', 'status');
+  cheer.innerHTML = `<div class="fx-cheer-card"><span class="fx-cheer-big">🎉</span><b>Зорилт биеллээ!</b><span>Өнөөдөр ${number(drink)} мл уулаа</span></div>`;
+  document.body.append(cheer);
+  const close = () => cheer.remove();
+  cheer.addEventListener('click', close);
+  setTimeout(close, 3200);
+  if (reducedMotion()) return;
+  const colors = ['#2f80ed', '#7fb2f5', '#ff9ec4', '#f6c344', '#3f9a4f', '#e0613a'];
+  for (let i = 0; i < 70; i++) {
+    const bit = document.createElement('i');
+    bit.className = 'fx-confetti';
+    bit.style.left = `${Math.random() * 100}vw`;
+    bit.style.background = colors[i % colors.length];
+    cheer.append(bit);
+    const drift = (Math.random() - .5) * 160, spin = (Math.random() - .5) * 900;
+    bit.animate([
+      { transform: 'translate(0, -20px) rotate(0deg)', opacity: 1 },
+      { transform: `translate(${drift}px, 105vh) rotate(${spin}deg)`, opacity: .9 },
+    ], { duration: 1800 + Math.random() * 1200, delay: Math.random() * 400, easing: 'cubic-bezier(.25, .6, .4, 1)', fill: 'forwards' });
+  }
 }
 
 function countUp(element: HTMLElement | null, from: number, to: number): void {
