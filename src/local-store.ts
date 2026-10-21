@@ -1,3 +1,4 @@
+import { validateDeviceCache, type DeviceCache } from '../shared/device';
 import { defaults, STORAGE_KEY, validateState, type AppState } from './data';
 import { mutation, snapshot, sameState, type Snapshot, type Mutation } from '../shared/sync';
 
@@ -6,6 +7,7 @@ export interface LocalRecord {
   state: AppState;
   sequence: number;
   sync?: { url: string; base: Snapshot | null; attempt?: Mutation; paused?: boolean };
+  bottles?: DeviceCache;
   lease?: { owner: string; until: number };
 }
 
@@ -20,6 +22,7 @@ function checked(value: LocalRecord): LocalRecord {
     if (value.sync.base !== null) value.sync.base = snapshot(value.sync.base);
     if (value.sync.attempt !== undefined) value.sync.attempt = mutation(value.sync.attempt);
   }
+  if (value.bottles !== undefined) value.bottles = validateDeviceCache(value.bottles);
   if (value.lease && (typeof value.lease.owner !== 'string' || !Number.isFinite(value.lease.until))) throw new Error('Синкийн түгжээ буруу байна.');
   return value;
 }

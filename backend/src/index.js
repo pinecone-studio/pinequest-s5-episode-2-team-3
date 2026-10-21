@@ -1,4 +1,5 @@
 import { readJson, BodyError } from './body.js';
+import { ingestReading, listDevices } from './devices.js';
 import { readSnapshot, applySnapshot } from './sync.js';
 import { PlanError, suggestPlan } from './plan.js';
 
@@ -7,7 +8,7 @@ import { CONTRACT_VERSION, ContractError, validateId, validateSettings, validate
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type'
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 };
 
 const json = (data, status = 200) =>
@@ -43,6 +44,13 @@ async function route(request, env) {
   if (pathname === '/api/health') return json({ ok: true, ai: Boolean(env.ANTHROPIC_API_KEY), contractVersion: CONTRACT_VERSION });
 
   if (pathname === '/api/plan' && method === 'POST') return json(await suggestPlan(await readJson(request), env));
+
+  if (pathname === '/api/devices' && method === 'GET') return json(await listDevices(db));
+  const readingPath = pathname.match(/^\/api\/devices\/([a-zA-Z0-9-]{1,64})\/readings$/);
+  if (readingPath && method === 'POST') {
+    const result = await ingestReading(request, env, readingPath[1]);
+    return json(result.body, result.status);
+  }
 
   if (pathname === '/api/sync') {
     if (method === 'GET') return json(await readSnapshot(db));

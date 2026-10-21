@@ -1,3 +1,4 @@
+import { devices } from './devices';
 import './bottle.css';
 import type { WaterEntry } from './data';
 
@@ -47,21 +48,26 @@ let shownFrac: number | null = null;
 const levelY = (frac: number) => (BODY_BOTTOM - BODY_TOP) * (1 - frac);
 const BODY = 'M98 74 V62 H142 V74 C142 90 172 94 172 130 V300 A20 20 0 0 1 152 320 H88 A20 20 0 0 1 68 300 V130 C68 94 98 90 98 74Z';
 
-export function bottleStatus(events: readonly WaterEntry[]): { left: number; capacity: number; frac: number } {
+export function bottleStatus(events: readonly WaterEntry[]): { left: number | null; capacity: number; frac: number; measured: boolean } {
+  if (devices.cache.selectedId) {
+    const reading = devices.selected?.reading;
+    const left = reading?.stable ? reading.remainingMl : null;
+    const capacity = reading?.capacityMl ?? 0;
+    return { left, capacity, frac: left === null ? 0 : left / capacity, measured: true };
+  }
   const bottle = readBottle();
   const left = remaining(events, bottle);
-  return { left, capacity: bottle.capacity, frac: left / bottle.capacity };
+  return { left, capacity: bottle.capacity, frac: left / bottle.capacity, measured: false };
 }
 
 // The bottle standing on the smart base, with its own small controls underneath.
 export function bottleSection(events: readonly WaterEntry[]): string {
   const bottle = readBottle();
-  const left = remaining(events, bottle);
-  const frac = left / bottle.capacity;
-  const low = frac <= 0.15;
-  const startFrac = shownFrac ?? frac;
+  const { left, capacity, frac, measured } = bottleStatus(events);
+  const low = left !== null && frac <= 0.15;
+  const startFrac = left === null ? 0 : shownFrac ?? frac;
   const wave = (y: number, amp: number) => `M-240 ${y} q30 -${amp} 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 V460 H-240Z`;
-  return `<div class="bottle-card${low ? ' low' : ''}" data-frac="${frac}">
+  return `<div class="bottle-card${left === null ? ' unknown' : ''}${low ? ' low' : ''}" data-frac="${frac}">
     <div class="bottle-art" aria-hidden="true">
       <svg viewBox="0 0 240 400">
         <defs>
@@ -107,10 +113,11 @@ export function bottleSection(events: readonly WaterEntry[]): string {
       </svg>
     </div>
     <div class="bottle-meta">
-      <span class="meta-pill"><b>${number(left)}</b> / ${number(bottle.capacity)} мл савандаа</span>
+      <span class="meta-pill"><b>${left === null ? '?' : number(left)}</b> / ${capacity ? number(capacity) : '?'} мл · ${measured ? (devices.online ? 'хэмжилт' : 'сүүлчийн хэмжилт') : 'тооцоолсон'}</span>
+      ${measured ? '' : `
       <label class="visually-hidden" for="bottle-capacity">Савны багтаамж</label>
       <select id="bottle-capacity" class="meta-select">${CAPACITIES.map(c => `<option value="${c}" ${c === bottle.capacity ? 'selected' : ''}>${number(c)} мл сав</option>`).join('')}</select>
-      <button class="meta-button" id="bottle-refill" type="button">Дүүргэсэн</button>
+      <button class="meta-button" id="bottle-refill" type="button">Дүүргэсэн</button>`}
     </div>
   </div>`;
 }
@@ -127,10 +134,10 @@ export function bindBottle(onChange: () => void) {
     if (drank) card.classList.add('sip');
   }));
   shownFrac = frac;
-  card.querySelector('#bottle-refill')!.addEventListener('click', () => {
+  card.querySelector('#bottle-refill')?.addEventListener('click', () => {
     if (writeBottle({ ...readBottle(), refilledAt: new Date().toISOString() })) onChange();
   });
-  card.querySelector<HTMLSelectElement>('#bottle-capacity')!.addEventListener('change', event => {
+  card.querySelector<HTMLSelectElement>('#bottle-capacity')?.addEventListener('change', event => {
     const capacity = Number((event.target as HTMLSelectElement).value);
     if (writeBottle({ ...readBottle(), capacity })) onChange();
   });
