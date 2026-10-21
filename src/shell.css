@@ -15,8 +15,9 @@ main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-
 /* Top bar */
 .app-top { display: flex; align-items: center; gap: 16px; padding: 16px 22px; border-bottom: 1px solid var(--hair); }
 .app-top .brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--ink-2); letter-spacing: -.4px; text-decoration: none; }
-.app-top .brand > .brand-mark { display: grid; margin: 0; width: 40px; height: 40px; border-radius: 12px; place-items: center; background: linear-gradient(180deg, #2b3340, #0f131a); color: #8fd3ff; }
+.app-top .brand > .brand-mark { display: grid; margin: 0; width: 40px; height: 40px; border-radius: 12px; place-items: center; background: linear-gradient(180deg, #f2f8ff, #d7eaff); box-shadow: inset 0 0 0 1px #c6defa, 0 2px 6px rgba(47, 128, 237, .15); color: #2f80ed; }
 .brand-mark .icon, .brand-mark svg { width: 22px; height: 22px; }
+.brand-mark .brand-drop { width: 24px; height: 26px; }
 /* Nav sits at the far right, after the date. */
 .app-top .site-nav { order: 1; margin: 0; display: flex; gap: 2px; padding: 4px; border-radius: 14px; background: rgba(255, 255, 255, .7); }
 .app-top .site-nav a { padding: 8px 18px; border-radius: 10px; font-size: 16px; color: var(--muted-2); text-decoration: none; }

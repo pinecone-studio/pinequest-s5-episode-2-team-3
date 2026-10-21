@@ -5,7 +5,7 @@ import './settings.css';
 import './pwa';
 import { dayKey, defaults, type AppState } from './data';
 import { dateLabel, escape, number } from './format';
-import { icon } from './components/Icon';
+import { brandMark } from './components/Icon';
 import { siteNav } from './nav';
 import { Toast, notify } from './components/Toast';
 import { load, save, saveMessage, onExternalChange, requestPersistence } from './storage';
@@ -85,7 +85,7 @@ function render(): void {
     <main id="main" class="home settings-page" tabindex="-1">
       <div class="app-shell">
         <header class="app-top">
-          <a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${icon('drop')}</span>Дусал</a>
+          <a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>
           ${siteNav('settings')}
           <span class="app-date">${dateLabel(dayKey())}</span>
         </header>
