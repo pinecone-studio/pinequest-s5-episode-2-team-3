@@ -2,7 +2,8 @@
 /* One muted water blue for the water, the flying drop and the picked cup. */
 .hydro, .fx-drop, .fx-float, .avatar-picker { --water: #6b9bd1; --water-soft: #e3ecf6; }
 .hydro { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 16px; max-width: 400px; margin: 0 auto; padding: 22px 20px 26px; }
-.hydro-title { justify-self: start; font-size: 22px; font-weight: 700; letter-spacing: -.8px; color: var(--ink-2); }
+.hydro-head { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.hydro-title { font-size: 22px; font-weight: 700; letter-spacing: -.8px; color: var(--ink-2); }
 
 /* The bottle buddy: water rises with today's total, the face cheers up as it fills. */
 .buddy { display: grid; justify-items: center; gap: 6px; }
@@ -105,12 +106,70 @@
 .fx-float { position: fixed; z-index: 60; transform: translate(-50%, 0); font-size: 15px; font-weight: 700; color: var(--water); white-space: nowrap; pointer-events: none; animation: fx-float .9s ease-out forwards; }
 @keyframes fx-float { 0% { opacity: 0; transform: translate(-50%, 10px); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -26px); } }
 
-/* Bottom sheet card, used by the character picker. */
+/* Streak: a flame chip by the title and the last seven days underneath the add button. */
+.streak { border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 0 12px; border-radius: 999px; background: #f1f3f6; color: #98a2b3; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.streak > span { filter: grayscale(1); opacity: .5; }
+.streak.hot { background: #fff3e6; color: #e8710a; }
+.streak.hot > span { filter: none; opacity: 1; }
+.week-wrap { display: grid; justify-items: center; gap: 6px; width: 100%; }
+.week-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; width: 100%; margin: 0; padding: 12px 10px; list-style: none; border-radius: 18px; background: rgba(255, 255, 255, .7); box-shadow: inset 0 0 0 1px var(--hair); }
+.week-strip li { display: grid; justify-items: center; gap: 4px; }
+.week-strip .wd { font-size: 11px; color: #8a95a6; white-space: nowrap; }
+.week-strip .mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #eef1f5; font-size: 15px; }
+/* Mood drops: the body colour follows how the day went, the face does the rest. */
+.drop { display: block; width: 22px; height: 24px; overflow: visible; }
+.drop .body { fill: #cfe3fb; stroke: #6b9bd1; stroke-width: 1.4; }
+.drop circle:not(.blush):not(.ring) { fill: #2a3443; }
+.drop .ln { fill: none; stroke: #2a3443; stroke-width: 1.4; stroke-linecap: round; }
+.drop .fill { fill: #2a3443; }
+.drop .ring { fill: none; stroke: #2a3443; stroke-width: 1.2; }
+.drop .blush { fill: #ff9ec4; }
+.drop .shine { fill: none; stroke: #fff; stroke-width: 1.4; stroke-linecap: round; opacity: .8; }
+.drop-great .body { fill: #4d9cff; stroke: #2f80ed; }
+.drop-good .body { fill: #8fc0ff; }
+.drop-ok .body { fill: #b9d7fb; }
+.drop-low .body { fill: #e3eefb; stroke: #9db7d8; }
+.drop-wait .body { fill: #eef1f5; stroke: #b8c2d0; }
+.drop-missed .body { fill: #fff0f0; stroke: #ec7c80; stroke-width: 1.6; }
+.drop-missed .ln { stroke: #8a3a3d; }
+.drop-missed circle:not(.blush):not(.ring) { fill: #8a3a3d; }
+.drop .tear { fill: #6fb1ff; }
+.drop-over .body { fill: #ffd2bf; stroke: #e0613a; }
+.week-strip li.m-missed .mark { box-shadow: inset 0 0 0 2px #f4a8aa; background: #fff4f4; }
+.week-strip li.m-great .mark { background: #e6f1ff; }
+/* Past days fade a little; today stays bright. */
+.week-strip li.past .mark, .cal-grid li.past { filter: saturate(.7); opacity: .78; }
+.cal-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px; margin: 0; font-size: 12px; color: #6a7586; }
+.cal-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.cal-legend .drop { width: 16px; height: 18px; }
+.week-strip li.today .wd { color: var(--ink-2); font-weight: 700; }
+.week-strip li.today .mark { box-shadow: 0 0 0 2px #2f80ed; }
+
+/* Month calendar sheet: streak stats, month switcher, Monday-first grid with flames. */
 .cal { position: fixed; inset: 0; z-index: 75; display: grid; place-items: center; padding: 16px; background: rgba(20, 32, 52, .35); overflow-y: auto; animation: fx-fade .2s ease-out; }
 .cal-card { width: min(420px, 100%); display: grid; gap: 14px; padding: 18px 18px 20px; border-radius: 26px; background: #fff; box-shadow: 0 30px 80px rgba(20, 32, 52, .3); }
 .cal-top { display: flex; align-items: center; justify-content: space-between; }
 .cal-top h2 { margin: 0; font-size: 22px; color: var(--ink-2); }
 .cal-close { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #f1f3f6; color: #5f6877; font-size: 16px; }
+.cal-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cal-stats div { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border-radius: 16px; background: #f7f9fc; }
+.cal-stats b { font-size: 20px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.cal-stats span { font-size: 12px; color: #8a95a6; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; }
+.cal-nav b { font-size: 16px; color: var(--ink-2); }
+.cal-nav button { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #f1f3f6; font-size: 22px; color: var(--ink-2); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.cal-grid .wd { text-align: center; font-size: 12px; font-weight: 600; color: #8a95a6; padding-bottom: 4px; }
+.cal-grid li:not(.wd):not(.pad) { position: relative; display: grid; place-items: center; aspect-ratio: 1; border-radius: 12px; background: #f7f9fc; }
+.cal-grid .n { margin-top: -10px; font-size: 13px; color: #5f6877; font-variant-numeric: tabular-nums; }
+.cal-grid .f { position: absolute; bottom: 2px; }
+.cal-grid .f .drop { width: 13px; height: 14px; }
+.cal-grid li.m-missed { box-shadow: inset 0 0 0 1.5px #f4a8aa; background: #fff7f7; }
+.cal-grid li.m-great { background: #e6f1ff; }
+.cal-grid li.m-great .n { color: #2f80ed; font-weight: 700; }
+.cal-grid li.today { box-shadow: inset 0 0 0 2px #2f80ed; }
+.cal-grid li.future .n { color: #c3cad5; }
+.cal-note { margin: 0; text-align: center; font-size: 13px; color: #8a95a6; }
 .cal button:focus-visible { outline: 3px solid #2f80ed; outline-offset: 2px; }
 
 /* Goal reached: confetti over the page and a short cheer card. */
