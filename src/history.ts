@@ -12,6 +12,7 @@ import { Toast, notify } from './components/Toast';
 import { closeTypeMenu, openTypeMenu, typeTrigger } from './components/TypeMenu';
 import { siteNav } from './nav';
 import { downloadCsv, entriesCsv } from './csv';
+import { bindChart } from './history-chart';
 
 interface Filter { from: string; to: string; type: EntryType | 'all' }
 
@@ -192,7 +193,7 @@ function bindFilters() {
 function render() {
   app.innerHTML = `
     <a class="skip-link" href="#main">Агуулга руу очих</a>
-    <main id="main" class="home" tabindex="-1">
+    <main id="main" class="home home-app" tabindex="-1">
       <div class="app-shell">
         <header class="app-top">
           <a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>
@@ -205,6 +206,7 @@ function render() {
             <button type="button" class="dark-button" id="export-csv">CSV татах</button>
           </div>
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+          <div id="history-chart"></div>
           ${SyncStatus()}
           ${filters()}
           <p class="history-summary" id="summary" aria-live="polite"></p>
@@ -230,6 +232,7 @@ function render() {
     if (trigger && event.key === 'ArrowDown') { event.preventDefault(); toggleTypeMenu(trigger); }
   };
   renderResults();
+  bindChart(app.querySelector<HTMLElement>('#history-chart')!, () => state);
   bindSyncStatus();
 }
 
