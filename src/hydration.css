@@ -16,7 +16,13 @@
 .ring-total b { font-size: 34px; font-weight: 700; letter-spacing: -1.4px; line-height: 1.05; font-variant-numeric: tabular-nums; }
 .ring-total span { font-size: 15px; font-weight: 600; color: #3d4a5c; }
 .ring-sub { margin-top: 2px; font-size: 14px; color: #98a2b3; font-variant-numeric: tabular-nums; }
-.ring.done .ring-sub { color: #4a7fb8; font-weight: 600; }
+.ring.done .ring-sub { color: #fff; font-weight: 600; }
+/* Goal reached: the ring turns bright and the inside fills with water from the bottom up. */
+.ring.done .ring-fill { stroke: #2f80ed; filter: drop-shadow(0 0 8px rgba(47, 128, 237, .45)); }
+.ring.done .ring-center { inset: 14%; border-radius: 50%; background: linear-gradient(180deg, #5aa2ff, #2f80ed 70%, #1f6fd6); box-shadow: inset 0 -6px 14px rgba(15, 60, 140, .25); }
+.ring.done .ring-pct, .ring.done .ring-total, .ring.done .ring-total span { color: #fff; }
+.ring.done.filling .ring-center { animation: ring-water 1.1s .5s cubic-bezier(.3, .9, .4, 1) both; }
+@keyframes ring-water { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
 .ring.over .ring-sub { color: #ad4239; font-weight: 600; }
 .ring.pulse { animation: ring-pulse .6s .25s ease-out; }
 @keyframes ring-pulse { 40% { transform: scale(1.035); } }
@@ -55,7 +61,7 @@
 .hydro .plan-wrap, .hydro .home-connect { width: 100%; margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ring-fill, .ring.pulse, .tile, .tile.tapped::after, .tile.tapped .tile-icon, .goal-pill::after { animation: none; transition: none; }
+  .ring-fill, .ring.pulse, .ring.done.filling .ring-center, .tile, .tile.tapped::after, .tile.tapped .tile-icon, .goal-pill::after { animation: none; transition: none; }
 }
 @media (max-width: 560px) {
   .hydro { padding: 16px 16px 22px; gap: 14px; }
