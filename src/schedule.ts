@@ -87,7 +87,7 @@ function sheet(state: AppState): string {
   const list = slots(state);
   const icon = { done: '✓', now: '⏰', late: '⚠️', later: '' } as const;
   const word = { done: 'Уусан', now: 'Одоо', late: 'Хоцорсон', later: '' } as const;
-  const support = 'Notification' in window;
+  const support = nativeReminders || 'Notification' in window;
   return `<div class="cal-card sched-card">
     <div class="cal-top"><h2 id="sched-title">Өнөөдрийн хуваарь</h2><button type="button" class="cal-close" aria-label="Хаах">✕</button></div>
     <p class="sched-sum">${state.mode === 'limit' ? 'Хязгаар' : 'Зорилт'} ${number(state.goal)} мл · ${list.length} удаа · тус бүр <b>${number(list[0]?.ml ?? 0)} мл</b></p>
@@ -98,7 +98,7 @@ function sheet(state: AppState): string {
       <label>Хэдэн цаг тутам<select id="sched-every">${EVERY.map(v => `<option value="${v}" ${v === s.every ? 'selected' : ''}>${String(v).replace('.', ',')} цаг</option>`).join('')}</select></label>
     </form>
     <label class="sched-toggle"><input type="checkbox" id="sched-on" ${s.on ? 'checked' : ''} ${support ? '' : 'disabled'}/>
-      <span><b>Сануулга</b><small>${support ? 'Хуваариасаа хоцорсон үед л мэдэгдэл ирнэ' : 'Энэ хөтөч мэдэгдэл дэмждэггүй'}</small></span></label>
+      <span><b>Сануулга</b><small>${nativeReminders ? 'Хуваарийн цаг бүрт ирнэ, тэр хэмжээгээ уусан бол алгасна' : support ? 'Хуваариасаа хоцорсон үед л мэдэгдэл ирнэ' : 'Энэ хөтөч мэдэгдэл дэмждэггүй'}</small></span></label>
     <p class="sched-note" id="sched-note" role="status"></p>
   </div>`;
 }
@@ -128,6 +128,13 @@ export function bindSchedule(state: () => AppState, redraw: () => void): void {
       box.querySelectorAll('#sched-form input, #sched-form select').forEach(el => el.addEventListener('change', save));
       box.querySelector<HTMLInputElement>('#sched-on')!.addEventListener('change', async e => {
         const want = (e.target as HTMLInputElement).checked;
+        if (nativeReminders) {
+          const allowed = !want || await askPermission();
+          writeSettings({ ...readSettings(), on: want && allowed });
+          await planNative(state());
+          draw(!allowed ? 'Мэдэгдэл зөвшөөрөгдсөнгүй. Утасны тохиргоо → Апп → Дусал → Мэдэгдэл хэсгээс зөвшөөрнө үү.' : want ? 'Сануулга асаалаа. Апп хаалттай байсан ч ирнэ.' : 'Сануулга унтарлаа.');
+          return;
+        }
         if (want && Notification.permission !== 'granted') {
           const answer = await Notification.requestPermission();
           if (answer !== 'granted') { writeSettings({ ...readSettings(), on: false }); draw('Мэдэгдэл зөвшөөрөгдсөнгүй. Хөтчийн тохиргооноос зөвшөөрнө үү.'); return; }
