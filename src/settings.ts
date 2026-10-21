@@ -1,8 +1,9 @@
+import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './shell.css';
 import './settings.css';
 import './pwa';
-import { dayKey, type AppState } from './data';
+import { dayKey, defaults, type AppState } from './data';
 import { dateLabel, escape, number } from './format';
 import { icon } from './components/Icon';
 import { siteNav } from './nav';
@@ -11,7 +12,10 @@ import { load, save, saveMessage, onExternalChange, requestPersistence } from '.
 import { downloadBackup, readBackup, summarize, type BackupSummary } from './backup';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-let { state, error: storageError, corrupt } = load();
+let state = defaults();
+let storageError = '';
+let corrupt = false;
+let committing = false;
 // A validated backup waiting for the user's confirmation.
 let pending: { state: AppState; name: string } | undefined;
 
@@ -88,6 +92,7 @@ function render(): void {
         <div class="settings-body">
           <div class="settings-head"><p class="panel-label">Тохиргоо</p><h1>Тохиргоо ба нөөц</h1></div>
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+          ${SyncStatus()}
           ${goalSection()}
           ${backupSection()}
         </div>
@@ -96,18 +101,22 @@ function render(): void {
     </main>
     ${Toast()}`;
   bind();
+  bindSyncStatus();
 }
 
-function reload(): void {
-  ({ state, error: storageError, corrupt } = load());
+async function reload(): Promise<void> {
+  ({ state, error: storageError, corrupt } = await load());
   render();
 }
 
 // Writes `next`, or refreshes from storage and explains why it could not.
-function commit(next: AppState, overwrite = false): boolean {
-  const result = save(next, overwrite);
-  if (result === 'saved') { state = next; storageError = ''; corrupt = false; return true; }
-  if (result === 'conflict') reload();
+async function commit(next: AppState, overwrite = false): Promise<boolean> {
+  if (committing) return false;
+  committing = true;
+  const result = await save(next, overwrite);
+  committing = false;
+  if (result === 'saved') { ({ state, error: storageError, corrupt } = await load()); return true; }
+  if (result === 'conflict') await reload();
   notify(saveMessage[result]);
   return false;
 }
@@ -118,7 +127,7 @@ function showError(id: string, message: string): void {
   element.hidden = !message;
 }
 
-function saveGoal(form: HTMLFormElement): void {
+async function saveGoal(form: HTMLFormElement): Promise<void> {
   const data = new FormData(form);
   const goal = Number(data.get('goal'));
   const mode = data.get('mode') === 'limit' ? 'limit' : 'goal';
@@ -128,10 +137,10 @@ function saveGoal(form: HTMLFormElement): void {
     return;
   }
   const previous = { goal: state.goal, mode: state.mode };
-  if (!commit({ ...state, goal, mode })) return;
+  if (!await commit({ ...state, goal, mode })) return;
   render();
-  notify(`${MODES[mode].label}: ${number(goal)} мл болголоо.`, () => {
-    if (commit({ ...state, ...previous })) { render(); notify('Өмнөх тохиргоог буцаалаа.'); }
+  notify(`${MODES[mode].label}: ${number(goal)} мл болголоо.`, async () => {
+    if (await commit({ ...state, ...previous })) { render(); notify('Өмнөх тохиргоог буцаалаа.'); }
   });
 }
 
@@ -151,15 +160,15 @@ async function chooseFile(input: HTMLInputElement): Promise<void> {
   document.querySelector<HTMLElement>('#restore-preview')?.focus();
 }
 
-function confirmRestore(): void {
+async function confirmRestore(): Promise<void> {
   if (!pending) return;
   const previous = corrupt ? undefined : state;
   // Overwriting is what the user just confirmed, including unreadable data.
-  if (!commit(pending.state, true)) return;
+  if (!await commit(pending.state, true)) return;
   pending = undefined;
   render();
-  notify('Нөөцөөс сэргээлээ.', previous && (() => {
-    if (commit(previous)) { render(); notify('Сэргээхээс өмнөх байдалд буцаалаа.'); }
+  notify('Нөөцөөс сэргээлээ.', previous && (async () => {
+    if (await commit(previous)) { render(); notify('Сэргээхээс өмнөх байдалд буцаалаа.'); }
   }));
 }
 
@@ -176,6 +185,6 @@ function bind(): void {
   document.querySelector<HTMLButtonElement>('#cancel-restore')?.addEventListener('click', () => { pending = undefined; render(); });
 }
 
-onExternalChange(() => { reload(); notify('Өөр цонхонд мэдээлэл өөрчлөгдсөн тул шинэчиллээ.'); });
+onExternalChange(() => { void reload(); });
 requestPersistence();
-render();
+void reload();

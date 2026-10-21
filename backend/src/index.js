@@ -1,3 +1,5 @@
+import { readJson, BodyError } from './body.js';
+import { readSnapshot, applySnapshot } from './sync.js';
 import { PlanError, suggestPlan } from './plan.js';
 
 import { CONTRACT_VERSION, ContractError, validateId, validateSettings, validateEntry, validateEventPatch } from '../../shared/contracts.ts';
@@ -9,7 +11,7 @@ const cors = {
 };
 
 const json = (data, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...cors } });
+  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...cors } });
 const fail = (status, error) => json({ error }, status);
 
 function toEvent(row) {
@@ -20,10 +22,6 @@ function toEvent(row) {
 }
 
 const EVENT_COLUMNS = 'id, amount, type, at, device_id';
-
-async function readBody(request) {
-  try { return await request.json(); } catch { throw new ContractError('JSON буруу байна.'); }
-}
 
 async function getSettings(db) {
   return db.prepare('SELECT goal, mode FROM settings WHERE id = 1').first();
@@ -44,7 +42,12 @@ async function route(request, env) {
 
   if (pathname === '/api/health') return json({ ok: true, ai: Boolean(env.ANTHROPIC_API_KEY), contractVersion: CONTRACT_VERSION });
 
-  if (pathname === '/api/plan' && method === 'POST') return json(await suggestPlan(await readBody(request), env));
+  if (pathname === '/api/plan' && method === 'POST') return json(await suggestPlan(await readJson(request), env));
+
+  if (pathname === '/api/sync') {
+    if (method === 'GET') return json(await readSnapshot(db));
+    if (method === 'POST') { const result = await applySnapshot(request, db); return json(result.body, result.status); }
+  }
 
   if (pathname === '/api/state' && method === 'GET') {
     const [settings, events] = await Promise.all([getSettings(db), listEvents(db)]);
@@ -54,7 +57,7 @@ async function route(request, env) {
   if (pathname === '/api/settings') {
     if (method === 'GET') return json(await getSettings(db));
     if (method === 'PUT') {
-      const { goal, mode } = validateSettings(await readBody(request));
+      const { goal, mode } = validateSettings(await readJson(request));
       await db.prepare('UPDATE settings SET goal = ?1, mode = ?2 WHERE id = 1').bind(goal, mode).run();
       return json({ goal, mode });
     }
@@ -65,7 +68,7 @@ async function route(request, env) {
       return json(await listEvents(db, searchParams.get('from'), searchParams.get('to')));
     }
     if (method === 'POST') {
-      const body = await readBody(request);
+      const body = await readJson(request);
       const event = validateEntry({ ...body, id: body?.id ?? crypto.randomUUID() });
       if (event.deviceId && !body?.id) throw new ContractError('Төхөөрөмжийн бүртгэл тогтмол ID-тай байх ёстой.');
       const payload = JSON.stringify(event);
@@ -90,7 +93,7 @@ async function route(request, env) {
     try { decoded = decodeURIComponent(match[1]); } catch { throw new ContractError('ID буруу байна.'); }
     const id = validateId(decoded);
     if (method === 'PATCH') {
-      const changes = validateEventPatch(await readBody(request));
+      const changes = validateEventPatch(await readJson(request));
       const keys = Object.keys(changes);
       if (keys.length) {
         const sets = keys.map((key, i) => `${key} = ?${i + 2}`).join(', ');
@@ -117,6 +120,7 @@ export default {
     try {
       return await route(request, env);
     } catch (err) {
+      if (err instanceof BodyError) return fail(err.status, err.message);
       if (err instanceof ContractError) return fail(400, err.message);
       if (err instanceof PlanError) return fail(err.status, err.message);
       console.error(err);
