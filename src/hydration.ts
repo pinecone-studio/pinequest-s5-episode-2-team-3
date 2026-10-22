@@ -118,6 +118,9 @@ function currentStreak(counts: (k: string) => boolean): number {
   return streak;
 }
 
+// Today's streak for reminders (schedule.ts), counted the same way as the chip.
+export const streakNow = (events: readonly WaterEntry[], goal: number, mode: Mode) => currentStreak(dayCounter(events, goal, mode));
+
 export function streakParts(events: readonly WaterEntry[], goal: number, mode: Mode): { chip: string; week: string } {
   const counts = dayCounter(events, goal, mode), mood = dayMood(events, goal, mode);
   const streak = currentStreak(counts);

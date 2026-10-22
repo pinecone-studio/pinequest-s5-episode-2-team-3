@@ -2,7 +2,8 @@ import './schedule.css';
 import { dayKey, type AppState } from './data';
 import { number } from './format';
 import { mdIcon } from './components/Icon';
-import { nativeReminders, askPermission, scheduleNative, type NativeReminder } from './native-reminders';
+import { nativeReminders, askPermission, scheduleNative, type Face, type NativeReminder } from './native-reminders';
+import { streakNow } from './hydration';
 
 // Today's drinking schedule: the daily amount split evenly over waking hours (e.g. 07:00–22:00
 // every 2 hours → 8 × 250 ml). A slot is done once today's total reaches everything due up to
@@ -149,6 +150,25 @@ export function bindSchedule(state: () => AppState, redraw: () => void): void {
   });
 }
 
+// What a reminder says and which face it shows, Duolingo style. A reminder only fires when its slot
+// is still unmet (drinking re-plans and drops met ones), so it always means "behind": early in the
+// day the drop is cheerful, later it worries, the evening's last one warns the streak is at risk,
+// the morning after a missed day it cries, and after days away it misses you. Under a doctor's
+// limit there is no streak to lose, so it only goes from cheerful to worried.
+interface Tone { face: Face; title: string; body?: string }
+function tone(state: AppState, day: number, slot: number, count: number, ml: number): Tone {
+  const late = slot >= count / 2 ? { face: 'worried' as const, title: 'Ус уух цаг өнгөрч байна' } : { face: 'happy' as const, title: 'Ус уух цаг боллоо' };
+  if (state.mode === 'limit') return late;
+  const met = drunkToday(state) >= state.goal;
+  // Days in a row up to today; tomorrow it is only alive if today is met.
+  const streak = streakNow(state.events, state.goal, state.mode);
+  const alive = day === 0 ? streak : day === 1 && met ? streak : 0;
+  if (slot === count - 1 && alive > 0) return { face: 'sad', title: `${alive} өдрийн streak алдагдах гэж байна!`, body: `${number(ml)} мл уугаад streak-ээ авраарай.` };
+  if (slot === 0 && day === 1 && !met && streak > 0) return { face: 'crying', title: 'Streak тасарлаа…', body: `Өчигдөр зорилтдоо хүрсэнгүй. Өнөөдөр шинээр эхэлье: ${number(ml)} мл уугаарай.` };
+  if (slot === 0 && day >= 2) return { face: 'sad', title: 'Дусал чамайг санаж байна', body: `Хэд хоног ус бүртгээгүй байна. ${number(ml)} мл-ээс эхэлье.` };
+  return late;
+}
+
 // Phone app: the coming week's slots as system notifications. Today's passed or already-met
 // slots are left out, so drinking ahead quietly cancels the reminders it covers.
 let planned = '';
@@ -166,7 +186,8 @@ async function planNative(state: AppState): Promise<void> {
         const at = new Date(now);
         at.setDate(at.getDate() + day);
         at.setHours(Math.floor(x.at / 60), x.at % 60, 0, 0);
-        items.push({ at, title: 'Ус уух цаг боллоо', body: `${number(x.ml)} мл уугаарай · өдрийн ${state.mode === 'limit' ? 'хязгаар' : 'зорилт'} ${number(state.goal)} мл. ${FACTS[(day * today.length + slot) % FACTS.length]}` });
+        const { face, title, body } = tone(state, day, slot, today.length, x.ml);
+        items.push({ at, face, title, body: body ?? `${number(x.ml)} мл уугаарай · өдрийн ${state.mode === 'limit' ? 'хязгаар' : 'зорилт'} ${number(state.goal)} мл. ${FACTS[(day * today.length + slot) % FACTS.length]}` });
       });
     }
   }
@@ -208,11 +229,13 @@ export function startReminders(state: () => AppState): void {
     try { localStorage.setItem(SENT_KEY, JSON.stringify([...sent.filter(k => k.startsWith(dayKey())), key])); } catch { /* may repeat */ }
     const st = state();
     const drunk = drunkToday(st), need = dueNow(st, list);
-    const title = 'Ус уух цаг боллоо';
-    const body = `${number(need)} мл уугаарай (өнөөдөр ${number(drunk)} / ${number(st.goal)} мл). ${FACTS[new Date().getHours() % FACTS.length]}`;
+    const t = tone(st, 0, list.indexOf(last), list.length, need);
+    const title = t.title;
+    const body = t.body ?? `${number(need)} мл уугаарай (өнөөдөр ${number(drunk)} / ${number(st.goal)} мл). ${FACTS[new Date().getHours() % FACTS.length]}`;
+    const icon = `/notif/${t.face}.png`;
     const reg = await navigator.serviceWorker?.getRegistration?.().catch(() => undefined);
-    if (reg) await reg.showNotification(title, { body, icon: '/icon-192.png', tag: 'dusal-reminder' });
-    else new Notification(title, { body, icon: '/icon-192.png', tag: 'dusal-reminder' });
+    if (reg) await reg.showNotification(title, { body, icon, tag: 'dusal-reminder' });
+    else new Notification(title, { body, icon, tag: 'dusal-reminder' });
   };
   void tick();
   setInterval(() => void tick(), 60_000);
