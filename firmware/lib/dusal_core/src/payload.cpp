@@ -85,4 +85,24 @@ int readingJson(char* out, size_t capacity, const char* deviceId, uint32_t boot,
                            id, deviceId, at, capacityMl, remainingMl), capacity);
 }
 
+int speechJson(char* out, size_t capacity, const char* text, const char* modelId) {
+  if (!text[0]) return -1;
+  int length = std::snprintf(out, capacity, "{\"text\":\"");
+  if (fit(length, capacity) < 0) return -1;
+  for (const char* c = text; *c; c++) {
+    const unsigned char u = static_cast<unsigned char>(*c);
+    char escaped[8];
+    if (u == '"' || u == '\\') std::snprintf(escaped, sizeof escaped, "\\%c", u);
+    else if (u == '\n') std::snprintf(escaped, sizeof escaped, "\\n");
+    else if (u < 0x20) std::snprintf(escaped, sizeof escaped, "\\u%04x", u);
+    else { escaped[0] = static_cast<char>(u); escaped[1] = 0; }
+    const size_t add = std::strlen(escaped);
+    if (static_cast<size_t>(length) + add >= capacity) return -1;
+    std::memcpy(out + length, escaped, add + 1);
+    length += static_cast<int>(add);
+  }
+  const int tail = std::snprintf(out + length, capacity - length, "\",\"model_id\":\"%s\"}", modelId);
+  return fit(tail, capacity - length) < 0 ? -1 : length + tail;
+}
+
 }  // namespace dusal

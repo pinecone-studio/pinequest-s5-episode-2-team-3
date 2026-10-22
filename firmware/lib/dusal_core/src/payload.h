@@ -25,4 +25,8 @@ int readingJson(char* out, size_t capacity, const char* deviceId, uint32_t boot,
 
 bool validDeviceId(const char* deviceId);
 
+// ElevenLabs text-to-speech body. Quotes, backslashes and control characters in the text are escaped;
+// UTF-8 (Cyrillic) passes through unchanged. -1 if it does not fit or the text is empty.
+int speechJson(char* out, size_t capacity, const char* text, const char* modelId);
+
 }  // namespace dusal

@@ -85,6 +85,14 @@ void payload_tests() {
   readingJson(out, sizeof out, "base-01", 5, 5, 1760954400123, 900, 600);
   CHECK(std::strstr(out, "\"capacityMl\":900,\"stable\":true,\"remainingMl\":900") != nullptr);
   CHECK_EQ(readingJson(out, 20, "base-01", 5, 5, 0, 1, 1), -1);
+
+  CHECK(speechJson(out, sizeof out, "Сайн уу", "eleven_v4") > 0);
+  CHECK_STR(out, "{\"text\":\"Сайн уу\",\"model_id\":\"eleven_v4\"}");
+  CHECK(speechJson(out, sizeof out, "say \"hi\" \\ now\nok\t!", "m") > 0);
+  CHECK_STR(out, "{\"text\":\"say \\\"hi\\\" \\\\ now\\nok\\u0009!\",\"model_id\":\"m\"}");
+  CHECK_EQ(speechJson(out, sizeof out, "", "m"), -1);
+  CHECK_EQ(speechJson(out, 12, "a long text", "m"), -1);
+  CHECK_EQ(speechJson(out, 24, "abcdef", "eleven_v4"), -1);  // the text fits, the model id does not
 }
 
 // `core_test --emit` prints sample bodies; tests/firmware-contract.test.ts checks them with the Worker.
