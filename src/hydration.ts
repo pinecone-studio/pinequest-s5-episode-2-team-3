@@ -72,7 +72,7 @@ function dayTotals(events: readonly WaterEntry[]): Map<string, number> {
   return totals;
 }
 
-function dayCounter(events: readonly WaterEntry[], goal: number, mode: Mode): (key: string) => boolean {
+export function dayCounter(events: readonly WaterEntry[], goal: number, mode: Mode): (key: string) => boolean {
   const totals = dayTotals(events);
   return k => { const t = totals.get(k) ?? 0; return mode === 'goal' ? t >= goal : t > 0 && t <= goal; };
 }

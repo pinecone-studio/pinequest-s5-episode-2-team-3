@@ -16,13 +16,62 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
             android:exported="true">
+        </activity>
 
+        <!-- The launcher entry is one of these aliases; AppIconPlugin enables the one matching the
+             water drop's mood (Duolingo style) and disables the rest. Exactly one stays enabled. -->
+        <activity-alias
+            android:name=".IconDefault"
+            android:targetActivity=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:enabled="true"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-        </activity>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconWorried"
+            android:targetActivity=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:icon="@mipmap/ic_launcher_worried"
+            android:roundIcon="@mipmap/ic_launcher_worried_round"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconSad"
+            android:targetActivity=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:icon="@mipmap/ic_launcher_sad"
+            android:roundIcon="@mipmap/ic_launcher_sad_round"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconCrying"
+            android:targetActivity=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:icon="@mipmap/ic_launcher_crying"
+            android:roundIcon="@mipmap/ic_launcher_crying_round"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <provider
             android:name="androidx.core.content.FileProvider"
