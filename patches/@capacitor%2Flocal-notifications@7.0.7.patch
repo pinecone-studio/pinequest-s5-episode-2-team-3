@@ -1,0 +1,32 @@
+diff --git a/android/src/main/java/com/capacitorjs/plugins/localnotifications/LocalNotificationManager.java b/android/src/main/java/com/capacitorjs/plugins/localnotifications/LocalNotificationManager.java
+index 0b826a5..8cc0b67 100644
+--- a/android/src/main/java/com/capacitorjs/plugins/localnotifications/LocalNotificationManager.java
++++ b/android/src/main/java/com/capacitorjs/plugins/localnotifications/LocalNotificationManager.java
+@@ -216,6 +216,11 @@ public class LocalNotificationManager {
+ 
+         mBuilder.setSmallIcon(localNotification.getSmallIcon(context, getDefaultSmallIcon(context)));
+         mBuilder.setLargeIcon(localNotification.getLargeIcon(context));
++        // Dusal: the count launchers show on the app icon badge.
++        JSObject extra = localNotification.getExtra();
++        if (extra != null && extra.has("badge")) {
++            mBuilder.setNumber(extra.optInt("badge"));
++        }
+ 
+         String iconColor = localNotification.getIconColor(config.getString("iconColor"));
+         if (iconColor != null) {
+diff --git a/ios/Sources/LocalNotificationsPlugin/LocalNotificationsPlugin.swift b/ios/Sources/LocalNotificationsPlugin/LocalNotificationsPlugin.swift
+index 463be9a..f89f4ff 100644
+--- a/ios/Sources/LocalNotificationsPlugin/LocalNotificationsPlugin.swift
++++ b/ios/Sources/LocalNotificationsPlugin/LocalNotificationsPlugin.swift
+@@ -267,6 +267,11 @@ public class LocalNotificationsPlugin: CAPPlugin, CAPBridgedPlugin {
+             content.attachments = try makeAttachments(attachments)
+         }
+ 
++        // Dusal: the app icon badge to show when this notification is delivered.
++        if let badge = extra["badge"] as? Int {
++            content.badge = NSNumber(value: badge)
++        }
++
+         return content
+     }
+ 

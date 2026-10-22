@@ -22,7 +22,14 @@ export type Face = 'happy' | 'worried' | 'sad' | 'crying';
 
 export interface NativeReminder { at: Date; title: string; body: string; face: Face }
 
-// Replace whatever we scheduled before with `items` (an empty list just clears them).
+// Opening the app clears the app icon badge and the delivered reminders, like Duolingo.
+export async function clearDelivered(): Promise<void> {
+  await LocalNotifications.removeAllDeliveredNotifications();
+}
+
+// Replace whatever we scheduled before with `items` (an empty list just clears them). `items` are in
+// time order and the badge was just cleared, so the n-th reminder to arrive shows n on the app icon
+// (set by our patch of the plugin, patches/@capacitor%2Flocal-notifications@7.0.7.patch).
 export async function scheduleNative(items: readonly NativeReminder[]): Promise<void> {
   const { notifications } = await LocalNotifications.getPending();
   const ours = notifications.filter(n => n.id >= BASE_ID && n.id <= LAST_ID);
@@ -38,6 +45,7 @@ export async function scheduleNative(items: readonly NativeReminder[]): Promise<
       iconColor: '#4a90e2',
       largeIcon: `notif_face_${item.face}`,
       attachments: [{ id: item.face, url: `res:///notif/${item.face}.png` }],
+      extra: { badge: i + 1 },
     })),
   });
 }
