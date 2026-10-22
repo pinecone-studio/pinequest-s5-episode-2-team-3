@@ -8,7 +8,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
 /* Little breaking waves on tab switch (tabs.ts): one after another they rise, curl, crash with a
    splash and flatten over a rippling surface, starting from the side the new tab comes in.
    Only transform and opacity move, so it all runs on the GPU. */
-.breaker { position: fixed; z-index: 6; left: 0; right: 0; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 70px); height: 20vh; pointer-events: none; opacity: 0; overflow: hidden; }
+.breaker { position: fixed; z-index: 6; left: 0; right: 0; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 70px); height: 13vh; pointer-events: none; opacity: 0; overflow: hidden; }
 .breaker.forward { transform: scaleX(-1); }
 /* Waves never change size (that would re-raster them every frame on a phone). Each wave has three
    separate, eased motions on nested elements so nothing changes speed abruptly: it drifts sideways
@@ -19,8 +19,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
 .breaker .w svg { display: block; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 100%; will-change: transform; }
 .breaker-shade { fill: rgba(8, 100, 150, .3); }
 .breaker-foam { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; opacity: .95; }
-.breaker .spray { position: absolute; left: 72%; top: 18%; width: 10px; height: 10px; border-radius: 50%; background: #e9fbff; border: 2px solid #2fbde0; opacity: 0; will-change: transform, opacity; }
-.breaker .spray + .spray { left: 82%; top: 34%; width: 7px; height: 7px; }
+.breaker .spray { position: absolute; left: 72%; top: 18%; width: 6px; height: 6px; border-radius: 50%; background: #e9fbff; border: 1.5px solid #2fbde0; opacity: 0; will-change: transform, opacity; }
 .breaker .sea { position: absolute; left: 0; bottom: 0; width: 200%; height: 26px; transform: translateY(100%); will-change: transform; }
 .breaker .sea path { fill: rgba(47, 189, 224, .55); }
 .breaker.play { animation: breaker-show 2.2s linear both; }
@@ -29,7 +28,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
 .breaker.play .rise { animation: wave-rise var(--dur) var(--delay) both; }
 .breaker.play .w svg { animation: wave-lean var(--dur) var(--delay) both; }
 .breaker.play .spray { animation: wave-spray .7s calc(var(--delay) + var(--dur) * .52) ease-out both; }
-.breaker.play .spray + .spray { animation-delay: calc(var(--delay) + var(--dur) * .6); }
 /* Warm-up right after load: one invisible frame with the waves up, so they are rasterised before the first switch. */
 .breaker.warm { opacity: .01; }
 .breaker.warm .rise { transform: translateY(0); }
@@ -46,7 +44,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
   45% { transform: skewX(0deg); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
   100% { transform: skewX(calc(var(--lean) * -20deg)); }
 }
-@keyframes wave-spray { 0% { opacity: 0; transform: translate(0, 0) scale(.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(26px, -48px) scale(1); } }
+@keyframes wave-spray { 0% { opacity: 0; transform: translate(0, 0) scale(.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(14px, -26px) scale(1); } }
 /* The surface eases up, rolls sideways by whole waves at an even pace and eases down again. */
 @keyframes sea-roll {
   0% { transform: translate(0, 100%); animation-timing-function: cubic-bezier(.2, .7, .35, 1); }

@@ -29,15 +29,21 @@ const SHAPES = [
 ];
 // left %, width vw, height vh, shape, start delay ms, duration ms, lean
 const WAVES = [
-  [-7, 30, 12, 2, 0, 1080, 1.1],
-  [15, 19, 8, 1, 170, 880, .6],
-  [27, 25, 15, 0, 60, 1150, 1.3],
-  [48, 17, 9, 1, 280, 820, .8],
-  [60, 28, 13, 2, 130, 1000, 1],
-  [83, 21, 11, 0, 230, 940, .9],
+  [-4, 14, 8, 2, 0, 900, 1],
+  [6, 10, 5, 1, 140, 760, .6],
+  [13, 13, 9, 0, 50, 960, 1.2],
+  [22, 9, 5, 1, 260, 700, .7],
+  [29, 15, 7, 2, 110, 880, .9],
+  [39, 11, 8, 0, 330, 820, 1.1],
+  [46, 8, 4, 1, 200, 680, .5],
+  [53, 14, 9, 2, 70, 940, 1.2],
+  [63, 10, 6, 0, 290, 780, .8],
+  [70, 13, 7, 1, 160, 860, .7],
+  [79, 9, 5, 2, 380, 720, .9],
+  [86, 14, 8, 0, 240, 900, 1.1],
 ] as const;
 const BREAKER = `<svg class="sea" viewBox="0 0 800 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 18 Q25 6 50 18 T100 18 T150 18 T200 18 T250 18 T300 18 T350 18 T400 18 T450 18 T500 18 T550 18 T600 18 T650 18 T700 18 T750 18 T800 18 V40 H0Z"/></svg>
-  ${WAVES.map(([left, w, h, shape, delay, dur, lean]) => `<div class="w" style="left:${left}%;--w:${w}vw;--h:${h}vh;--delay:${delay}ms;--dur:${Math.round(dur * 1.3)}ms;--lean:${lean}"><div class="rise"><svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">${SHAPES[shape]}</svg><i class="spray"></i><i class="spray"></i></div></div>`).join('')}
+  ${WAVES.map(([left, w, h, shape, delay, dur, lean]) => `<div class="w" style="left:${left}%;--w:${w}vw;--h:${h}vh;--delay:${delay}ms;--dur:${Math.round(dur * 1.3)}ms;--lean:${lean}"><div class="rise"><svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">${SHAPES[shape]}</svg><i class="spray"></i></div></div>`).join('')}
   <svg width="0" height="0" aria-hidden="true"><defs><linearGradient id="breaker-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe3f5"/><stop offset=".55" stop-color="#2fbde0"/><stop offset="1" stop-color="#1596c4"/></linearGradient></defs></svg>`;
 
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
