@@ -6,8 +6,9 @@ import { nativeReminders, askPermission, clearDelivered, scheduleNative, type Fa
 import { streakNow } from './hydration';
 
 // Today's drinking schedule: the daily amount split evenly over waking hours (e.g. 07:00–22:00
-// every 2 hours → 8 × 250 ml). A slot is done once today's total reaches everything due up to
-// it. Reminders are smart: when a slot's time comes and the person is behind, one notification
+// every 2 hours → 8 × 250 ml). Each drink fills the slot whose time it falls in, and any extra
+// spills into the next slots; it never fills a slot whose time has already passed, so a missed
+// slot stays missed. Reminders are smart: when a slot's time comes and the person is behind, one notification
 // says how much to drink; if they are on track, nothing is sent. In the phone app the same slots
 // are scheduled with the system for the next week (see native-reminders.ts), skipping ones already met.
 const KEY = 'dusal-reminders-v1';
@@ -41,14 +42,13 @@ const minutes = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); 
 const clock = (mins: number) => `${String(Math.floor(mins / 60) % 24).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
 
 const drunkToday = (state: AppState) => { const today = dayKey(); return state.events.reduce((sum, e) => e.type === 'drink' && dayKey(new Date(e.at)) === today ? sum + e.amount : sum, 0); };
-// What is due right now: everything scheduled up to the latest slot that has come, minus what was drunk.
+// What to drink right now: what is left of the latest slot that has come. Missed slots are not added up.
 const dueNow = (state: AppState, list: Slot[]) => {
   const behind = list.filter(x => x.state === 'now' || x.state === 'late');
-  const last = behind[behind.length - 1];
-  return last ? Math.max(last.ml, last.due - drunkToday(state)) : 0;
+  return behind[behind.length - 1]?.left ?? 0;
 };
 
-export interface Slot { at: number; time: string; ml: number; due: number; state: 'done' | 'now' | 'late' | 'later' }
+export interface Slot { at: number; time: string; ml: number; left: number; state: 'done' | 'now' | 'late' | 'later' }
 
 export function slots(state: AppState, now = new Date()): Slot[] {
   const s = readSettings();
@@ -58,16 +58,24 @@ export function slots(state: AppState, now = new Date()): Slot[] {
   for (let t = start; t < end; t += step) times.push(t);
   if (!times.length) times.push(start);
   const per = Math.max(10, Math.round(state.goal / times.length / 10) * 10);
-  const drunk = drunkToday(state);
   const nowMin = now.getHours() * 60 + now.getMinutes();
+  // Pour today's drinks, in time order, into the slot each was drunk in (before the first slot counts
+  // as the first), spilling forward only.
+  const left = times.map(() => per);
+  const today = dayKey(now);
+  const drinks = state.events.filter(e => e.type === 'drink' && dayKey(new Date(e.at)) === today).sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  for (const e of drinks) {
+    const d = new Date(e.at), min = d.getHours() * 60 + d.getMinutes();
+    let i = Math.max(0, times.filter(at => at <= min).length - 1);
+    for (let ml = e.amount; ml > 0 && i < times.length; i++) { const take = Math.min(ml, left[i]); left[i] -= take; ml -= take; }
+  }
   return times.map((at, i) => {
-    const due = Math.min(state.goal, per * (i + 1));
     let st: Slot['state'];
-    if (drunk >= due) st = 'done';
+    if (!left[i]) st = 'done';
     else if (at > nowMin) st = 'later';
     else if (at + step <= nowMin) st = 'late';
     else st = 'now';
-    return { at, time: clock(at), ml: per, due, state: st };
+    return { at, time: clock(at), ml: per, left: left[i], state: st };
   });
 }
 
