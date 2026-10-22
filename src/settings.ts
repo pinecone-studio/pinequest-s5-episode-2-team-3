@@ -98,8 +98,8 @@ function render(): void {
           ${goalSection()}
           ${backupSection()}
         </div>
+        <footer class="home-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
       </div>
-      <footer class="home-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
     </main>
     ${Toast()}`;
   bind();

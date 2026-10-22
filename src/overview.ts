@@ -308,11 +308,11 @@ function render() {
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${streak.week}
       </div>
+      <footer class="home-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Холболт, нөөц ба тохиргоо</a></p></footer>
     </div>
     <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>
       <div class="plan-sheet"><button type="button" class="plan-close" id="plan-close" aria-label="Хаах">${mdIcon('close')}</button>${planSection(readProfile())}</div>
     </div>
-    <footer class="home-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Холболт, нөөц ба тохиргоо</a></p></footer>
   </main>`;
   bindHydration(drink, addDrink, render);
   bindStreakCalendar(state.events, state.goal, state.mode);
