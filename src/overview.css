@@ -12,7 +12,7 @@
 .plan-fields .wide, .plan-fields .doctor { grid-column: 1 / -1; }
 .plan-fields .span2 { grid-column: span 2; }
 .plan-fields input, .plan-fields select { min-width: 0; min-height: 50px; font-size: 18px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; padding: 8px 12px; }
-.plan-fields input:focus, .plan-fields select:focus { border-color: #9db7f5; background: #fff; }
+.plan-fields input:focus, .plan-fields select:focus { border-color: #8ddfee; background: #fff; }
 .ai-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .ai-row input { font-size: 16px; }
 .ai-button { min-height: 50px; padding: 0 16px; white-space: nowrap; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-size: 15px; font-weight: 600; }
@@ -22,7 +22,7 @@
 .plan-result { margin-top: 14px; padding: 16px; border-radius: 16px; background: linear-gradient(180deg, #f3f7ff, #eaf1fd); }
 .plan-amount { display: flex; align-items: center; gap: 10px; }
 .plan-amount input { width: 140px; min-height: 64px; font-size: 42px; font-weight: 700; letter-spacing: -1px; color: var(--ink-2); text-align: center; border: 1px solid transparent; background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(20, 32, 52, .06); padding: 0 6px; }
-.plan-amount input:focus { border-color: #9db7f5; }
+.plan-amount input:focus { border-color: #8ddfee; }
 .plan-amount > span { font-size: 20px; color: var(--muted-2); }
 .plan-amount .step { width: 48px; height: 48px; border-radius: 50%; border: 1px solid #dde3ec; background: #fff; color: var(--ink-2); font-size: 24px; line-height: 1; }
 .plan-kind { margin-top: 10px; font-size: 16px; color: var(--ink-2); }
@@ -45,7 +45,7 @@
 .plan-sheet { position: relative; width: min(440px, 100%); }
 .plan-sheet .plan-card { background: rgba(255, 255, 255, .72); border: 1px solid rgba(255, 255, 255, .8); backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3); box-shadow: 0 30px 70px rgba(30, 45, 70, .25); }
 .plan-close { position: absolute; top: 14px; right: 14px; z-index: 1; width: 38px; height: 38px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .8); color: #5f6877; font-size: 15px; box-shadow: 0 2px 8px rgba(30, 45, 70, .1); }
-.plan-close:focus-visible { outline: 3px solid #2f80ed; outline-offset: 2px; }
+.plan-close:focus-visible { outline: 3px solid #00bedc; outline-offset: 2px; }
 .plan-wrap:not([hidden]) { animation: plan-fade .2s ease-out; }
 .plan-wrap:not([hidden]) .plan-sheet { animation: plan-rise .3s cubic-bezier(.3, 1.3, .5, 1); }
 @keyframes plan-fade { from { opacity: 0; } }

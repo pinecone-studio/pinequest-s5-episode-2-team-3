@@ -1,5 +1,5 @@
 /* History on the glass shell (shell.css): white cards inside the shell, same tokens as home. */
-:root { --drink: #3b7ff0; }
+:root { --drink: #00bedc; }
 /* Small muted text sits on white and glass here; shell's --muted-2 is 4.45:1 on white, so darken it to pass 4.5:1. */
 main.home, .type-menu { --muted-2: #5f6877; }
 .history-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 26px; }
@@ -14,7 +14,7 @@ main.home, .type-menu { --muted-2: #5f6877; }
 .history-filters label { font-size: 14px; color: var(--muted-2); margin-bottom: 6px; }
 .history-filters > div { min-width: 0; }
 .history-filters :is(input, select) { min-width: 0; height: 50px; font-size: 16px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; padding: 8px 12px; }
-.history-filters :is(input, select):focus { border-color: #9db7f5; background: #fff; }
+.history-filters :is(input, select):focus { border-color: #8ddfee; background: #fff; }
 .history-filters #clear-filters { min-height: 50px; padding: 0 16px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-size: 15px; font-weight: 600; text-decoration: none; }
 .history-summary { display: flex; flex-wrap: wrap; gap: 10px; font-size: 14px; color: var(--muted-2); }
 .history-summary span { padding: 10px 16px; border-radius: 14px; background: rgba(255, 255, 255, .75); box-shadow: 0 1px 4px rgba(20, 32, 52, .06); }
@@ -102,15 +102,15 @@ main.home-app .history-row .text-button { min-height: 44px; padding: 9px 14px; f
 .hc-picked { min-height: 38px; line-height: 1.45; margin: 0; font-size: 13px; color: var(--muted-2); text-align: center; font-variant-numeric: tabular-nums; }
 .hc-picked b { color: var(--ink-2); }
 .hc-svg { display: block; width: 100%; height: auto; overflow: visible; }
-.hc-goal { stroke: #2f80ed; stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .6; }
-.hc-goal-label { font-size: 10px; font-weight: 600; fill: #2f80ed; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
+.hc-goal { stroke: #00bedc; stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .6; }
+.hc-goal-label { font-size: 10px; font-weight: 600; fill: #00bedc; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
 .hc-hit { fill: transparent; cursor: pointer; }
 .hc-track { fill: #f1f4f9; }
 /* Stack: drunk up to the goal (blue, lighter on a missed day), drunk beyond it, spilled.
    A thin white seam keeps neighbouring parts apart. */
 .hc-seg { stroke: #fff; stroke-width: 1.2; transition: opacity .15s; }
-.hc-seg.drink { fill: #a9c7ea; }
-.hc-seg.drink.met { fill: #2f80ed; }
+.hc-seg.drink { fill: #7fdeed; }
+.hc-seg.drink.met { fill: #00bedc; }
 .hc-seg.extra { fill: #0f9f8c; }
 .hc-seg.over { fill: #b8336a; }
 .hc-seg.spill { fill: #d0761a; }
@@ -119,11 +119,11 @@ main.home-app .history-row .text-button { min-height: 44px; padding: 9px 14px; f
 .hc-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted-2); }
 .hc-legend li { display: inline-flex; align-items: center; gap: 6px; }
 .hc-legend i { width: 10px; height: 10px; border-radius: 50%; }
-.hc-legend i.drink { background: #2f80ed; }
+.hc-legend i.drink { background: #00bedc; }
 .hc-legend i.extra { background: #0f9f8c; }
 .hc-legend i.over { background: #b8336a; }
 .hc-legend i.spill { background: #d0761a; }
 .hc-col.future .hc-track { opacity: .45; }
 .hc-tick { font-size: 10px; fill: #8a95a6; font-variant-numeric: tabular-nums; }
-.hc-tick.today { fill: #2f80ed; font-weight: 700; }
-.hc button:focus-visible { outline: 3px solid #2f80ed; outline-offset: 2px; }
+.hc-tick.today { fill: #00bedc; font-weight: 700; }
+.hc button:focus-visible { outline: 3px solid #00bedc; outline-offset: 2px; }
