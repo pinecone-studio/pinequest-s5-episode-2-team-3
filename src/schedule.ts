@@ -1,6 +1,7 @@
 import './schedule.css';
 import { dayKey, type AppState } from './data';
 import { number } from './format';
+import { mdIcon } from './components/Icon';
 import { nativeReminders, askPermission, scheduleNative, type NativeReminder } from './native-reminders';
 
 // Today's drinking schedule: the daily amount split evenly over waking hours (e.g. 07:00–22:00
@@ -74,22 +75,22 @@ export function scheduleChip(state: AppState): string {
   const list = slots(state);
   const open = list.find(x => x.state !== 'done');
   const need = dueNow(state, list);
-  const text = !open ? '✓ Өнөөдрийн хуваарь биеллээ'
+  const text = !open ? `${mdIcon('check')} Өнөөдрийн хуваарь биеллээ`
     : need ? `Одоо <b>${number(need)} мл</b> уух цаг`
     : `Дараагийн: <b>${open.time} · ${number(open.ml)} мл</b>`;
   const cls = !open ? 'done' : need ? 'due' : '';
   return `<button type="button" class="sched-chip ${cls}" id="sched-open" aria-label="Өнөөдрийн хуваарь, сануулга">
-    <span aria-hidden="true">${readSettings().on ? '⏰' : '🕑'}</span><span>${text}</span><i aria-hidden="true">›</i></button>`;
+    <span aria-hidden="true">${mdIcon(readSettings().on ? 'alarm' : 'schedule')}</span><span>${text}</span><i aria-hidden="true">›</i></button>`;
 }
 
 function sheet(state: AppState): string {
   const s = readSettings();
   const list = slots(state);
-  const icon = { done: '✓', now: '⏰', late: '⚠️', later: '' } as const;
+  const icon = { done: mdIcon('check'), now: mdIcon('alarm'), late: mdIcon('warning'), later: '' } as const;
   const word = { done: 'Уусан', now: 'Одоо', late: 'Хоцорсон', later: '' } as const;
   const support = nativeReminders || 'Notification' in window;
   return `<div class="cal-card sched-card">
-    <div class="cal-top"><h2 id="sched-title">Өнөөдрийн хуваарь</h2><button type="button" class="cal-close" aria-label="Хаах">✕</button></div>
+    <div class="cal-top"><h2 id="sched-title">Өнөөдрийн хуваарь</h2><button type="button" class="cal-close" aria-label="Хаах">${mdIcon('close')}</button></div>
     <p class="sched-sum">${state.mode === 'limit' ? 'Хязгаар' : 'Зорилт'} ${number(state.goal)} мл · ${list.length} удаа · тус бүр <b>${number(list[0]?.ml ?? 0)} мл</b></p>
     <ol class="sched-list">${list.map(x => `<li class="${x.state}"><span class="t">${x.time}</span><span class="ml">${number(x.ml)} мл</span><span class="st">${icon[x.state]} ${word[x.state]}</span></li>`).join('')}</ol>
     <form class="sched-form" id="sched-form">
@@ -165,7 +166,7 @@ async function planNative(state: AppState): Promise<void> {
         const at = new Date(now);
         at.setDate(at.getDate() + day);
         at.setHours(Math.floor(x.at / 60), x.at % 60, 0, 0);
-        items.push({ at, title: '💧 Ус уух цаг боллоо', body: `${number(x.ml)} мл уугаарай · өдрийн ${state.mode === 'limit' ? 'хязгаар' : 'зорилт'} ${number(state.goal)} мл. ${FACTS[(day * today.length + slot) % FACTS.length]}` });
+        items.push({ at, title: 'Ус уух цаг боллоо', body: `${number(x.ml)} мл уугаарай · өдрийн ${state.mode === 'limit' ? 'хязгаар' : 'зорилт'} ${number(state.goal)} мл. ${FACTS[(day * today.length + slot) % FACTS.length]}` });
       });
     }
   }
@@ -207,7 +208,7 @@ export function startReminders(state: () => AppState): void {
     try { localStorage.setItem(SENT_KEY, JSON.stringify([...sent.filter(k => k.startsWith(dayKey())), key])); } catch { /* may repeat */ }
     const st = state();
     const drunk = drunkToday(st), need = dueNow(st, list);
-    const title = '💧 Ус уух цаг боллоо';
+    const title = 'Ус уух цаг боллоо';
     const body = `${number(need)} мл уугаарай (өнөөдөр ${number(drunk)} / ${number(st.goal)} мл). ${FACTS[new Date().getHours() % FACTS.length]}`;
     const reg = await navigator.serviceWorker?.getRegistration?.().catch(() => undefined);
     if (reg) await reg.showNotification(title, { body, icon: '/icon-192.png', tag: 'dusal-reminder' });

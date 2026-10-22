@@ -64,3 +64,10 @@ main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-
   .toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
   .home-footer { flex-direction: column; }
 }
+
+/* Material Symbols (components/Icon.ts mdIcon): text-sized, taking the colour of the text around them. */
+.md-icon { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -.2em; fill: currentColor; flex-shrink: 0; }
+.md-fire { color: #e8710a; }
+.md-gold { color: #d99a00; }
+.md-ok { color: #1f9d55; }
+.md-warn { color: #d97706; }

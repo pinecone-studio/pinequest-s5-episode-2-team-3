@@ -1,6 +1,8 @@
 // Buddy characters for the home (viewBox 160×220). Each one has its own body outline, the band
 // the water rises through, where arms and feet attach, how far the face sits down, and extras
 // drawn behind the body (ears) or on top of it (cap, whiskers).
+import { mdIcon } from './components/Icon';
+
 export interface Avatar {
   name: string;
   body: string;
@@ -114,7 +116,7 @@ export function openAvatarPicker(onPick: (id: AvatarId) => void): void {
   box.setAttribute('aria-modal', 'true');
   box.setAttribute('aria-labelledby', 'avatar-title');
   box.innerHTML = `<div class="cal-card">
-    <div class="cal-top"><h2 id="avatar-title">Дүрээ сонго</h2><button type="button" class="cal-close" aria-label="Хаах">✕</button></div>
+    <div class="cal-top"><h2 id="avatar-title">Дүрээ сонго</h2><button type="button" class="cal-close" aria-label="Хаах">${mdIcon('close')}</button></div>
     <div class="avatar-grid" role="radiogroup" aria-label="Дүрүүд">${(Object.keys(AVATARS) as AvatarId[]).map(id => {
       const a: Avatar = AVATARS[id];
       return `<button type="button" class="avatar-opt${id === current ? ' on' : ''}" role="radio" aria-checked="${id === current}" data-avatar="${id}">

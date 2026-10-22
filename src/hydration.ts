@@ -1,5 +1,6 @@
 import './hydration.css';
 import { number } from './format';
+import { mdIcon } from './components/Icon';
 import { dayKey, type WaterEntry } from './data';
 import { AVATARS, avatarSvg, openAvatarPicker, readAvatar } from './avatars';
 
@@ -44,12 +45,12 @@ export function buddySection(drink: number, goal: number, mode: 'goal' | 'limit'
   const near = mode === 'limit' && !over && drink >= goal * 0.8;
   const done = mode === 'goal' && drink >= goal;
   const diff = goal - drink;
-  const sub = over ? `Эмчийн хязгаараас ${number(-diff)} мл хэтэрсэн` : near ? `Хязгаарт ойртож байна · ${number(diff)} мл үлдсэн` : done ? 'Зорилт биеллээ 🎉' : mode === 'limit' ? `Хязгаар хүртэл ${number(diff)} мл` : `Дахиад ${number(diff)} мл`;
+  const sub = over ? `Эмчийн хязгаараас ${number(-diff)} мл хэтэрсэн` : near ? `Хязгаарт ойртож байна · ${number(diff)} мл үлдсэн` : done ? `Зорилт биеллээ ${mdIcon('celebration')}` : mode === 'limit' ? `Хязгаар хүртэл ${number(diff)} мл` : `Дахиад ${number(diff)} мл`;
   const face = done ? 'beam' : over || near ? 'worried' : mode === 'goal' && frac < 0.25 ? 'sad' : 'happy';
   return `<div class="buddy${over ? ' over' : ''}${near ? ' near' : ''}${done ? ' done' : ''}" data-frac="${frac}" data-goal="${goal}" role="img" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл, ${Math.round((drink / goal) * 100)}%">
     <p class="buddy-pct">${Math.round((drink / goal) * 100)}<span>%</span></p>
     <div class="buddy-stage">${avatarSvg(readAvatar(), face, levelY(shownFrac), done)}
-      <button type="button" class="avatar-btn" id="avatar-btn" aria-label="Дүр солих">✨</button></div>
+      <button type="button" class="avatar-btn" id="avatar-btn" aria-label="Дүр солих">${mdIcon('auto_awesome')}</button></div>
     <div class="buddy-text">
       <p class="buddy-total"><b id="today-drink">${number(drink)}</b><span>/ ${number(goal)} мл</span></p>
       <p class="buddy-sub">${sub}</p>
@@ -118,7 +119,7 @@ function currentStreak(counts: (k: string) => boolean): number {
 export function streakParts(events: readonly WaterEntry[], goal: number, mode: Mode): { chip: string; week: string } {
   const counts = dayCounter(events, goal, mode), mood = dayMood(events, goal, mode);
   const streak = currentStreak(counts);
-  const chip = `<button type="button" class="streak${streak ? ' hot' : ''}" data-calendar aria-label="${streak} өдөр дараалан, календарь нээх"><span aria-hidden="true">🔥</span>${streak}</button>`;
+  const chip = `<button type="button" class="streak${streak ? ' hot' : ''}" data-calendar aria-label="${streak} өдөр дараалан, календарь нээх"><span aria-hidden="true">${mdIcon('local_fire_department')}</span>${streak}</button>`;
   const week = `<div class="week-wrap"><ol class="week-strip" aria-label="Сүүлийн 7 хоног">${[6, 5, 4, 3, 2, 1, 0].map(back => {
     const d = daysBack(back), m = mood(dayKey(d));
     return `<li class="m-${m ?? 'none'}${back === 0 ? ' today' : ' past'}"><span class="wd">${WEEKDAYS[d.getDay()]}</span><span class="mark">${m ? dropFace(m) : ''}</span></li>`;
@@ -168,11 +169,11 @@ function openCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): 
       cells.push(`<li class="m-${face ?? 'none'}${k === today ? ' today' : ' past'}"><span class="n">${d}</span><span class="f">${face ? dropFace(face) : ''}</span></li>`);
     }
     box.innerHTML = `<div class="cal-card">
-      <div class="cal-top"><h2 id="cal-title">Streak</h2><button type="button" class="cal-close" aria-label="Хаах">✕</button></div>
+      <div class="cal-top"><h2 id="cal-title">Streak</h2><button type="button" class="cal-close" aria-label="Хаах">${mdIcon('close')}</button></div>
       <div class="cal-stats">
-        <div><b>🔥 ${currentStreak(counts)}</b><span>Одоогийн</span></div>
-        <div><b>🏆 ${best}</b><span>Хамгийн урт</span></div>
-        <div><b>✅ ${met}</b><span>Энэ сард</span></div>
+        <div><b>${mdIcon('local_fire_department', 'md-fire')} ${currentStreak(counts)}</b><span>Одоогийн</span></div>
+        <div><b>${mdIcon('emoji_events', 'md-gold')} ${best}</b><span>Хамгийн урт</span></div>
+        <div><b>${mdIcon('check_circle', 'md-ok')} ${met}</b><span>Энэ сард</span></div>
       </div>
       <div class="cal-nav"><button type="button" data-m="-1" aria-label="Өмнөх сар">‹</button><b>${y} оны ${m + 1}-р сар</b><button type="button" data-m="1" aria-label="Дараах сар">›</button></div>
       <ol class="cal-grid" aria-label="${y} оны ${m + 1}-р сар">${['Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя', 'Ня'].map(w => `<li class="wd">${w}</li>`).join('')}${cells.join('')}</ol>
@@ -305,7 +306,7 @@ function bindPourHandle(buddy: HTMLElement | null, drink: number): void {
     add.classList.toggle('cancel', cancel);
     add.classList.toggle('ready', !cancel && !home);
     add.classList.toggle('up', !cancel && dy > 0); add.classList.toggle('down', !cancel && dy < 0);
-    text.textContent = cancel ? '✕ Цуцлах · тавибал нэмэгдэхгүй' : home ? 'Эхэндээ буцсан · нэмэгдэхгүй' : 'Тавьвал нэмэгдэнэ · хажуу тийш = цуцлах';
+    text.innerHTML = cancel ? `${mdIcon('close')} Цуцлах · тавибал нэмэгдэхгүй` : home ? 'Эхэндээ буцсан · нэмэгдэхгүй' : 'Тавьвал нэмэгдэнэ · хажуу тийш = цуцлах';
   });
   const finish = (commit: boolean) => {
     if (startY === null) return;
@@ -361,7 +362,7 @@ function warnLimit(drink: number, limit: number): void {
   const card = document.createElement('div');
   card.className = 'fx-cheer warn';
   card.setAttribute('role', 'alert');
-  card.innerHTML = `<div class="fx-cheer-card"><span class="fx-cheer-big">⚠️</span><b>Эмчийн хязгаараас хэтэрлээ</b><span>${number(drink)} / ${number(limit)} мл · Өнөөдөр дахиж уухаас зайлсхий</span></div>`;
+  card.innerHTML = `<div class="fx-cheer-card"><span class="fx-cheer-big">${mdIcon('warning', 'md-warn')}</span><b>Эмчийн хязгаараас хэтэрлээ</b><span>${number(drink)} / ${number(limit)} мл · Өнөөдөр дахиж уухаас зайлсхий</span></div>`;
   document.body.append(card);
   const close = () => card.remove();
   card.addEventListener('click', close);
@@ -374,7 +375,7 @@ function celebrate(drink: number): void {
   const cheer = document.createElement('div');
   cheer.className = 'fx-cheer';
   cheer.setAttribute('role', 'status');
-  cheer.innerHTML = `<div class="fx-cheer-card"><span class="fx-cheer-big">🎉</span><b>Зорилт биеллээ!</b><span>Өнөөдөр ${number(drink)} мл уулаа</span></div>`;
+  cheer.innerHTML = `<div class="fx-cheer-card"><span class="fx-cheer-big">${mdIcon('celebration', 'md-fire')}</span><b>Зорилт биеллээ!</b><span>Өнөөдөр ${number(drink)} мл уулаа</span></div>`;
   document.body.append(cheer);
   const close = () => cheer.remove();
   cheer.addEventListener('click', close);

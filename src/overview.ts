@@ -11,7 +11,7 @@ import { askAi, checkAi } from './api';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, scheduleChip, startReminders } from './schedule';
 import { dateLabel, escape, number } from './format';
-import { brandMark } from './components/Icon';
+import { brandMark, mdIcon } from './components/Icon';
 
 // 2000 → "2", 2150 → "2.15", 2500 → "2.5" (the old regex left "2.", which a number input rejects).
 const liters = (ml: number) => String(Number((ml / 1000).toFixed(2)));
@@ -67,7 +67,7 @@ function suggestion(p: Profile, s: Source): Draft | null {
 // Compare the suggestion with the saved goal so it's clear what saving would change.
 function versusGoal(d: { ml: number; mode: 'goal' | 'limit' }): { text: string; same: boolean } {
   const label = state.mode === 'limit' ? 'хязгаар' : 'зорилт';
-  if (d.ml === state.goal && d.mode === state.mode) return { text: `✓ Энэ таны одоогийн ${label}`, same: true };
+  if (d.ml === state.goal && d.mode === state.mode) return { text: `${mdIcon('check')} Энэ таны одоогийн ${label}`, same: true };
   const diff = d.ml - state.goal;
   return { text: `Одоогийн ${label}: ${number(state.goal)} мл${diff ? ` · ${diff > 0 ? '+' : '−'}${number(Math.abs(diff))} мл` : ''}`, same: false };
 }
@@ -157,7 +157,7 @@ function bindPlan() {
     amount.value = liters(draft!.ml);
     const vs = versusGoal(draft!);
     const line = form.querySelector<HTMLElement>('#plan-vs')!;
-    line.textContent = vs.text;
+    line.innerHTML = vs.text;
     line.classList.toggle('same', vs.same);
     const button = form.querySelector<HTMLButtonElement>('.plan-save')!;
     button.disabled = vs.same;
@@ -301,7 +301,7 @@ function render() {
       </div>
     </div>
     <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>
-      <div class="plan-sheet"><button type="button" class="plan-close" id="plan-close" aria-label="Хаах">✕</button>${planSection(readProfile())}</div>
+      <div class="plan-sheet"><button type="button" class="plan-close" id="plan-close" aria-label="Хаах">${mdIcon('close')}</button>${planSection(readProfile())}</div>
     </div>
     <footer class="home-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Холболт, нөөц ба тохиргоо</a></p></footer>
   </main>`;
@@ -311,7 +311,7 @@ function render() {
   document.querySelector('#undo')?.addEventListener('click', undo);
   document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
   bindPlan();
-  // The goal pill opens the calculator as a glass sheet over the home; ✕, the backdrop or Esc close it.
+  // The goal pill opens the calculator as a glass sheet over the home; the close button, the backdrop or Esc close it.
   const sheet = document.querySelector<HTMLElement>('#plan-wrap')!;
   const pill = document.querySelector<HTMLButtonElement>('#plan-toggle')!;
   const setOpen = (open: boolean) => {
