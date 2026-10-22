@@ -1,7 +1,7 @@
 import './hydration.css';
-import { number } from './format';
+import { number, time } from './format';
 import { mdIcon } from './components/Icon';
-import { dayKey, type WaterEntry } from './data';
+import { dayKey, TYPES, type WaterEntry } from './data';
 import { AVATARS, avatarSvg, openAvatarPicker, readAvatar } from './avatars';
 import { icon } from './components/Icon';
 
@@ -125,16 +125,62 @@ export function streakParts(events: readonly WaterEntry[], goal: number, mode: M
   const counts = dayCounter(events, goal, mode), mood = dayMood(events, goal, mode);
   const streak = currentStreak(counts);
   const chip = `<button type="button" class="streak${streak ? ' hot' : ''}" data-calendar aria-label="${streak} өдөр дараалан, календарь нээх"><span aria-hidden="true">${mdIcon('local_fire_department')}</span>${streak}</button>`;
-  const week = `<div class="week-wrap"><ol class="week-strip" aria-label="Сүүлийн 7 хоног">${[6, 5, 4, 3, 2, 1, 0].map(back => {
-    const d = daysBack(back), m = mood(dayKey(d));
-    return `<li class="m-${m ?? 'none'}${back === 0 ? ' today' : ' past'}"><span class="wd">${WEEKDAYS[d.getDay()]}</span><span class="mark">${m ? dropFace(m) : ''}</span></li>`;
+  const week = `<div class="week-wrap"><ol class="week-strip" aria-label="Өдрүүд, хажуу тийш гүйлгэнэ">${stripDays(events).map(back => {
+    const d = daysBack(back), k = dayKey(d), m = mood(k);
+    return `<li class="m-${m ?? 'none'}${back === 0 ? ' today' : ' past'}"><button type="button" data-day="${k}" aria-label="${dayTitle(d)}, задаргаа харах"><span class="wd">${back > 6 ? `${d.getMonth() + 1}/${d.getDate()}` : WEEKDAYS[d.getDay()]}</span><span class="mark">${m ? dropFace(m) : ''}</span></button></li>`;
   }).join('')}</ol><button type="button" class="text-button cal-open" data-calendar>Сарын календарь →</button></div>`;
   return { chip, week };
 }
 
+// The strip under the cups swipes back through every day since the first entry (at most 90 days,
+// at least a week); this week shows weekday names, older days their date. It opens on today.
+const STRIP_MAX = 90;
+function stripDays(events: readonly WaterEntry[]): number[] {
+  const first = events.reduce((min, e) => Math.min(min, Date.parse(e.at)), Date.now());
+  const since = Math.round((noon(new Date()).getTime() - noon(new Date(first)).getTime()) / 864e5);
+  const count = Math.min(STRIP_MAX, Math.max(7, since + 1));
+  return Array.from({ length: count }, (_, i) => count - 1 - i);
+}
+const dayTitle = (d: Date) => `${d.getMonth() + 1}-р сарын ${d.getDate()}, ${WEEKDAYS[d.getDay()]}`;
+
+// Where the strip was scrolled, kept across re-renders; null opens it on today.
+let stripScroll: number | null = null;
+
 // A month calendar of goal days with the current and best streak; ‹ › walk through months.
+// Tapping a day in the strip opens that day's breakdown.
 export function bindStreakCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): void {
   document.querySelectorAll<HTMLButtonElement>('[data-calendar]').forEach(b => b.addEventListener('click', () => openCalendar(events, goal, mode)));
+  const strip = document.querySelector<HTMLElement>('.week-strip');
+  if (!strip) return;
+  strip.scrollLeft = stripScroll ?? strip.scrollWidth;
+  strip.addEventListener('scroll', () => { stripScroll = strip.scrollLeft; }, { passive: true });
+  strip.querySelectorAll<HTMLButtonElement>('[data-day]').forEach(b => b.addEventListener('click', () => openDay(events, goal, mode, b.dataset.day!)));
+}
+
+// One day's breakdown: its drop, the total against the goal or limit, and every entry with its time.
+function openDay(events: readonly WaterEntry[], goal: number, mode: Mode, key: string): void {
+  const list = events.filter(e => dayKey(new Date(e.at)) === key).sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  const drunk = list.reduce((sum, e) => (e.type === 'drink' ? sum + e.amount : sum), 0);
+  const face = dayMood(events, goal, mode)(key);
+  const pct = Math.round((drunk / goal) * 100);
+  const box = document.createElement('div');
+  box.className = 'cal';
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  box.setAttribute('aria-labelledby', 'day-title');
+  box.innerHTML = `<div class="cal-card day-card">
+    <div class="cal-top"><h2 id="day-title">${dayTitle(new Date(`${key}T12:00`))}</h2><button type="button" class="cal-close" aria-label="Хаах">${mdIcon('close')}</button></div>
+    <div class="day-sum">${face ? dropFace(face) : ''}<div><b>${number(drunk)}</b><span> / ${number(goal)} мл</span><p>${mode === 'goal' ? `Зорилтын ${pct}%` : drunk > goal ? `Хязгаараас ${number(drunk - goal)} мл хэтэрсэн` : `Хязгаарын ${pct}%`}${face ? ` · ${MOOD_LABEL[face]}` : ''}</p></div></div>
+    <div class="day-bar${mode === 'limit' && drunk > goal ? ' over' : ''}"><i style="width: ${Math.min(100, pct)}%"></i></div>
+    ${list.length ? `<ol class="day-list">${list.map(e => `<li class="${e.type}"><span class="t">${time(e.at)}</span><span class="ml">${e.type === 'drink' ? '+' : ''}${number(e.amount)} мл</span><span class="ty">${TYPES[e.type]}</span></li>`).join('')}</ol>` : '<p class="day-empty">Энэ өдөр бүртгэл алга.</p>'}
+  </div>`;
+  document.body.append(box);
+  const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  box.querySelector('.cal-close')!.addEventListener('click', close);
+  box.addEventListener('click', e => { if (e.target === box) close(); });
+  box.querySelector<HTMLButtonElement>('.cal-close')!.focus();
 }
 
 function openCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): void {
