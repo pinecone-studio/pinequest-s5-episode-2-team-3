@@ -8,52 +8,39 @@ const KEYS = ['home', 'history', 'settings'] as const;
 const LABELS = ['Нүүр', 'Түүх', 'Тохиргоо'];
 const LAST_TAB = 'dusal-tab';
 
-// A stream of water running down the edge between two tabs; it shows while the strip moves, so the
-// water appears on the side the next tab is coming from. Soft wavy banks, gliding highlights and a
-// few bubbles make it read as water. The shape is twice the screen tall and slides by whole waves,
-// so the flow loops without a jump.
-const SEAM = (() => {
-  // One wave every 250 units; the 1000-unit slide is exactly four waves.
-  const bank = (x: number, amp: number, phase: number) => Array.from({ length: 201 }, (_, k) => [x + Math.sin((k * Math.PI) / 12.5 + phase) * amp, k * 10] as const);
-  const left = bank(9, 4, 0), right = bank(31, 4, Math.PI * 0.6).reverse();
-  const body = `M${[...left, ...right].map(([x, y]) => `${x.toFixed(1)} ${y}`).join(' L')} Z`;
-  const line = (x: number, amp: number, phase: number) => `M${bank(x, amp, phase).map(([px, y]) => `${px.toFixed(1)} ${y}`).join(' L')}`;
-  const bubbles = Array.from({ length: 7 }, (_, i) => `<i class="bubble" style="--x:${30 + ((i * 37) % 40)}%;--d:${(i * 0.37).toFixed(2)}s;--s:${(0.55 + (i % 3) * 0.25).toFixed(2)}"></i>`).join('');
-  return `<div class="stream"><svg viewBox="0 0 40 2000" preserveAspectRatio="none"><defs><linearGradient id="seam-water" x1="0" x2="1"><stop offset="0" stop-color="#a8e9f6" stop-opacity=".75"/><stop offset=".5" stop-color="#29bfe0" stop-opacity=".85"/><stop offset="1" stop-color="#a8e9f6" stop-opacity=".75"/></linearGradient></defs>
-    <path class="body" d="${body}" fill="url(#seam-water)"/><path class="shine" d="${line(17, 3, 0.8)}"/><path class="shine soft" d="${line(24, 3, 2.1)}"/></svg>${bubbles}</div>`;
-})();
+// A cartoon wave that rises at the bottom, curls over, crashes with a splash and flattens again,
+// played on every tab switch from the side the new tab comes in. The shapes are keyframes in
+// tabs.css (CSS `d` animation); every frame uses the same commands so the browser can morph them.
+const BREAKER = `<svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+  <defs><linearGradient id="breaker-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe3f5"/><stop offset=".55" stop-color="#2fbde0"/><stop offset="1" stop-color="#1596c4"/></linearGradient></defs>
+  <path class="breaker-body" fill="url(#breaker-water)"/>
+  <path class="breaker-shade"/>
+  <path class="breaker-foam"/>
+  <g class="breaker-spray">${[[262, 140, 1], [285, 122, .8], [305, 150, .7], [322, 178, .9], [250, 168, .6], [338, 205, .7]].map(([x, y, s], i) => `<circle cx="${x}" cy="${y}" r="${(7 * s).toFixed(1)}" style="--i:${i}"/>`).join('')}</g>
+</svg>`;
 
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
 let index = 0;
 try { index = Math.min(TABS.length - 1, Math.max(0, Number(sessionStorage.getItem(LAST_TAB)) || 0)); } catch { /* first tab */ }
 
 root.innerHTML = `
-  <div class="tabs-track">${TABS.map((tab, i) => `<iframe title="${LABELS[i]}" data-src="${tab}?embed=1"></iframe>`).join('')}${TABS.slice(1).map((_, i) => `<div class="seam" style="left:${((i + 1) / TABS.length) * 100}%" aria-hidden="true">${SEAM}</div>`).join('')}</div>
-  <svg class="tabs-wave" viewBox="0 0 400 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0 14 Q25 4 50 14 T100 14 T150 14 T200 14 T250 14 T300 14 T350 14 T400 14 V24 H0Z"/></svg>
+  <div class="tabs-track">${TABS.map((tab, i) => `<iframe title="${LABELS[i]}" data-src="${tab}?embed=1"></iframe>`).join('')}</div>
+  <div class="breaker">${BREAKER}</div>
   <nav class="tabs-bar" aria-label="Хэсгүүд" style="--i:${index}">
     ${TABS.map((tab, i) => `<a href="${tab}" data-tab="${i}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">${NAV_ICONS[KEYS[i]]}</svg><span>${LABELS[i]}</span></a>`).join('')}
   </nav>`;
 
 const track = root.querySelector<HTMLDivElement>('.tabs-track')!;
 const bar = root.querySelector<HTMLElement>('.tabs-bar')!;
-const wave = root.querySelector<SVGElement>('.tabs-wave')!;
+const breaker = root.querySelector<HTMLDivElement>('.breaker')!;
 const frames = [...track.querySelectorAll<HTMLIFrameElement>('iframe')];
 const width = () => track.clientWidth / TABS.length;
 const load = (i: number) => { if (!frames[i].src) frames[i].src = frames[i].dataset.src!; };
 
-// Water strength and how fast it changes: instant while following a finger, quick to appear, slow to fade.
-function setFlow(flow: number, seconds: number): void {
-  track.style.setProperty('--fade', `${seconds}s`);
-  track.style.setProperty('--flow', String(flow));
-}
-
 function place(dx = 0, animate = false): void {
   track.classList.toggle('animate', animate);
   track.style.transform = `translateX(${-index * width() + dx}px)`;
-  // Water shows in proportion to the drag; while gliding it keeps its strength and fades at the end.
-  if (!animate) setFlow(Math.min(1, Math.abs(dx) / 120), 0);
 }
-track.addEventListener('transitionend', event => { if (event.target === track && event.propertyName === 'transform') setFlow(0, 0.4); });
 
 function mark(): void {
   bar.style.setProperty('--i', String(index));
@@ -62,19 +49,24 @@ function mark(): void {
   try { sessionStorage.setItem(LAST_TAB, String(index)); } catch { /* starts on home next time */ }
 }
 
+// Moving to a tab on the right, the wave comes from the right and breaks leftwards, and vice versa.
+function crash(forward: boolean): void {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  breaker.classList.remove('play', 'forward', 'back');
+  void breaker.getBoundingClientRect();
+  breaker.classList.add('play', forward ? 'forward' : 'back');
+}
+breaker.addEventListener('animationend', event => { if (event.target === breaker.querySelector('.breaker-body')) breaker.classList.remove('play'); });
+
 function go(next: number): void {
   next = Math.max(0, Math.min(TABS.length - 1, next));
   const moved = next !== index;
+  const forward = next > index;
   index = next;
   load(index);
-  if (moved) setFlow(1, 0.12);
   place(0, true);
   mark();
-  if (moved && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    wave.classList.remove('lap');
-    void wave.getBoundingClientRect();
-    wave.classList.add('lap');
-  }
+  if (moved) crash(forward);
 }
 
 bar.addEventListener('click', event => {
