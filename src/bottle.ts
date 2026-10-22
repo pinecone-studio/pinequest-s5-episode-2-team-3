@@ -72,8 +72,8 @@ export function bottleSection(events: readonly WaterEntry[]): string {
       <svg viewBox="0 0 240 400">
         <defs>
           <clipPath id="bottle-clip"><path d="${BODY}"/></clipPath>
-          <linearGradient id="g-glass" x1="0" x2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".55" stop-color="#eef5ff" stop-opacity=".75"/><stop offset="1" stop-color="#d7e6fb" stop-opacity=".9"/></linearGradient>
-          <linearGradient id="g-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc8ff"/><stop offset="1" stop-color="#2f6fe0"/></linearGradient>
+          <linearGradient id="g-glass" x1="0" x2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".55" stop-color="#e8f9fc" stop-opacity=".75"/><stop offset="1" stop-color="#d3f2f8" stop-opacity=".9"/></linearGradient>
+          <linearGradient id="g-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fe3f5"/><stop offset="1" stop-color="#0096b4"/></linearGradient>
           <linearGradient id="g-cap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4558"/><stop offset="1" stop-color="#12161f"/></linearGradient>
           <linearGradient id="g-sleeve" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5eead4"/><stop offset="1" stop-color="#0f9488"/></linearGradient>
           <linearGradient id="g-base" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b4454"/><stop offset="1" stop-color="#0d1118"/></linearGradient>
