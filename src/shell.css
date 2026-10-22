@@ -1,13 +1,27 @@
 /* Glass app shell shared by every page: background, card, top bar with brand, date and nav. */
 :root {
-  --home-bg: linear-gradient(180deg, #b9c8de 0%, #dbe3ee 42%, #f2e7e0 100%);
+  --home-bg:
+    radial-gradient(60% 40% at 0% 30%, rgba(0, 190, 220, .28), transparent 70%),
+    radial-gradient(55% 35% at 100% 55%, rgba(64, 160, 255, .2), transparent 70%),
+    radial-gradient(50% 30% at 20% 85%, rgba(38, 214, 196, .22), transparent 70%),
+    radial-gradient(45% 30% at 90% 100%, rgba(0, 150, 180, .25), transparent 70%),
+    linear-gradient(180deg, #7fdcee 0%, #b5ecf6 30%, #d6f6fa 60%, #c4eef4 100%);
   --glass: rgba(255, 255, 255, .62);
   --glass-line: rgba(255, 255, 255, .75);
   --hair: rgba(20, 32, 52, .07);
   --ink-2: #1f2733;
   --muted-2: #6f7888;
 }
-html, body { background: var(--home-bg) fixed; min-height: 100%; }
+/* Background on html only: a body background would paint over the z-index:-1 water layers below. */
+:root { background: var(--home-bg) fixed; }
+html, body { min-height: 100%; }
+/* Underwater feel: soft light patches drifting on top, two slow waves along the bottom. */
+body::before, body::after { content: ""; position: fixed; left: 0; right: 0; z-index: -1; pointer-events: none; }
+body::before { top: 0; height: 70vh; background: radial-gradient(40% 30% at 20% 10%, rgba(255, 255, 255, .55), transparent 70%), radial-gradient(35% 25% at 80% 25%, rgba(255, 255, 255, .35), transparent 70%), radial-gradient(50% 35% at 50% 0%, rgba(0, 190, 220, .18), transparent 70%), radial-gradient(30% 20% at 65% 45%, rgba(120, 230, 255, .25), transparent 70%); animation: water-light 14s ease-in-out infinite alternate; }
+body::after { bottom: 0; height: 140px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 140' preserveAspectRatio='none'%3E%3Cpath d='M0 60 Q50 35 100 60 T200 60 T300 60 T400 60 V140 H0Z' fill='%2300bedc' fill-opacity='.14'/%3E%3Cpath d='M0 85 Q50 65 100 85 T200 85 T300 85 T400 85 V140 H0Z' fill='%2300bedc' fill-opacity='.2'/%3E%3C/svg%3E") repeat-x 0 100% / 800px 140px; animation: water-wave 18s linear infinite; }
+@keyframes water-light { to { transform: translateX(4%) scale(1.06); opacity: .8; } }
+@keyframes water-wave { to { background-position: 800px 100%; } }
+@media (prefers-reduced-motion: reduce) { body::before, body::after { animation: none; } }
 
 main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px)); }
 .app-shell { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 30px; box-shadow: 0 30px 80px rgba(40, 60, 90, .16); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); overflow: hidden; }
