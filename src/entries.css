@@ -9,7 +9,7 @@
 .entries-page .quick-add { gap: 10px; padding: 0; border: 0; }
 .entries-page .quick-add > span { margin-right: 4px; font-size: 14px; color: var(--muted-2); }
 .entries-page .quick-add button { display: inline-flex; align-items: center; gap: 4px; min-height: 48px; padding: 0 20px; border: 1px solid rgba(20, 32, 52, .08); border-radius: 999px; background: rgba(255, 255, 255, .85); color: var(--ink-2); font-size: 16px; font-weight: 600; box-shadow: 0 2px 10px rgba(20, 32, 52, .06); }
-.entries-page .quick-add button span { color: #3b7ff0; }
+.entries-page .quick-add button span { color: #00bedc; }
 .entries-page .quick-add button:hover { background: #fff; border-color: rgba(20, 32, 52, .14); }
 
 .entries-page .entries { margin: 0; padding: 4px 20px 6px; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); }
