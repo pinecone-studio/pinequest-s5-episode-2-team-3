@@ -212,8 +212,8 @@ function render() {
           <p class="history-summary" id="summary" aria-live="polite"></p>
           <div id="results"></div>
         </div>
+        <footer class="history-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
       </div>
-      <footer class="history-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
     </main>
     <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
     ${Toast()}
