@@ -11,7 +11,7 @@ const LAST_TAB = 'dusal-tab';
 // A row of small cartoon waves along the bottom: one after another they rise, curl over, crash
 // with a little splash and flatten, over a rippling water surface. Played on every tab switch,
 // starting from the side the new tab comes in. Each wave is one fixed drawing that is only moved
-// and skewed (tabs.css), so the phone animates it on the GPU without redrawing every frame.
+// and skewed (tabs.css): drift, rise and lean are separate eased animations on nested elements, so the phone animates it on the GPU without redrawing every frame.
 // Three shapes and uneven sizes, gaps, timing and lean keep the row from looking stamped out.
 const SHAPES = [
   // tall curl
@@ -37,7 +37,7 @@ const WAVES = [
   [83, 21, 11, 0, 230, 940, .9],
 ] as const;
 const BREAKER = `<svg class="sea" viewBox="0 0 800 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 18 Q25 6 50 18 T100 18 T150 18 T200 18 T250 18 T300 18 T350 18 T400 18 T450 18 T500 18 T550 18 T600 18 T650 18 T700 18 T750 18 T800 18 V40 H0Z"/></svg>
-  ${WAVES.map(([left, w, h, shape, delay, dur, lean]) => `<div class="w" style="left:${left}%;--w:${w}vw;--h:${h}vh;--delay:${delay}ms;--dur:${dur}ms;--lean:${lean}"><svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">${SHAPES[shape]}</svg><i class="spray"></i><i class="spray"></i></div>`).join('')}
+  ${WAVES.map(([left, w, h, shape, delay, dur, lean]) => `<div class="w" style="left:${left}%;--w:${w}vw;--h:${h}vh;--delay:${delay}ms;--dur:${Math.round(dur * 1.3)}ms;--lean:${lean}"><div class="rise"><svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">${SHAPES[shape]}</svg><i class="spray"></i><i class="spray"></i></div></div>`).join('')}
   <svg width="0" height="0" aria-hidden="true"><defs><linearGradient id="breaker-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe3f5"/><stop offset=".55" stop-color="#2fbde0"/><stop offset="1" stop-color="#1596c4"/></linearGradient></defs></svg>`;
 
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
@@ -78,9 +78,8 @@ function crash(forward: boolean): void {
   breaker.classList.add('play', forward ? 'forward' : 'back');
 }
 // Done once the last little wave has flattened.
-// The wave that finishes last: the latest start plus duration.
-const lastWave = breaker.querySelectorAll('.w')[WAVES.reduce((best, w, i, all) => (w[4] + w[5] > all[best][4] + all[best][5] ? i : best), 0)];
-breaker.addEventListener('animationend', event => { if (event.target === lastWave) breaker.classList.remove('play'); });
+// Done once the whole row has faded out (the container's own fade is the last thing to end).
+breaker.addEventListener('animationend', event => { if (event.target === breaker) breaker.classList.remove('play'); });
 
 function go(next: number): void {
   next = Math.max(0, Math.min(TABS.length - 1, next));
