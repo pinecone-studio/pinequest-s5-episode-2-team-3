@@ -55,8 +55,10 @@
 /* One-screen calculator: numbered-feel steps, then the three suggestions as selectable cards. */
 .plan-step { margin: 16px 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--muted-2); }
 .plan-step:first-of-type { margin-top: 4px; }
+.plan-doctor .plan-step { margin-top: 16px; }
 .plan-step small { margin-left: 4px; font-weight: 500; letter-spacing: 0; text-transform: none; }
-.plan-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+/* Columns follow the visible cards: three, or two when the doctor's card is hidden. */
+.plan-options { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
 .plan-option { display: grid; justify-items: start; gap: 2px; min-height: 86px; padding: 12px; border: 1px solid #e3e7ee; border-radius: 14px; background: #f8fafc; color: var(--ink-2); text-align: left; transition: border-color .15s, background .15s, transform .12s; }
 .plan-option:hover:not(:disabled) { border-color: #c7d4ee; background: #fff; }
 .plan-option:active:not(:disabled) { transform: scale(.98); }

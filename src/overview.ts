@@ -77,13 +77,16 @@ function versusGoal(d: { ml: number; mode: 'goal' | 'limit' }): { text: string; 
 function optionCard(s: Source, p: Profile): string {
   const d = suggestion(p, s);
   const empty = aiAsking ? 'Бодож байна…' : aiReady === false ? 'Идэвхгүй' : 'Асуугаагүй';
-  return `<button type="button" class="plan-option" role="radio" aria-checked="${s === source}" data-source="${s}" ${d ? '' : 'disabled'}>
+  return `<button type="button" class="plan-option" role="radio" aria-checked="${s === source}" data-source="${s}" ${d ? '' : 'disabled'} ${s === 'doctor' && p.condition === 'none' ? 'hidden' : ''}>
     <span class="opt-name">${SOURCES[s]}</span>
     ${d ? `<span class="opt-amount" data-opt-amount="${s}">${liters(d.ml)} л</span><span class="opt-kind" data-opt-kind="${s}">${kindLabel(d.mode)}</span>` : `<span class="opt-empty">${empty}</span>`}
   </button>`;
 }
 
 function planSection(p: Profile): string {
+  // With no diagnosis there is no doctor's amount to pick, so its fields and card are hidden.
+  const noDoctor = p.condition === 'none';
+  if (noDoctor && source === 'doctor') { source = 'calc'; draft = null; }
   // Keep the user's own edits across re-renders; recompute only after a source or profile change.
   if (!draft) draft = suggestion(p, source);
   const d = draft;
@@ -113,10 +116,12 @@ function planSection(p: Profile): string {
         <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
         <label class="wide">Онош<select id="plan-condition" name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${p.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
       </div>
+      <div class="plan-doctor" ${noDoctor ? 'hidden' : ''}>
       <p class="plan-step">Эмчийн заавар <small>байвал</small></p>
       <div class="plan-fields">
         <label>Хэмжээ, мл<input id="plan-doctor" name="doctorLimit" type="number" inputmode="numeric" min="500" max="4000" value="${p.doctorLimit}"/></label>
         <label class="span2">Эмч юу гэж заасан бэ?<select id="plan-doctor-mode" name="doctorMode"><option value="goal" ${p.doctorMode === 'goal' ? 'selected' : ''}>Дор хаяж ийм хэмжээ уух</option><option value="limit" ${p.doctorMode === 'limit' ? 'selected' : ''}>Үүнээс хэтрүүлэхгүй</option></select></label>
+      </div>
       </div>
       <p class="plan-step">AI-аас асуух <small>заавал биш</small></p>
       ${aiOff ? '<p class="ai-off">AI одоогоор идэвхжээгүй байна.</p>' : `<div class="ai-row">
@@ -188,6 +193,8 @@ function bindPlan() {
     if (!validProfile(p)) { showError('Нас 4–110, жин 10–250 кг, өндөр 90–230 см, эмчийн хэмжээ 500–4,000 мл байна.'); return; }
     showError('');
     writeProfile(p);
+    // Picking or clearing a diagnosis shows or hides the doctor's part, so redraw the form.
+    if (target.id === 'plan-condition') { render(); return; }
     refreshCards(p);
     if (source !== 'ai') { draft = suggestion(p, source); show(); }
   });
