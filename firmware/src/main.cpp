@@ -9,16 +9,31 @@
 #include <Wire.h>
 #include <esp_timer.h>
 #include <sys/time.h>
+#include "button.h"
 #include "config.h"
 #include "intake.h"
 #include "payload.h"
 #include "queue.h"
 #include "screen.h"
+#include "speech.h"
 
 #if __has_include("secrets.h")
 #include "secrets.h"
 #else
 #error "Copy include/secrets.example.h to include/secrets.h and fill in Wi-Fi and the device token."
+#endif
+// Speech settings are optional so an older secrets.h still builds; without a key the base stays silent.
+#ifndef ELEVENLABS_API_KEY
+#define ELEVENLABS_API_KEY ""
+#endif
+#ifndef ELEVENLABS_VOICE_ID
+#define ELEVENLABS_VOICE_ID "JBFqnCBsd6RMkjVDRZzb"
+#endif
+#ifndef ELEVENLABS_MODEL_ID
+#define ELEVENLABS_MODEL_ID "eleven_v4"
+#endif
+#ifndef SPEECH_TEXT
+#define SPEECH_TEXT "Сайн уу! Ус уухаа бүү мартаарай."
 #endif
 
 // Calibration persists across restarts: raw = offset + grams * factor.
@@ -26,6 +41,7 @@ struct Calibration { long offset = 0; float factor = 0; bool valid() const { ret
 
 HX711 scale;
 Preferences prefs;
+dusal::ButtonGestures button(LONG_PRESS_MS);
 Calibration calibration;
 long lastRaw = 0;
 dusal::IntakeTracker tracker;
@@ -249,6 +265,12 @@ void printStatus() {
                 static_cast<unsigned long>(rejected), tracker.remainingMl());
 }
 
+// The text for three presses: set with `say <text>` (kept in flash), otherwise SPEECH_TEXT from secrets.h.
+void speakSaved() {
+  const String text = prefs.isKey("speech") ? prefs.getString("speech") : String(SPEECH_TEXT);
+  speech::say(text.c_str(), {ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID, ELEVENLABS_MODEL_ID});
+}
+
 void handleSerial() {
   if (!Serial.available()) return;
   String line = Serial.readStringUntil('\n');
@@ -258,7 +280,15 @@ void handleSerial() {
   else if (line == "raw") Serial.printf("raw=%ld\n", lastRaw);
   else if (line == "tare") tareBottle();
   else if (line == "status") printStatus();
-  else Serial.println("commands: zero | cal <grams> | raw | tare | status");
+  else if (line == "beep") speech::beep();
+  else if (line == "speak") speakSaved();
+  else if (line.startsWith("say ")) {
+    prefs.putString("speech", line.substring(4));
+    speakSaved();
+  } else if (line == "say-reset") {
+    prefs.remove("speech");
+    Serial.println("speech text back to SPEECH_TEXT");
+  } else Serial.println("commands: zero | cal <grams> | raw | tare | status | beep | speak | say <text> | say-reset");
 }
 
 void setup() {
@@ -289,17 +319,12 @@ void setup() {
 
 void loop() {
   handleSerial();
-  // Short press: tare the empty bottle. Hold LONG_PRESS_MS on an empty base: zero the scale.
-  static uint32_t pressedAt = 0;
-  const bool down = digitalRead(PIN_BUTTON) == LOW;
-  if (down && !pressedAt) pressedAt = millis();
-  if (pressedAt && down && millis() - pressedAt >= LONG_PRESS_MS) {
-    zeroScale();
-    while (digitalRead(PIN_BUTTON) == LOW) delay(10);
-    pressedAt = 0;
-  } else if (pressedAt && !down) {
-    if (millis() - pressedAt >= 50) tareBottle();
-    pressedAt = 0;
+  // Short press: tare the empty bottle. Three quick presses: speak. Hold LONG_PRESS_MS on an empty base: zero the scale.
+  switch (button.update(digitalRead(PIN_BUTTON) == LOW, millis())) {
+    case dusal::Gesture::Single: tareBottle(); break;
+    case dusal::Gesture::Triple: speakSaved(); break;
+    case dusal::Gesture::Long: zeroScale(); break;
+    default: break;
   }
 
   updateNetwork();

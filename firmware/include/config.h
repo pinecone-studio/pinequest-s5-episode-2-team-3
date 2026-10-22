@@ -8,13 +8,23 @@
 constexpr int PIN_HX711_DT = 41;
 constexpr int PIN_HX711_SCK = 42;
 constexpr bool HAS_OLED = false;
+// Its speaker amplifier (the "+ −" connector) takes I2S on these pins.
+constexpr bool HAS_SPEAKER = true;
+constexpr int PIN_SPK_DOUT = 7;
+constexpr int PIN_SPK_BCLK = 15;
+constexpr int PIN_SPK_LRCK = 16;
 #else
 constexpr int PIN_HX711_DT = 4;
 constexpr int PIN_HX711_SCK = 5;
 constexpr bool HAS_OLED = true;
+constexpr bool HAS_SPEAKER = false;
+constexpr int PIN_SPK_DOUT = -1;
+constexpr int PIN_SPK_BCLK = -1;
+constexpr int PIN_SPK_LRCK = -1;
 #endif
+constexpr float SPEAKER_VOLUME = 0.6f;  // 0..1; full scale distorts on small speakers
 // The BOOT button exists on every ESP32-S3 board. Short press: "this empty bottle is the new bottle".
-// Hold 5 s with nothing on the base: set the scale's zero.
+// Three quick presses: speak the saved text (boards with a speaker). Hold 5 s with nothing on the base: set the scale's zero.
 constexpr int PIN_BUTTON = 0;
 // SSD1306 128x64 OLED on I2C. Most modules answer at 0x3C, some at 0x3D.
 constexpr int PIN_OLED_SDA = 8;

@@ -15,3 +15,10 @@ constexpr const char* API_BASE_URL = "https://dusal-api.bbek3201.workers.dev";
 // PEM root certificate of the API host. Empty skips certificate checks (prototype only:
 // anyone on the network could then read the device token).
 constexpr const char* API_ROOT_CA = "";
+
+// Optional: three quick presses of BOOT read a text aloud (boards with a speaker, e.g. XH-S3E-AI).
+// Key from elevenlabs.io → Developers → API Keys. Leave the key empty to keep the base silent.
+#define ELEVENLABS_API_KEY ""
+#define ELEVENLABS_VOICE_ID "JBFqnCBsd6RMkjVDRZzb"  // any voice from the ElevenLabs voice library
+#define ELEVENLABS_MODEL_ID "eleven_v4"             // speaks Mongolian
+#define SPEECH_TEXT "Сайн уу! Ус уухаа бүү мартаарай."  // or set it over serial: say <text>
