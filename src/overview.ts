@@ -10,6 +10,7 @@ import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProf
 import { askAi, checkAi } from './api';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, scheduleChip, startReminders } from './schedule';
+import { startAppIcon } from './app-icon';
 import { dateLabel, escape, number } from './format';
 import { brandMark, mdIcon } from './components/Icon';
 
@@ -337,6 +338,7 @@ setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 6
 void reload().then(() => {
   render();
   startReminders(() => state);
+  startAppIcon(() => state);
   // First visit: ask a few questions and start with the computed daily amount.
   if (needsOnboarding()) showOnboarding(async plan => {
     const result = await save({ ...state, goal: plan.ml, mode: plan.mode });
