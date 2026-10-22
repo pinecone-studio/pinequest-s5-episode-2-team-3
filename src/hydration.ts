@@ -2,6 +2,7 @@ import './hydration.css';
 import { number } from './format';
 import { dayKey, type WaterEntry } from './data';
 import { AVATARS, avatarSvg, openAvatarPicker, readAvatar } from './avatars';
+import { icon } from './components/Icon';
 
 // Home: a bottle buddy that fills toward the daily goal, a row of cups that add on a tap, and «Өөр» to swipe any amount.
 // Tapping the button sends a drop into the bottle before the entry is saved.
@@ -29,7 +30,8 @@ const CUPS = [
   { ml: 500, icon: ICONS.bottle },
   { ml: 750, icon: ICONS.jug },
 ] as const;
-// Cups add on a tap. The last item, «Өөр», opens the amount you swipe up or down instead.
+// Cups add on a tap. The last item, «Өөр», opens the amount you swipe up or down instead, in a panel
+// pinned above the tab bar so it is on screen however far down the cups sit.
 let pourOpen = false;
 // The amount to add, remembered between renders and across visits: the last amount poured.
 const LAST_KEY = 'dusal-last-pour-v1';
@@ -196,7 +198,8 @@ export function drinkTiles(): string {
         <svg viewBox="0 0 24 24" aria-hidden="true">${c.icon}</svg><span>${c.ml}</span></button>`).join('')}
       <button type="button" class="cup custom${pourOpen ? ' on' : ''}" id="pour-toggle" aria-expanded="${pourOpen}" aria-controls="pour-panel" aria-label="Өөр хэмжээ шударч оруулах">
         <span class="custom-icon" aria-hidden="true">↕</span><span>Өөр</span></button></div>
-    <div class="pour-panel" id="pour-panel" ${pourOpen ? '' : 'hidden'}><div class="big-add" id="big-add" data-drink="${cup}" role="slider" tabindex="0" aria-valuemin="${POUR_MIN}" aria-valuemax="${POUR_MAX}" aria-valuenow="${cup}" aria-valuetext="${number(cup)} мл" aria-label="Нэмэх хэмжээ. Дээш доош шударч өөрчилнө, тавихад нэмэгдэнэ (Enter)">
+    <div class="pour-panel" id="pour-panel" role="dialog" aria-label="Өөр хэмжээ нэмэх" ${pourOpen ? '' : 'hidden'}>
+      <button type="button" class="pour-close" id="pour-close" aria-label="Хаах">${icon('close')}</button><div class="big-add" id="big-add" data-drink="${cup}" role="slider" tabindex="0" aria-valuemin="${POUR_MIN}" aria-valuemax="${POUR_MAX}" aria-valuenow="${cup}" aria-valuetext="${number(cup)} мл" aria-label="Нэмэх хэмжээ. Дээш доош шударч өөрчилнө, тавихад нэмэгдэнэ (Enter)">
       <span class="pour-arrow up" aria-hidden="true">▲</span>
       <span class="swipe-amount">+<b id="big-add-ml">${number(cup)}</b> мл</span>
       <span class="pour-arrow down" aria-hidden="true">▼</span>
@@ -237,6 +240,8 @@ export function bindHydration(drink: number, add: (ml: number) => unknown, redra
         return;
       }
       swiped = false;
+      // The panel closes once its amount is added, so the undo line under the cups is not hidden.
+      if (button.id === 'big-add') pourOpen = false;
       const ml = Number(button.dataset.drink);
       if (reducedMotion()) { add(ml); return; }
       button.classList.remove('tapped');
@@ -252,13 +257,17 @@ function bindCups(): void {
   const toggle = document.querySelector<HTMLButtonElement>('#pour-toggle');
   const panel = document.querySelector<HTMLElement>('#pour-panel');
   if (!toggle || !panel) return;
-  toggle.addEventListener('click', () => {
-    pourOpen = !pourOpen;
-    panel.hidden = !pourOpen;
-    toggle.classList.toggle('on', pourOpen);
-    toggle.setAttribute('aria-expanded', String(pourOpen));
-    if (pourOpen) panel.querySelector<HTMLElement>('#big-add')?.focus({ preventScroll: true });
-  });
+  const setOpen = (open: boolean) => {
+    pourOpen = open;
+    panel.hidden = !open;
+    toggle.classList.toggle('on', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open) panel.querySelector<HTMLElement>('#big-add')?.focus({ preventScroll: true });
+    else toggle.focus({ preventScroll: true });
+  };
+  toggle.addEventListener('click', () => setOpen(!pourOpen));
+  panel.querySelector('#pour-close')!.addEventListener('click', () => setOpen(false));
+  panel.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
   // Keep the «Өөр» item in view when it is open.
   if (pourOpen) toggle.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
