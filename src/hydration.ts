@@ -126,20 +126,23 @@ export function streakParts(events: readonly WaterEntry[], goal: number, mode: M
   const streak = currentStreak(counts);
   const chip = `<button type="button" class="streak${streak ? ' hot' : ''}" data-calendar aria-label="${streak} өдөр дараалан, календарь нээх"><span aria-hidden="true">${mdIcon('local_fire_department')}</span>${streak}</button>`;
   const week = `<div class="week-wrap"><ol class="week-strip" aria-label="Өдрүүд, хажуу тийш гүйлгэнэ">${stripDays(events).map(back => {
-    const d = daysBack(back), k = dayKey(d), m = mood(k);
+    const d = daysBack(back), k = dayKey(d);
+    if (back < 0) return `<li class="future"><button type="button" disabled aria-label="${dayTitle(d)}"><span class="wd">${WEEKDAYS[d.getDay()]}</span><span class="mark"></span></button></li>`;
+    const m = mood(k);
     return `<li class="m-${m ?? 'none'}${back === 0 ? ' today' : ' past'}"><button type="button" data-day="${k}" aria-label="${dayTitle(d)}, задаргаа харах"><span class="wd">${back > 6 ? `${d.getMonth() + 1}/${d.getDate()}` : WEEKDAYS[d.getDay()]}</span><span class="mark">${m ? dropFace(m) : ''}</span></button></li>`;
   }).join('')}</ol><button type="button" class="text-button cal-open" data-calendar>Сарын календарь →</button></div>`;
   return { chip, week };
 }
 
 // The strip under the cups swipes back through every day since the first entry (at most 90 days,
-// at least a week); this week shows weekday names, older days their date. It opens on today.
-const STRIP_MAX = 90;
+// at least a week); this week shows weekday names, older days their date. The next three days
+// follow today, so it opens with today in the middle.
+const STRIP_MAX = 90, STRIP_AHEAD = 3;
 function stripDays(events: readonly WaterEntry[]): number[] {
   const first = events.reduce((min, e) => Math.min(min, Date.parse(e.at)), Date.now());
   const since = Math.round((noon(new Date()).getTime() - noon(new Date(first)).getTime()) / 864e5);
-  const count = Math.min(STRIP_MAX, Math.max(7, since + 1));
-  return Array.from({ length: count }, (_, i) => count - 1 - i);
+  const count = Math.min(STRIP_MAX, Math.max(7 - STRIP_AHEAD, since + 1));
+  return Array.from({ length: count + STRIP_AHEAD }, (_, i) => count - 1 - i);
 }
 const dayTitle = (d: Date) => `${d.getMonth() + 1}-р сарын ${d.getDate()}, ${WEEKDAYS[d.getDay()]}`;
 
