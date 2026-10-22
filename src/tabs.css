@@ -5,6 +5,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
 .tabs-track.animate { transition: transform .38s cubic-bezier(.22, .9, .28, 1); }
 .tabs-track iframe { flex: 1 1 0; min-width: 0; height: 100%; border: 0; background: transparent; }
 
+/* Water running down the seam between tabs while the strip moves (tabs.ts). */
+.tabs-track { position: relative; --flow: 0; }
+.seam { position: absolute; top: 0; bottom: 0; z-index: 2; width: 40px; margin-left: -20px; overflow: hidden; pointer-events: none; opacity: var(--flow); transition: opacity var(--fade, .35s) ease-out; }
+.seam svg { position: absolute; left: 0; top: 0; width: 100%; height: 200%; animation: seam-flow 1.4s linear infinite; }
+.seam .foam { fill: none; stroke: rgba(255, 255, 255, .9); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.seam .foam.thin { stroke: rgba(255, 255, 255, .55); stroke-width: 1; }
+@keyframes seam-flow { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+
 /* Same look as the home page's floating bar; a soft pill slides under the active tab. */
 .tabs-bar { --i: 0; position: fixed; z-index: 10; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; width: min(428px, calc(100% - 32px)); padding: 6px 8px; border: 1px solid rgba(20, 32, 52, .07); border-radius: 22px; background: rgba(255, 255, 255, .94); box-shadow: 0 12px 30px rgba(40, 60, 90, .16); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
 .tabs-bar::before { content: ""; position: absolute; top: 6px; bottom: 6px; left: 8px; width: calc((100% - 16px) / 3); border-radius: 16px; background: rgba(0, 190, 220, .1); transform: translateX(calc(var(--i) * 100%)); transition: transform .38s cubic-bezier(.22, .9, .28, 1); }
@@ -20,6 +28,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
 @keyframes tabs-lap { 0% { opacity: 0; transform: translateY(100%); } 40% { opacity: 1; transform: translateY(0) translateX(-1.5%); } 100% { opacity: 0; transform: translateY(60%) translateX(1.5%); } }
 
 @media (prefers-reduced-motion: reduce) {
+  .seam { display: none; }
   .tabs-track.animate, .tabs-bar::before, .tabs-bar a, .tabs-bar .nav-icon { transition: none; }
   .tabs-wave { display: none; }
 }

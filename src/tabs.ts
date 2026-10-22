@@ -8,12 +8,22 @@ const KEYS = ['home', 'history', 'settings'] as const;
 const LABELS = ['Нүүр', 'Түүх', 'Тохиргоо'];
 const LAST_TAB = 'dusal-tab';
 
+// A thin stream of water running down the edge between two tabs; it shows while the strip moves,
+// so the water appears on the side the next tab is coming from. The path is twice the screen tall
+// and slides by one wave length, so the flow loops seamlessly.
+const SEAM = (() => {
+  // One wave every 250 units: the 1000-unit slide is exactly four waves, so there is no jump.
+  const wave = (x: number, amp: number) => Array.from({ length: 81 }, (_, k) => `${k ? 'L' : 'M'}${(x + Math.sin((k * Math.PI) / 5) * amp).toFixed(1)} ${k * 25}`).join(' ');
+  return `<svg viewBox="0 0 40 2000" preserveAspectRatio="none"><defs><linearGradient id="seam-water" x1="0" x2="1"><stop offset="0" stop-color="#7fe0f2" stop-opacity="0"/><stop offset=".5" stop-color="#3cc9e6" stop-opacity=".55"/><stop offset="1" stop-color="#7fe0f2" stop-opacity="0"/></linearGradient></defs>
+    <rect class="body" x="0" y="0" width="40" height="2000" fill="url(#seam-water)"/><path class="foam" d="${wave(20, 6)}"/><path class="foam thin" d="${wave(12, 4)}"/></svg>`;
+})();
+
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
 let index = 0;
 try { index = Math.min(TABS.length - 1, Math.max(0, Number(sessionStorage.getItem(LAST_TAB)) || 0)); } catch { /* first tab */ }
 
 root.innerHTML = `
-  <div class="tabs-track">${TABS.map((tab, i) => `<iframe title="${LABELS[i]}" data-src="${tab}?embed=1"></iframe>`).join('')}</div>
+  <div class="tabs-track">${TABS.map((tab, i) => `<iframe title="${LABELS[i]}" data-src="${tab}?embed=1"></iframe>`).join('')}${TABS.slice(1).map((_, i) => `<div class="seam" style="left:${((i + 1) / TABS.length) * 100}%" aria-hidden="true">${SEAM}</div>`).join('')}</div>
   <svg class="tabs-wave" viewBox="0 0 400 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0 14 Q25 4 50 14 T100 14 T150 14 T200 14 T250 14 T300 14 T350 14 T400 14 V24 H0Z"/></svg>
   <nav class="tabs-bar" aria-label="Хэсгүүд" style="--i:${index}">
     ${TABS.map((tab, i) => `<a href="${tab}" data-tab="${i}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">${NAV_ICONS[KEYS[i]]}</svg><span>${LABELS[i]}</span></a>`).join('')}
@@ -26,10 +36,19 @@ const frames = [...track.querySelectorAll<HTMLIFrameElement>('iframe')];
 const width = () => track.clientWidth / TABS.length;
 const load = (i: number) => { if (!frames[i].src) frames[i].src = frames[i].dataset.src!; };
 
+// Water strength and how fast it changes: instant while following a finger, quick to appear, slow to fade.
+function setFlow(flow: number, seconds: number): void {
+  track.style.setProperty('--fade', `${seconds}s`);
+  track.style.setProperty('--flow', String(flow));
+}
+
 function place(dx = 0, animate = false): void {
   track.classList.toggle('animate', animate);
   track.style.transform = `translateX(${-index * width() + dx}px)`;
+  // Water shows in proportion to the drag; while gliding it keeps its strength and fades at the end.
+  if (!animate) setFlow(Math.min(1, Math.abs(dx) / 120), 0);
 }
+track.addEventListener('transitionend', event => { if (event.target === track && event.propertyName === 'transform') setFlow(0, 0.4); });
 
 function mark(): void {
   bar.style.setProperty('--i', String(index));
@@ -43,6 +62,7 @@ function go(next: number): void {
   const moved = next !== index;
   index = next;
   load(index);
+  if (moved) setFlow(1, 0.12);
   place(0, true);
   mark();
   if (moved && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
