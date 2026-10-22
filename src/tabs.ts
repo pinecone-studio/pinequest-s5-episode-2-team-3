@@ -10,15 +10,14 @@ const LAST_TAB = 'dusal-tab';
 
 // A row of small cartoon waves along the bottom: one after another they rise, curl over, crash
 // with a little splash and flatten, over a rippling water surface. Played on every tab switch,
-// starting from the side the new tab comes in. Shapes are keyframes in tabs.css (CSS `d`
-// animation); every frame uses the same commands so the browser can morph them.
-const WAVES = [[-6, .8], [11, 1], [28, .7], [45, .95], [62, .75], [79, 1], [96, .8]] as const;
-const SPRAY = [[262, 140, 1], [290, 120, .8], [312, 150, .75], [330, 182, .9]] as const;
+// starting from the side the new tab comes in. Each wave is one fixed drawing that is only scaled,
+// skewed and moved (tabs.css), so the phone animates it on the GPU without redrawing every frame.
+const WAVES = [[-4, .85], [18, 1], [40, .8], [62, .95], [84, .85]] as const;
+const WAVE = `<path class="breaker-body" fill="url(#breaker-water)" d="M0 300 C60 296 130 230 160 150 C185 70 250 40 300 70 C335 92 330 140 290 150 C265 156 262 130 280 120 C250 140 270 230 400 296 L400 300 Z"/>
+  <path class="breaker-shade" d="M190 210 C205 150 240 110 280 120 C255 140 265 210 330 270 C280 265 220 250 190 210 Z"/>
+  <path class="breaker-foam" d="M150 175 C175 90 240 45 295 72 C325 88 322 128 292 138"/>`;
 const BREAKER = `<svg class="sea" viewBox="0 0 800 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 18 Q25 6 50 18 T100 18 T150 18 T200 18 T250 18 T300 18 T350 18 T400 18 T450 18 T500 18 T550 18 T600 18 T650 18 T700 18 T750 18 T800 18 V40 H0Z"/></svg>
-  ${WAVES.map(([left, size], i) => `<svg class="w" viewBox="0 0 400 300" preserveAspectRatio="none" style="--i:${i};--s:${size};left:${left}%" aria-hidden="true">
-    <path class="breaker-body" fill="url(#breaker-water)"/><path class="breaker-shade"/><path class="breaker-foam"/>
-    <g class="breaker-spray">${SPRAY.map(([x, y, r], k) => `<circle cx="${x}" cy="${y}" r="${(16 * r).toFixed(1)}" style="--k:${k}"/>`).join('')}</g>
-  </svg>`).join('')}
+  ${WAVES.map(([left, size], i) => `<div class="w" style="--i:${i};--s:${size};left:${left}%"><svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">${WAVE}</svg><i class="spray"></i><i class="spray"></i></div>`).join('')}
   <svg width="0" height="0" aria-hidden="true"><defs><linearGradient id="breaker-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe3f5"/><stop offset=".55" stop-color="#2fbde0"/><stop offset="1" stop-color="#1596c4"/></linearGradient></defs></svg>`;
 
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
@@ -59,7 +58,7 @@ function crash(forward: boolean): void {
   breaker.classList.add('play', forward ? 'forward' : 'back');
 }
 // Done once the last little wave has flattened.
-const lastWave = [...breaker.querySelectorAll('.w .breaker-body')].pop();
+const lastWave = [...breaker.querySelectorAll('.w')].pop();
 breaker.addEventListener('animationend', event => { if (event.target === lastWave) breaker.classList.remove('play'); });
 
 function go(next: number): void {
@@ -105,3 +104,6 @@ place();
 mark();
 // The other tabs load quietly once the first one is up, so the first switch is instant too.
 frames[index].addEventListener('load', () => setTimeout(() => TABS.forEach((_, i) => load(i)), 300), { once: true });
+// Draw the waves once, invisibly, so the first switch does not pay for rasterising them.
+breaker.classList.add('warm');
+requestAnimationFrame(() => requestAnimationFrame(() => breaker.classList.remove('warm')));
