@@ -15,12 +15,12 @@
 .buddy.done .buddy-pct { color: #2f80ed; }
 .buddy.near .buddy-pct { color: #9a6a00; }
 .buddy.over .buddy-pct { color: #ad4239; }
-.buddy-glass { fill: #f3f8fd; }
+.buddy-glass { fill: #e3f8fb; }
 .buddy-outline { fill: none; stroke: #2a3443; stroke-width: 4; stroke-linejoin: round; }
-.buddy-cap { fill: #2a3443; }
+.buddy-cap { fill: #00bedc; }
 .buddy-trim { fill: none; stroke: #e0613a; stroke-width: 4; stroke-dasharray: 10 6; }
 .buddy-shine-ln { fill: none; stroke: #fff; stroke-width: 7; stroke-linecap: round; opacity: .75; }
-.buddy-ear { fill: #f3f8fd; stroke: #2a3443; stroke-width: 4; stroke-linejoin: round; }
+.buddy-ear { fill: #e3f8fb; stroke: #2a3443; stroke-width: 4; stroke-linejoin: round; }
 .buddy-ear-in { fill: #ffc2d6; }
 .buddy-whisker { fill: none; stroke: #2a3443; stroke-width: 2.5; stroke-linecap: round; }
 .buddy-snout { fill: rgba(255, 255, 255, .7); stroke: #2a3443; stroke-width: 2.5; }
