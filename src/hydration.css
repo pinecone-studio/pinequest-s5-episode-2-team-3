@@ -72,7 +72,9 @@
 .goal-pill[aria-expanded="true"]::after { transform: translateY(1px) rotate(-135deg); }
 
 /* Adding: tap a cup to add it; «Өөр» at the end opens an amount you swipe up or down. */
-.cups { position: relative; display: flex; gap: 10px; width: 100%; overflow-x: auto; scroll-snap-type: x proximity; padding: 6px 6px 10px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+/* Runs edge to edge of the card (margin cancels .hydro's padding) so both ends fade the same way
+   and the cups' shadows are never cut off. */
+.cups { --edge: 20px; position: relative; display: flex; gap: 10px; width: calc(100% + 2 * var(--edge)); margin: 0 calc(-1 * var(--edge)); overflow-x: auto; scroll-snap-type: x proximity; scroll-padding: 0 var(--edge); padding: 6px var(--edge) 10px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--edge), #000 calc(100% - 2 * var(--edge)), transparent); mask-image: linear-gradient(90deg, transparent, #000 var(--edge), #000 calc(100% - 2 * var(--edge)), transparent); }
 .cups::-webkit-scrollbar { display: none; }
 .cup { flex: 0 0 64px; scroll-snap-align: start; display: grid; justify-items: center; align-content: center; gap: 1px; height: 64px; border: 0; border-radius: 50%; background: #fff; color: #8a95a6; box-shadow: 0 4px 14px rgba(40, 70, 110, .1); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; transition: transform .2s, color .2s, box-shadow .2s; }
 .cup svg { width: 20px; height: 20px; fill: currentColor; }
@@ -230,6 +232,7 @@
 }
 @media (max-width: 560px) {
   .hydro { padding: 16px 16px 22px; gap: 14px; }
+  .cups { --edge: 16px; }
   .hydro-title { font-size: 20px; }
 }
 
