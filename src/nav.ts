@@ -13,37 +13,39 @@ export function siteNav(current?: Page): string {
   return `<nav class="site-nav" aria-label="Хэсгүүд">${link('/', 'Нүүр', 'home')}${link('/history.html', 'Түүх', 'history')}${link('/settings.html', 'Тохиргоо', 'settings')}</nav>`;
 }
 
-// Page-to-page slide. Pages are separate documents, so the old one slides out before the link is
-// followed and the new one slides in when it first renders; the header and tab bar stay put.
-// Going right in the tab order slides left, going back slides right.
+// Page-to-page slide with the browser's cross-document View Transitions (shell.css): the old page
+// stays on screen until the new one has drawn, then content slides; the header and tab bar stay put.
+// Going right in the tab order slides left, going back slides right. Browsers without support just switch.
 const ORDER = ['/', '/history', '/settings'];
 const DIR_KEY = 'dusal-page-dir';
 const rank = (path: string) => {
   const i = ORDER.indexOf(path.replace(/\.html$/, '').replace(/\/index$/, '/'));
   return i < 0 ? 1 : i;
 };
-const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-document.addEventListener('click', event => {
-  const link = (event.target as Element).closest?.('a[href]') as HTMLAnchorElement | null;
-  if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  if (link.target || link.hasAttribute('download') || link.origin !== location.origin || link.pathname === location.pathname || still()) return;
-  event.preventDefault();
-  const dir = rank(link.pathname) >= rank(location.pathname) ? 'forward' : 'back';
-  try { sessionStorage.setItem(DIR_KEY, dir); } catch { /* the new page just appears */ }
-  document.documentElement.classList.add(`page-leave-${dir}`);
-  setTimeout(() => { location.href = link.href; }, 170);
+// Leaving: note the direction for the next page (the outgoing page knows both ends).
+window.addEventListener('pageswap', (event: Event) => {
+  const to = (event as Event & { activation?: { entry?: { url?: string } } }).activation?.entry?.url;
+  if (!to) return;
+  try { sessionStorage.setItem(DIR_KEY, rank(new URL(to).pathname) >= rank(location.pathname) ? 'forward' : 'back'); } catch { /* plain fade */ }
 });
+// Arriving: mark the direction before the transition animates.
+try {
+  const dir = sessionStorage.getItem(DIR_KEY);
+  sessionStorage.removeItem(DIR_KEY);
+  if (dir) document.documentElement.dataset.nav = dir;
+} catch { /* plain fade */ }
 
-(() => {
-  let dir: string | null = null;
-  try { dir = sessionStorage.getItem(DIR_KEY); sessionStorage.removeItem(DIR_KEY); } catch { /* no slide */ }
-  if (!dir || still()) return;
-  const root = document.documentElement;
-  root.classList.add(`page-enter-${dir}`);
-  setTimeout(() => root.classList.remove(`page-enter-${dir}`), 600);
-})();
-// Coming back through the browser's back/forward cache shows the page as it was left.
-window.addEventListener('pageshow', event => {
-  if (event.persisted) document.documentElement.classList.remove('page-leave-forward', 'page-leave-back');
-});
+// The browser drops the slide when the next page still has to download its scripts and styles
+// (first visit to a tab). Once this page is idle, fetch the other tabs' files so the cache has them.
+const warm = () => {
+  const pages = ['/', '/history.html', '/settings.html'].filter(page => rank(page) !== rank(location.pathname));
+  pages.forEach(page => {
+    fetch(page).then(r => r.text()).then(html => {
+      const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map(match => match[1]);
+      assets.forEach(asset => { fetch(asset).catch(() => {}); });
+    }).catch(() => {});
+  });
+};
+if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 3000 });
+else setTimeout(warm, 1500);
