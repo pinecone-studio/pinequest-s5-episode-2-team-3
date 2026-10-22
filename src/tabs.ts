@@ -8,16 +8,19 @@ const KEYS = ['home', 'history', 'settings'] as const;
 const LABELS = ['Нүүр', 'Түүх', 'Тохиргоо'];
 const LAST_TAB = 'dusal-tab';
 
-// A thin stream of water running down the edge between two tabs; it shows while the strip moves,
-// so the water appears on the side the next tab is coming from. The path is twice the screen tall
-// and slides by one wave length, so the flow loops seamlessly.
+// A stream of water running down the edge between two tabs; it shows while the strip moves, so the
+// water appears on the side the next tab is coming from. Soft wavy banks, gliding highlights and a
+// few bubbles make it read as water. The shape is twice the screen tall and slides by whole waves,
+// so the flow loops without a jump.
 const SEAM = (() => {
-  // One wave every 250 units: the 1000-unit slide is exactly four waves, so there is no jump.
-  const wave = (x: number, amp: number) => Array.from({ length: 81 }, (_, k) => `${k ? 'L' : 'M'}${(x + Math.sin((k * Math.PI) / 5) * amp).toFixed(1)} ${k * 25}`).join(' ');
-  // Droplets spray out to both sides at different heights and moments.
-  const drops = Array.from({ length: 10 }, (_, i) => `<i class="drop" style="--y:${8 + i * 9}%;--x:${(i % 2 ? 1 : -1) * (26 + (i * 7) % 22)}px;--d:${(i * 0.13).toFixed(2)}s;--s:${(0.6 + (i % 3) * 0.25).toFixed(2)}"></i>`).join('');
-  return `<div class="stream"><svg viewBox="0 0 40 2000" preserveAspectRatio="none"><defs><linearGradient id="seam-water" x1="0" x2="1"><stop offset="0" stop-color="#8be6f5" stop-opacity="0"/><stop offset=".3" stop-color="#3ccbe8" stop-opacity=".75"/><stop offset=".5" stop-color="#12b3d8" stop-opacity=".9"/><stop offset=".7" stop-color="#3ccbe8" stop-opacity=".75"/><stop offset="1" stop-color="#8be6f5" stop-opacity="0"/></linearGradient></defs>
-    <rect x="0" y="0" width="40" height="2000" fill="url(#seam-water)"/><path class="foam" d="${wave(20, 7)}"/><path class="foam thin" d="${wave(11, 5)}"/><path class="foam thin" d="${wave(29, 5)}"/></svg></div>${drops}`;
+  // One wave every 250 units; the 1000-unit slide is exactly four waves.
+  const bank = (x: number, amp: number, phase: number) => Array.from({ length: 201 }, (_, k) => [x + Math.sin((k * Math.PI) / 12.5 + phase) * amp, k * 10] as const);
+  const left = bank(9, 4, 0), right = bank(31, 4, Math.PI * 0.6).reverse();
+  const body = `M${[...left, ...right].map(([x, y]) => `${x.toFixed(1)} ${y}`).join(' L')} Z`;
+  const line = (x: number, amp: number, phase: number) => `M${bank(x, amp, phase).map(([px, y]) => `${px.toFixed(1)} ${y}`).join(' L')}`;
+  const bubbles = Array.from({ length: 7 }, (_, i) => `<i class="bubble" style="--x:${30 + ((i * 37) % 40)}%;--d:${(i * 0.37).toFixed(2)}s;--s:${(0.55 + (i % 3) * 0.25).toFixed(2)}"></i>`).join('');
+  return `<div class="stream"><svg viewBox="0 0 40 2000" preserveAspectRatio="none"><defs><linearGradient id="seam-water" x1="0" x2="1"><stop offset="0" stop-color="#a8e9f6" stop-opacity=".75"/><stop offset=".5" stop-color="#29bfe0" stop-opacity=".85"/><stop offset="1" stop-color="#a8e9f6" stop-opacity=".75"/></linearGradient></defs>
+    <path class="body" d="${body}" fill="url(#seam-water)"/><path class="shine" d="${line(17, 3, 0.8)}"/><path class="shine soft" d="${line(24, 3, 2.1)}"/></svg>${bubbles}</div>`;
 })();
 
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
