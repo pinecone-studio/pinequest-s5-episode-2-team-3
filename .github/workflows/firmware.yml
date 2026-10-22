@@ -28,4 +28,4 @@ jobs:
         # The real secrets.h is git-ignored; the template is enough to compile. Nothing is uploaded.
         run: |
           cp firmware/include/secrets.example.h firmware/include/secrets.h
-          pio run -d firmware
+          pio run -d firmware -e esp32s3 -e xh-s3e-ai
