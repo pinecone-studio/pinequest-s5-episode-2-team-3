@@ -12,3 +12,38 @@ export function siteNav(current?: Page): string {
     `<a href="${href}"${current === key ? ' aria-current="page"' : ''}><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">${ICONS[key]}</svg><span>${label}</span></a>`;
   return `<nav class="site-nav" aria-label="Хэсгүүд">${link('/', 'Нүүр', 'home')}${link('/history.html', 'Түүх', 'history')}${link('/settings.html', 'Тохиргоо', 'settings')}</nav>`;
 }
+
+// Page-to-page slide. Pages are separate documents, so the old one slides out before the link is
+// followed and the new one slides in when it first renders; the header and tab bar stay put.
+// Going right in the tab order slides left, going back slides right.
+const ORDER = ['/', '/history', '/settings'];
+const DIR_KEY = 'dusal-page-dir';
+const rank = (path: string) => {
+  const i = ORDER.indexOf(path.replace(/\.html$/, '').replace(/\/index$/, '/'));
+  return i < 0 ? 1 : i;
+};
+const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+document.addEventListener('click', event => {
+  const link = (event.target as Element).closest?.('a[href]') as HTMLAnchorElement | null;
+  if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  if (link.target || link.hasAttribute('download') || link.origin !== location.origin || link.pathname === location.pathname || still()) return;
+  event.preventDefault();
+  const dir = rank(link.pathname) >= rank(location.pathname) ? 'forward' : 'back';
+  try { sessionStorage.setItem(DIR_KEY, dir); } catch { /* the new page just appears */ }
+  document.documentElement.classList.add(`page-leave-${dir}`);
+  setTimeout(() => { location.href = link.href; }, 170);
+});
+
+(() => {
+  let dir: string | null = null;
+  try { dir = sessionStorage.getItem(DIR_KEY); sessionStorage.removeItem(DIR_KEY); } catch { /* no slide */ }
+  if (!dir || still()) return;
+  const root = document.documentElement;
+  root.classList.add(`page-enter-${dir}`);
+  setTimeout(() => root.classList.remove(`page-enter-${dir}`), 600);
+})();
+// Coming back through the browser's back/forward cache shows the page as it was left.
+window.addEventListener('pageshow', event => {
+  if (event.persisted) document.documentElement.classList.remove('page-leave-forward', 'page-leave-back');
+});

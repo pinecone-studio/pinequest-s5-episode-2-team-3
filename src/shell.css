@@ -92,3 +92,20 @@ main.home > .app-shell { flex: 1 0 auto; display: flex; flex-direction: column; 
 .md-gold { color: #d99a00; }
 .md-ok { color: #1f9d55; }
 .md-warn { color: #d97706; }
+
+/* Page slide (nav.ts): content moves, the header and tab bar stay where they are. */
+:is(html.page-enter-forward, html.page-enter-back, html.page-leave-forward, html.page-leave-back) :is(.app-shell > :not(.app-top), main.home > :not(.app-shell)) { animation-fill-mode: both; }
+html.page-enter-forward :is(.app-shell > :not(.app-top), main.home > :not(.app-shell)) { animation: page-in-right .34s cubic-bezier(.2, .8, .25, 1) both; }
+html.page-enter-back :is(.app-shell > :not(.app-top), main.home > :not(.app-shell)) { animation: page-in-left .34s cubic-bezier(.2, .8, .25, 1) both; }
+html.page-leave-forward :is(.app-shell > :not(.app-top), main.home > :not(.app-shell)) { animation: page-out-left .17s ease-in both; }
+html.page-leave-back :is(.app-shell > :not(.app-top), main.home > :not(.app-shell)) { animation: page-out-right .17s ease-in both; }
+@keyframes page-in-right { from { opacity: 0; transform: translateX(36px); } }
+@keyframes page-in-left { from { opacity: 0; transform: translateX(-36px); } }
+@keyframes page-out-left { to { opacity: 0; transform: translateX(-28px); } }
+@keyframes page-out-right { to { opacity: 0; transform: translateX(28px); } }
+/* The active tab's icon gives a small hop on arrival. */
+html:is(.page-enter-forward, .page-enter-back) .site-nav a[aria-current="page"] .nav-icon { animation: tab-hop .4s .1s ease-out; }
+@keyframes tab-hop { 40% { transform: translateY(-4px) scale(1.12); } }
+@media (prefers-reduced-motion: reduce) {
+  html :is(.app-shell > :not(.app-top), main.home > :not(.app-shell)), .site-nav .nav-icon { animation: none !important; }
+}
