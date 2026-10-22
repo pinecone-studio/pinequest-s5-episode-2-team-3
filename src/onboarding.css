@@ -11,11 +11,11 @@
 .onb-body { display: grid; justify-items: center; gap: 14px; text-align: center; }
 .onb-body h2 { margin: 0; font-size: 26px; letter-spacing: -.6px; color: #1f2733; text-wrap: balance; }
 .onb-body > p { margin: 0; font-size: 16px; color: #5f6877; max-width: 32ch; }
-.onb-big { font-size: 56px !important; line-height: 1; }
+.onb-big { font-size: 56px !important; line-height: 1; color: #2f80ed; }
 .onb-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
 .onb-list { display: grid; gap: 8px; width: 100%; }
 .onb-choice { display: grid; justify-items: center; gap: 6px; min-height: 110px; padding: 14px; border: 2px solid #e3e8ef; border-radius: 20px; background: #fff; color: #1f2733; font-size: 17px; font-weight: 600; transition: border-color .15s, transform .15s; }
-.onb-choice span { font-size: 40px; }
+.onb-choice span { font-size: 40px; color: #2f80ed; }
 .onb-choice.wide { min-height: 52px; justify-items: start; padding: 12px 16px; font-size: 16px; }
 .onb-choice.act { grid-template-columns: 40px 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 0; text-align: left; }
 .onb-choice.act span { grid-row: 1 / 3; font-size: 28px; align-self: center; }

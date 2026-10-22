@@ -1,5 +1,6 @@
 import './onboarding.css';
 import { number } from './format';
+import { mdIcon } from './components/Icon';
 import { ACTIVITIES, CONDITIONS, PROFILE_KEY, calcPlan, readProfile, writeProfile, type Activity, type Condition, type Plan, type Profile } from './plan';
 
 // First visit: a few one-question screens (sex, age, weight and height, activity, condition),
@@ -16,7 +17,7 @@ type Sex = 'male' | 'female';
 const FOR_ALL: Condition[] = ['none', 'stones', 'kidney', 'heart'];
 const FOR_WOMEN: Condition[] = ['pregnant', 'breastfeeding'];
 const STEPS = 7;
-const ACTIVITY_ICONS: Record<Activity, string> = { low: '🛋️', medium: '🚶', high: '🏃' };
+const ACTIVITY_ICONS: Record<Activity, string> = { low: mdIcon('weekend'), medium: mdIcon('directions_walk'), high: mdIcon('directions_run') };
 
 export function showOnboarding(onDone: (plan: Plan) => void): void {
   const p: Profile = { ...readProfile() };
@@ -42,12 +43,12 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
 
   function screen(): string {
     switch (step) {
-      case 0: return `<p class="onb-big" aria-hidden="true">💧</p><h2 id="onb-title">Сайн байна уу!</h2>
+      case 0: return `<p class="onb-big" aria-hidden="true">${mdIcon('water_drop')}</p><h2 id="onb-title">Сайн байна уу!</h2>
         <p>Танд өдөрт хэдэн мл ус хэрэгтэйг <b>5 асуултаар</b> тооцоолъё.</p>
         <button type="button" class="onb-next" data-go="1">Эхлэх</button>`;
       case 1: return `<h2 id="onb-title">Таны хүйс?</h2><div class="onb-choices">
-        <button type="button" class="onb-choice" data-sex="male"><span aria-hidden="true">👨</span>Эрэгтэй</button>
-        <button type="button" class="onb-choice" data-sex="female"><span aria-hidden="true">👩</span>Эмэгтэй</button></div>`;
+        <button type="button" class="onb-choice" data-sex="male"><span aria-hidden="true">${mdIcon('man')}</span>Эрэгтэй</button>
+        <button type="button" class="onb-choice" data-sex="female"><span aria-hidden="true">${mdIcon('woman')}</span>Эмэгтэй</button></div>`;
       case 2: return `<h2 id="onb-title">Хэдэн настай вэ?</h2>${stepper('onb-age', p.age, 'нас', 4, 110)}
         <button type="button" class="onb-next" data-go="3">Үргэлжлүүлэх</button>`;
       case 3: return `<h2 id="onb-title">Жин, өндөр?</h2>${stepper('onb-weight', p.weight, 'кг', 10, 250)}${stepper('onb-height', p.height, 'см', 90, 230)}
@@ -64,7 +65,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       }
       default: {
         const plan = calcPlan(p);
-        return `<p class="onb-big" aria-hidden="true">${plan.mode === 'limit' ? '🩺' : '🎯'}</p>
+        return `<p class="onb-big" aria-hidden="true">${mdIcon(plan.mode === 'limit' ? 'stethoscope' : 'target')}</p>
           <h2 id="onb-title">${plan.mode === 'limit' ? 'Таны өдрийн хязгаар' : 'Таны өдрийн зорилт'}</h2>
           <p class="onb-result">${number(plan.ml)} <span>мл</span></p><p class="onb-how">${plan.how}</p>
           <p class="onb-note">Ерөнхий зөвлөмж. Эмчийн заавар байвал түүнийг дагана. Хүссэн үедээ өөрчилж болно.</p>
