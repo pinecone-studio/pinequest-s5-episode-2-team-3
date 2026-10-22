@@ -7,11 +7,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
 
 /* Water running down the seam between tabs while the strip moves (tabs.ts). */
 .tabs-track { position: relative; --flow: 0; }
-.seam { position: absolute; top: 0; bottom: 0; z-index: 2; width: 40px; margin-left: -20px; overflow: hidden; pointer-events: none; opacity: var(--flow); transition: opacity var(--fade, .35s) ease-out; }
-.seam svg { position: absolute; left: 0; top: 0; width: 100%; height: 200%; animation: seam-flow 1.4s linear infinite; }
-.seam .foam { fill: none; stroke: rgba(255, 255, 255, .9); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
-.seam .foam.thin { stroke: rgba(255, 255, 255, .55); stroke-width: 1; }
+.seam { position: absolute; top: 0; bottom: 0; z-index: 2; width: 70px; margin-left: -35px; pointer-events: none; opacity: var(--flow); transition: opacity var(--fade, .35s) ease-out; }
+/* The stream itself: wide, bright, flowing fast and swelling in and out. */
+.seam .stream { position: absolute; inset: 0; overflow: hidden; filter: drop-shadow(0 0 10px rgba(18, 179, 216, .45)); animation: seam-swell .9s ease-in-out infinite alternate; }
+.seam svg { position: absolute; left: 0; top: 0; width: 100%; height: 200%; animation: seam-flow .9s linear infinite; }
+.seam .foam { fill: none; stroke: rgba(255, 255, 255, .95); stroke-width: 2.4; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.seam .foam.thin { stroke: rgba(255, 255, 255, .7); stroke-width: 1.4; }
 @keyframes seam-flow { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+@keyframes seam-swell { from { transform: scaleX(.8); } to { transform: scaleX(1.15); } }
+/* Droplets jumping off both sides of the stream. */
+.seam .drop { position: absolute; left: 50%; top: var(--y); width: 9px; height: 11px; margin: -5px 0 0 -4px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 35% 35%, #fff, #3ccbe8 55%, #12a6cc); transform: scale(var(--s)); opacity: 0; animation: seam-drop 1.1s var(--d) ease-out infinite; }
+@keyframes seam-drop { 0% { opacity: 0; transform: translate(0, 0) scale(var(--s)); } 20% { opacity: 1; } 70% { opacity: .9; transform: translate(var(--x), 24px) scale(var(--s)); } 100% { opacity: 0; transform: translate(calc(var(--x) * 1.2), 60px) scale(calc(var(--s) * .6)); } }
 
 /* Same look as the home page's floating bar; a soft pill slides under the active tab. */
 .tabs-bar { --i: 0; position: fixed; z-index: 10; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; width: min(428px, calc(100% - 32px)); padding: 6px 8px; border: 1px solid rgba(20, 32, 52, .07); border-radius: 22px; background: rgba(255, 255, 255, .94); box-shadow: 0 12px 30px rgba(40, 60, 90, .16); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }

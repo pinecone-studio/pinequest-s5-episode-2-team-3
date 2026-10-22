@@ -14,8 +14,10 @@ const LAST_TAB = 'dusal-tab';
 const SEAM = (() => {
   // One wave every 250 units: the 1000-unit slide is exactly four waves, so there is no jump.
   const wave = (x: number, amp: number) => Array.from({ length: 81 }, (_, k) => `${k ? 'L' : 'M'}${(x + Math.sin((k * Math.PI) / 5) * amp).toFixed(1)} ${k * 25}`).join(' ');
-  return `<svg viewBox="0 0 40 2000" preserveAspectRatio="none"><defs><linearGradient id="seam-water" x1="0" x2="1"><stop offset="0" stop-color="#7fe0f2" stop-opacity="0"/><stop offset=".5" stop-color="#3cc9e6" stop-opacity=".55"/><stop offset="1" stop-color="#7fe0f2" stop-opacity="0"/></linearGradient></defs>
-    <rect class="body" x="0" y="0" width="40" height="2000" fill="url(#seam-water)"/><path class="foam" d="${wave(20, 6)}"/><path class="foam thin" d="${wave(12, 4)}"/></svg>`;
+  // Droplets spray out to both sides at different heights and moments.
+  const drops = Array.from({ length: 10 }, (_, i) => `<i class="drop" style="--y:${8 + i * 9}%;--x:${(i % 2 ? 1 : -1) * (26 + (i * 7) % 22)}px;--d:${(i * 0.13).toFixed(2)}s;--s:${(0.6 + (i % 3) * 0.25).toFixed(2)}"></i>`).join('');
+  return `<div class="stream"><svg viewBox="0 0 40 2000" preserveAspectRatio="none"><defs><linearGradient id="seam-water" x1="0" x2="1"><stop offset="0" stop-color="#8be6f5" stop-opacity="0"/><stop offset=".3" stop-color="#3ccbe8" stop-opacity=".75"/><stop offset=".5" stop-color="#12b3d8" stop-opacity=".9"/><stop offset=".7" stop-color="#3ccbe8" stop-opacity=".75"/><stop offset="1" stop-color="#8be6f5" stop-opacity="0"/></linearGradient></defs>
+    <rect x="0" y="0" width="40" height="2000" fill="url(#seam-water)"/><path class="foam" d="${wave(20, 7)}"/><path class="foam thin" d="${wave(11, 5)}"/><path class="foam thin" d="${wave(29, 5)}"/></svg></div>${drops}`;
 })();
 
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
