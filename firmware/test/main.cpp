@@ -5,6 +5,7 @@ void intake_tests();
 void queue_tests();
 void payload_tests();
 void screen_tests();
+void button_tests();
 void emit_samples();
 
 int main(int argc, char** argv) {
@@ -13,6 +14,7 @@ int main(int argc, char** argv) {
   queue_tests();
   payload_tests();
   screen_tests();
+  button_tests();
   std::printf("%d checks, %d failed\n", g_checks, g_failures);
   return g_failures ? 1 : 0;
 }
