@@ -50,7 +50,6 @@ main.home, .type-menu { --muted-2: #5f6877; }
 .history-footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px 6px 30px; margin: 0; border: 0; font-size: 14px; color: var(--muted-2); }
 
 @media (max-width: 760px) {
-  main.home { padding-bottom: 0; }
   .history-body { padding: 18px 14px; gap: 14px; }
   .history-filters { grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
   .history-filters > div:nth-child(3) { grid-column: 1 / -1; }
