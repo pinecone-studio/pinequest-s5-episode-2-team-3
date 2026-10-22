@@ -1,5 +1,5 @@
-/* Home: progress ring and tiles live in hydration.css; this file styles the goal calculator,
-   the folded connection line and the footer. Shell styles live in shell.css. */
+/* Home: progress ring and tiles live in hydration.css; this file styles the goal calculator
+   and the folded connection line. Shell styles, footer included, live in shell.css. */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Plan card */
@@ -38,13 +38,6 @@
 
 .undo-line { margin-top: 8px; font-size: 16px; color: var(--muted-2); display: flex; align-items: center; gap: 8px; }
 .undo-line .text-button { font-size: 16px; }
-
-.home-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 16px; padding: 22px 6px 30px; font-size: 14px; color: var(--muted-2); border: 0; margin: 0; }
-.home-footer a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
-
-@media (max-width: 560px) {
-  .home-footer { flex-direction: column; }
-}
 
 /* The calculator opens from the goal pill as a frosted-glass sheet; the home stays visible behind it. */
 .plan-wrap { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); overflow-y: auto; background: rgba(30, 45, 70, .18); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }

@@ -42,7 +42,7 @@ function goalSection(): string {
       <label for="goal">Хэмжээ, мл</label>
       <input id="goal" name="goal" type="number" inputmode="numeric" min="50" max="10000" step="1" required value="${state.goal}"/>
       <p id="goal-error" class="form-error" role="alert" hidden></p>
-      <button type="submit" class="primary-button" ${corrupt ? 'disabled' : ''}>Хадгалах</button>
+      <button type="submit" class="dark-button" ${corrupt ? 'disabled' : ''}>Хадгалах</button>
     </form>
   </section>`;
 }
@@ -60,7 +60,7 @@ function restorePreview(): string {
     <p class="restore-warning">Одоо байгаа бүх бүртгэл, тохиргоо энэ файлаар бүрэн солигдоно.</p>
     <div class="restore-actions">
       <button type="button" class="text-button subdued" id="cancel-restore">Болих</button>
-      <button type="button" class="primary-button" id="confirm-restore">Сэргээх</button>
+      <button type="button" class="dark-button" id="confirm-restore">Сэргээх</button>
     </div>
   </div>`;
 }
@@ -70,7 +70,7 @@ function backupSection(): string {
     <h2 id="backup-title">Нөөц</h2>
     <div class="backup-row">
       <div><strong>Нөөц татах</strong><p>${corrupt ? 'Уншигдах өгөгдөл алга.' : `Бүх ${number(state.events.length)} бүртгэл болон тохиргоог JSON файл болгон хадгална.`}</p></div>
-      <button type="button" class="primary-button" id="download-backup" ${corrupt ? 'disabled' : ''}>Татах</button>
+      <button type="button" class="dark-button" id="download-backup" ${corrupt ? 'disabled' : ''}>Татах</button>
     </div>
     <div class="backup-row">
       <div><strong>Нөөцөөс сэргээх</strong><p>Файлыг шалгаад, таныг баталгаажуулсны дараа сэргээнэ.</p></div>
@@ -83,7 +83,7 @@ function backupSection(): string {
 
 function render(): void {
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a>
-    <main id="main" class="home settings-page" tabindex="-1">
+    <main id="main" class="home home-app settings-page" tabindex="-1">
       <div class="app-shell">
         <header class="app-top">
           <a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>
@@ -99,7 +99,7 @@ function render(): void {
           ${backupSection()}
         </div>
       </div>
-      <footer class="settings-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
+      <footer class="home-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
     </main>
     ${Toast()}`;
   bind();

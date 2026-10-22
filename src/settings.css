@@ -1,60 +1,51 @@
-/* Settings on the glass shell (shell.css): each section is a white card; primary actions use the dark CTA. */
+/* Settings in the home's narrow column (main.home-app, shell.css): each section is a white card like the
+   home's plan-card, fields match its «Таны мэдээлэл» inputs and actions use the shared .dark-button. */
 /* --muted-2 is 4.45:1 on white; darken it here so small muted text passes 4.5:1. */
-.settings-page { --muted-2: #5f6877; }
-.settings-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 26px; }
+.settings-page { --muted-2: #5f6877; --blue: #2f80ed; --water: #6b9bd1; --water-soft: #e3ecf6; }
+.settings-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 18px 14px; }
 .settings-head .panel-label { margin-bottom: 6px; }
-.settings-head h1 { font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-spacing: -1px; color: var(--ink-2); }
-.settings-page .settings-section { max-width: none; padding: 20px 22px; border: 0; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); color: var(--ink-2); }
-.settings-page .settings-section h2 { font-size: 19px; color: var(--ink-2); }
-.settings-page .mode-options legend, .settings-page .mode-option small, .settings-page .backup-row p, .settings-page label { color: var(--muted-2); }
-.settings-page .mode-option { border: 1px solid #e3e7ee; border-radius: 14px; background: #f8fafc; color: var(--ink-2); }
-.settings-page .mode-option:has(input:checked) { border-color: #9db7f5; background: #f0f5ff; }
-.settings-page #goal { height: 50px; font-size: 18px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; }
-.settings-page #goal:focus { border-color: #9db7f5; background: #fff; }
-.settings-page .primary-button { min-height: 48px; padding: 0 22px; border-radius: 14px; font-size: 16px; font-weight: 600; background: linear-gradient(180deg, #3a4250, #12161e); box-shadow: 0 6px 16px rgba(18, 22, 30, .25); }
-.settings-page .primary-button:hover { background: linear-gradient(180deg, #454e5e, #1a1f29); }
-.settings-page .backup-row + .backup-row { border-top-color: var(--hair); }
-.settings-page .file-button { min-height: 48px; border: 1px solid #e3e7ee; border-radius: 12px; color: var(--ink-2); font-weight: 600; }
-.settings-page .restore-preview { border-color: #c9d7f5; border-radius: 16px; background: #f3f7ff; }
-.settings-footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px 6px 30px; margin: 0; border: 0; font-size: 14px; color: var(--muted-2); }
+.settings-head h1 { font-size: 28px; font-weight: 700; letter-spacing: -1px; color: var(--ink-2); }
 
-.settings-section { padding: 28px 0; border-top: 1px solid var(--line); max-width: 640px; }
-.settings-section h2 { margin-bottom: 16px; }
-.mode-options { border: 0; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.mode-options legend { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
-.mode-option { display: flex; gap: 10px; align-items: flex-start; padding: 14px; border: 1px solid var(--line); border-radius: 6px; background: white; cursor: pointer; margin: 0; }
-.mode-option:has(input:checked) { border-color: var(--blue); background: #f3f5fc; }
+.settings-section { padding: 20px; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); color: var(--ink-2); }
+.settings-section h2 { margin-bottom: 14px; font-size: 21px; font-weight: 600; letter-spacing: -.3px; color: var(--ink-2); }
+.settings-page label { color: var(--muted-2); }
+/* The sync and device panels are shared components; on this page they sit in the same white cards. */
+.settings-page :is(.sync-status, .device-panel) { margin: 0; padding: 20px; border: 0; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); color: var(--ink-2); font-size: 15px; }
+.settings-page .device-heading h2 { font-size: 21px; font-weight: 600; letter-spacing: -.3px; }
+.settings-page :is(.sync-status, .device-panel) button { min-height: 44px; padding: 0 16px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-weight: 600; }
+.settings-page .device-panel select { min-height: 50px; padding: 8px 12px; font-size: 16px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; }
+.settings-page .device-panel select:focus { border-color: #9db7f5; background: #fff; }
+.settings-page .device-panel .device-time { color: var(--muted-2); }
+
+.mode-options { border: 0; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.mode-options legend { margin-bottom: 8px; font-size: 13px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--muted-2); }
+.mode-option { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 14px; border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; color: var(--ink-2); cursor: pointer; }
+.mode-option:has(input:checked) { border-color: var(--water); background: var(--water-soft); }
 .mode-option input { width: auto; margin: 3px 0 0; accent-color: var(--blue); }
-.mode-option strong { display: block; font-weight: 600; }
-.mode-option small { display: block; color: var(--muted); font-size: 12px; }
-#goal-form #goal { max-width: 220px; }
-#goal-form .primary-button { margin-top: 18px; }
-.primary-button:disabled { opacity: .45; cursor: not-allowed; }
+.mode-option strong { display: block; font-weight: 600; color: var(--ink-2); }
+.mode-option small { display: block; font-size: 13px; color: var(--muted-2); }
 
-.backup-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; }
-.backup-row + .backup-row { border-top: 1px solid var(--line); }
-.backup-row p { font-size: 13px; color: var(--muted); }
-.file-button { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 14px; cursor: pointer; white-space: nowrap; margin: 0; }
-.file-button:hover { background: #eeefeb; }
+#goal-form > label { display: block; margin-bottom: 6px; font-size: 15px; }
+#goal-form #goal { width: 100%; min-height: 50px; padding: 8px 12px; font-size: 18px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; }
+#goal-form #goal:focus { border-color: #9db7f5; background: #fff; }
+#goal-form .dark-button { width: 100%; margin-top: 16px; }
+
+.backup-row { display: grid; gap: 12px; padding: 14px 0; }
+.backup-row + .backup-row { border-top: 1px solid var(--hair); }
+.backup-row p { font-size: 14px; color: var(--muted-2); }
+.backup-row .dark-button { width: 100%; }
+.file-button { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 48px; margin: 0; padding: 0 16px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-size: 16px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.file-button:hover { background: #f8fafc; }
 .file-button:focus-within { outline: 2px solid var(--blue); outline-offset: 4px; }
 .file-button input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 
-.restore-preview { margin-top: 12px; padding: 18px; border: 1px solid #c9d3f2; border-radius: 8px; background: #f6f8fd; }
+.restore-preview { margin-top: 12px; padding: 16px; border-radius: 16px; background: linear-gradient(180deg, #f3f7ff, #eaf1fd); }
 .restore-preview:focus { outline: none; }
-.restore-preview h3 { margin: 0; font-size: 16px; font-weight: 600; }
-.restore-preview .file-name { font-size: 12px; color: var(--muted); word-break: break-all; }
-.restore-preview dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
-.restore-preview dt { font-size: 12px; color: var(--muted); }
+.restore-preview h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.restore-preview .file-name { font-size: 13px; color: var(--muted-2); word-break: break-all; }
+.restore-preview dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 14px 0; }
+.restore-preview dt { font-size: 13px; color: var(--muted-2); }
 .restore-preview dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
-.restore-preview dd small { display: block; font-size: 12px; color: var(--muted); }
-.restore-warning { font-size: 13px; color: #ad4239; }
-.restore-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
-
-@media (max-width: 760px) {
-  .settings-body { padding: 18px 14px; gap: 14px; }
-  .settings-page .settings-section { padding: 18px 16px; }
-  .settings-footer { flex-direction: column; gap: 6px; }
-  .mode-options, .restore-preview dl { grid-template-columns: 1fr; }
-  .backup-row { flex-direction: column; align-items: stretch; }
-  .backup-row .primary-button, .file-button { justify-content: center; }
-}
+.restore-preview dd small { display: block; font-size: 13px; color: var(--muted-2); }
+.restore-warning { padding: 10px 12px; border-radius: 10px; background: #fbeee9; color: #914530; font-size: 15px; }
+.restore-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 14px; }
