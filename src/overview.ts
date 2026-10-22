@@ -137,10 +137,11 @@ function planSection(p: Profile): string {
 
 let aiNote = '';
 
+// Activity is chosen in onboarding and has no field here, so it comes from the saved profile.
 function readForm(form: HTMLFormElement): Partial<Profile> {
   const d = new FormData(form);
   const n = (k: string) => Number(d.get(k));
-  return { age: n('age'), weight: n('weight'), height: n('height'), condition: String(d.get('condition')) as Profile['condition'], doctorLimit: n('doctorLimit'), doctorMode: d.get('doctorMode') === 'goal' ? 'goal' : 'limit' };
+  return { age: n('age'), weight: n('weight'), height: n('height'), activity: readProfile().activity, condition: String(d.get('condition')) as Profile['condition'], doctorLimit: n('doctorLimit'), doctorMode: d.get('doctorMode') === 'goal' ? 'goal' : 'limit' };
 }
 
 function bindPlan() {
