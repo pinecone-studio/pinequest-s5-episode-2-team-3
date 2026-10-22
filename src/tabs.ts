@@ -8,16 +8,18 @@ const KEYS = ['home', 'history', 'settings'] as const;
 const LABELS = ['Нүүр', 'Түүх', 'Тохиргоо'];
 const LAST_TAB = 'dusal-tab';
 
-// A cartoon wave that rises at the bottom, curls over, crashes with a splash and flattens again,
-// played on every tab switch from the side the new tab comes in. The shapes are keyframes in
-// tabs.css (CSS `d` animation); every frame uses the same commands so the browser can morph them.
-const BREAKER = `<svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
-  <defs><linearGradient id="breaker-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe3f5"/><stop offset=".55" stop-color="#2fbde0"/><stop offset="1" stop-color="#1596c4"/></linearGradient></defs>
-  <path class="breaker-body" fill="url(#breaker-water)"/>
-  <path class="breaker-shade"/>
-  <path class="breaker-foam"/>
-  <g class="breaker-spray">${[[262, 140, 1], [285, 122, .8], [305, 150, .7], [322, 178, .9], [250, 168, .6], [338, 205, .7]].map(([x, y, s], i) => `<circle cx="${x}" cy="${y}" r="${(7 * s).toFixed(1)}" style="--i:${i}"/>`).join('')}</g>
-</svg>`;
+// A row of small cartoon waves along the bottom: one after another they rise, curl over, crash
+// with a little splash and flatten, over a rippling water surface. Played on every tab switch,
+// starting from the side the new tab comes in. Shapes are keyframes in tabs.css (CSS `d`
+// animation); every frame uses the same commands so the browser can morph them.
+const WAVES = [[-6, .8], [11, 1], [28, .7], [45, .95], [62, .75], [79, 1], [96, .8]] as const;
+const SPRAY = [[262, 140, 1], [290, 120, .8], [312, 150, .75], [330, 182, .9]] as const;
+const BREAKER = `<svg class="sea" viewBox="0 0 800 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 18 Q25 6 50 18 T100 18 T150 18 T200 18 T250 18 T300 18 T350 18 T400 18 T450 18 T500 18 T550 18 T600 18 T650 18 T700 18 T750 18 T800 18 V40 H0Z"/></svg>
+  ${WAVES.map(([left, size], i) => `<svg class="w" viewBox="0 0 400 300" preserveAspectRatio="none" style="--i:${i};--s:${size};left:${left}%" aria-hidden="true">
+    <path class="breaker-body" fill="url(#breaker-water)"/><path class="breaker-shade"/><path class="breaker-foam"/>
+    <g class="breaker-spray">${SPRAY.map(([x, y, r], k) => `<circle cx="${x}" cy="${y}" r="${(16 * r).toFixed(1)}" style="--k:${k}"/>`).join('')}</g>
+  </svg>`).join('')}
+  <svg width="0" height="0" aria-hidden="true"><defs><linearGradient id="breaker-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe3f5"/><stop offset=".55" stop-color="#2fbde0"/><stop offset="1" stop-color="#1596c4"/></linearGradient></defs></svg>`;
 
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
 let index = 0;
@@ -56,7 +58,9 @@ function crash(forward: boolean): void {
   void breaker.getBoundingClientRect();
   breaker.classList.add('play', forward ? 'forward' : 'back');
 }
-breaker.addEventListener('animationend', event => { if (event.target === breaker.querySelector('.breaker-body')) breaker.classList.remove('play'); });
+// Done once the last little wave has flattened.
+const lastWave = [...breaker.querySelectorAll('.w .breaker-body')].pop();
+breaker.addEventListener('animationend', event => { if (event.target === lastWave) breaker.classList.remove('play'); });
 
 function go(next: number): void {
   next = Math.max(0, Math.min(TABS.length - 1, next));
