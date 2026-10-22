@@ -1,13 +1,22 @@
 /* Glass app shell shared by every page: background, card, top bar with brand, date and nav. */
 :root {
-  --home-bg: linear-gradient(180deg, #b9c8de 0%, #dbe3ee 42%, #f2e7e0 100%);
+  --home-bg: linear-gradient(180deg, #9fe6f2 0%, #d2f4f9 45%, #f2fcfd 100%);
   --glass: rgba(255, 255, 255, .62);
   --glass-line: rgba(255, 255, 255, .75);
   --hair: rgba(20, 32, 52, .07);
   --ink-2: #1f2733;
   --muted-2: #6f7888;
 }
-html, body { background: var(--home-bg) fixed; min-height: 100%; }
+/* Background on html only: a body background would paint over the z-index:-1 water layers below. */
+html { background: var(--home-bg) fixed; }
+html, body { min-height: 100%; }
+/* Underwater feel: soft light patches drifting on top, two slow waves along the bottom. */
+body::before, body::after { content: ""; position: fixed; left: 0; right: 0; z-index: -1; pointer-events: none; }
+body::before { top: 0; height: 70vh; background: radial-gradient(40% 30% at 20% 10%, rgba(255, 255, 255, .55), transparent 70%), radial-gradient(35% 25% at 80% 25%, rgba(255, 255, 255, .35), transparent 70%), radial-gradient(50% 35% at 50% 0%, rgba(0, 190, 220, .18), transparent 70%); animation: water-light 14s ease-in-out infinite alternate; }
+body::after { bottom: 0; height: 140px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 140' preserveAspectRatio='none'%3E%3Cpath d='M0 60 Q50 35 100 60 T200 60 T300 60 T400 60 V140 H0Z' fill='%2300bedc' fill-opacity='.14'/%3E%3Cpath d='M0 85 Q50 65 100 85 T200 85 T300 85 T400 85 V140 H0Z' fill='%2300bedc' fill-opacity='.2'/%3E%3C/svg%3E") repeat-x 0 100% / 800px 140px; animation: water-wave 18s linear infinite; }
+@keyframes water-light { to { transform: translateX(4%) scale(1.06); opacity: .8; } }
+@keyframes water-wave { to { background-position: 800px 100%; } }
+@media (prefers-reduced-motion: reduce) { body::before, body::after { animation: none; } }
 
 main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px)); }
 .app-shell { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 30px; box-shadow: 0 30px 80px rgba(40, 60, 90, .16); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); overflow: hidden; }
@@ -15,7 +24,7 @@ main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-
 /* Top bar */
 .app-top { display: flex; align-items: center; gap: 16px; padding: 16px 22px; border-bottom: 1px solid var(--hair); }
 .app-top .brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--ink-2); letter-spacing: -.4px; text-decoration: none; }
-.app-top .brand > .brand-mark { display: grid; margin: 0; width: 40px; height: 40px; border-radius: 12px; place-items: center; background: linear-gradient(180deg, #f2f8ff, #d7eaff); box-shadow: inset 0 0 0 1px #c6defa, 0 2px 6px rgba(47, 128, 237, .15); color: #2f80ed; }
+.app-top .brand > .brand-mark { display: grid; margin: 0; width: 40px; height: 40px; border-radius: 12px; place-items: center; background: linear-gradient(180deg, #effcfe, #c8f1f8); box-shadow: inset 0 0 0 1px #aee9f3, 0 2px 6px rgba(0, 190, 220, .15); color: #0096b4; }
 .brand-mark .icon, .brand-mark svg { width: 22px; height: 22px; }
 .brand-mark .brand-drop { width: 24px; height: 26px; }
 /* Nav sits at the far right, after the date. */
@@ -24,7 +33,7 @@ main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-
 .app-top .site-nav a[aria-current="page"] { background: #fff; color: var(--ink-2); font-weight: 600; box-shadow: 0 1px 4px rgba(20, 32, 52, .1); }
 .app-top .site-nav a { display: inline-flex; align-items: center; gap: 7px; }
 .nav-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.site-nav a[aria-current="page"] .nav-icon { color: #6b9bd1; }
+.site-nav a[aria-current="page"] .nav-icon { color: #00bedc; }
 .app-date { margin-left: auto; padding: 8px 14px; border-radius: 12px; background: rgba(255, 255, 255, .7); font-size: 15px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
 
 /* Dark call-to-action, same as the home page's «Үүнийг зорилт болгох». */
@@ -45,7 +54,7 @@ main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-
   main.home-app .app-date { display: none; }
   main.home-app .app-top .site-nav { position: fixed; z-index: 40; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(428px, calc(100% - 32px)); justify-content: space-around; gap: 0; padding: 6px 8px; border-radius: 22px; border: 1px solid var(--hair); background: rgba(255, 255, 255, .94); box-shadow: 0 12px 30px rgba(40, 60, 90, .16); }
   main.home-app .app-top .site-nav a { flex: 1 1 0; flex-direction: column; gap: 3px; padding: 6px 0; font-size: 12px; background: none; box-shadow: none; }
-  main.home-app .app-top .site-nav a[aria-current="page"] { background: none; box-shadow: none; color: #6b9bd1; }
+  main.home-app .app-top .site-nav a[aria-current="page"] { background: none; box-shadow: none; color: #00bedc; }
   main.home-app .nav-icon { width: 26px; height: 26px; }
   main.home-app .home-footer { flex-direction: column; justify-content: center; text-align: center; }
 }
@@ -59,7 +68,7 @@ main.home { max-width: 1240px; margin: 0 auto; padding: 28px max(20px, env(safe-
   /* Bottom tab bar: icon over label, thumb-reachable. */
   .app-top .site-nav { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; justify-content: space-around; gap: 0; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); border-radius: 0; border-top: 1px solid var(--hair); background: rgba(255, 255, 255, .94); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
   .app-top .site-nav a { flex: 1 1 0; flex-direction: column; gap: 3px; padding: 6px 0; font-size: 12px; background: none; box-shadow: none; }
-  .app-top .site-nav a[aria-current="page"] { background: none; box-shadow: none; color: #6b9bd1; }
+  .app-top .site-nav a[aria-current="page"] { background: none; box-shadow: none; color: #00bedc; }
   .nav-icon { width: 26px; height: 26px; }
   .toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
   .home-footer { flex-direction: column; }

@@ -30,7 +30,7 @@ export const mdIcon = (name: keyof typeof symbols, cls = '') => `<svg class="md-
 
 // App mark: a little water drop with a face, shown in the top bar of every page.
 export const brandMark = () => `<svg class="brand-drop" viewBox="0 0 24 26" aria-hidden="true">
-  <path d="M12 2C12 2 4 11 4 17a8 8 0 0 0 16 0C20 11 12 2 12 2Z" fill="#5aa9ff" stroke="#2f80ed" stroke-width="1.3"/>
+  <path d="M12 2C12 2 4 11 4 17a8 8 0 0 0 16 0C20 11 12 2 12 2Z" fill="#33cfe6" stroke="#00bedc" stroke-width="1.3"/>
   <path d="M8.6 9.6q-1.4 2-1.8 4" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".85"/>
   <circle cx="9.4" cy="16" r="1.25" fill="#10233d"/><circle cx="14.6" cy="16" r="1.25" fill="#10233d"/>
   <circle cx="7.8" cy="18.4" r="1.2" fill="#ff9ec4"/><circle cx="16.2" cy="18.4" r="1.2" fill="#ff9ec4"/>

@@ -1,7 +1,7 @@
 /* Settings in the home's narrow column (main.home-app, shell.css): each section is a white card like the
    home's plan-card, fields match its «Таны мэдээлэл» inputs and actions use the shared .dark-button. */
 /* --muted-2 is 4.45:1 on white; darken it here so small muted text passes 4.5:1. */
-.settings-page { --muted-2: #5f6877; --blue: #2f80ed; --water: #6b9bd1; --water-soft: #e3ecf6; }
+.settings-page { --muted-2: #5f6877; --blue: #00bedc; --water: #00bedc; --water-soft: #dff6fa; }
 .settings-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 18px 14px; }
 .settings-head .panel-label { margin-bottom: 6px; }
 .settings-head h1 { font-size: 28px; font-weight: 700; letter-spacing: -1px; color: var(--ink-2); }
@@ -14,7 +14,7 @@
 .settings-page .device-heading h2 { font-size: 21px; font-weight: 600; letter-spacing: -.3px; }
 .settings-page :is(.sync-status, .device-panel) button { min-height: 44px; padding: 0 16px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-weight: 600; }
 .settings-page .device-panel select { min-height: 50px; padding: 8px 12px; font-size: 16px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; }
-.settings-page .device-panel select:focus { border-color: #9db7f5; background: #fff; }
+.settings-page .device-panel select:focus { border-color: #8ddfee; background: #fff; }
 .settings-page .device-panel .device-time { color: var(--muted-2); }
 
 .mode-options { border: 0; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
@@ -27,7 +27,7 @@
 
 #goal-form > label { display: block; margin-bottom: 6px; font-size: 15px; }
 #goal-form #goal { width: 100%; min-height: 50px; padding: 8px 12px; font-size: 18px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; }
-#goal-form #goal:focus { border-color: #9db7f5; background: #fff; }
+#goal-form #goal:focus { border-color: #8ddfee; background: #fff; }
 #goal-form .dark-button { width: 100%; margin-top: 16px; }
 
 .backup-row { display: grid; gap: 12px; padding: 14px 0; }

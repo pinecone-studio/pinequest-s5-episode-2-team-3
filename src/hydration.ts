@@ -439,7 +439,7 @@ function celebrate(drink: number): void {
   cheer.addEventListener('click', close);
   setTimeout(close, 3200);
   if (reducedMotion()) return;
-  const colors = ['#2f80ed', '#7fb2f5', '#ff9ec4', '#f6c344', '#3f9a4f', '#e0613a'];
+  const colors = ['#00bedc', '#6fdcef', '#ff9ec4', '#f6c344', '#3f9a4f', '#e0613a'];
   for (let i = 0; i < 70; i++) {
     const bit = document.createElement('i');
     bit.className = 'fx-confetti';
