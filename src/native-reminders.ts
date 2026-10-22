@@ -15,7 +15,12 @@ export async function askPermission(): Promise<boolean> {
   return (await LocalNotifications.requestPermissions()).display === 'granted';
 }
 
-export interface NativeReminder { at: Date; title: string; body: string }
+// The water drop's face beside each reminder, Duolingo style: it gets sadder the further behind you are.
+// Android shows it as the large icon (res/drawable-nodpi/notif_face_*.png), iOS as an image
+// attachment from the web assets (public/notif/*.png). Drawn in assets/notif-faces/*.svg.
+export type Face = 'happy' | 'worried' | 'sad' | 'crying';
+
+export interface NativeReminder { at: Date; title: string; body: string; face: Face }
 
 // Replace whatever we scheduled before with `items` (an empty list just clears them).
 export async function scheduleNative(items: readonly NativeReminder[]): Promise<void> {
@@ -31,6 +36,8 @@ export async function scheduleNative(items: readonly NativeReminder[]): Promise<
       schedule: { at: item.at, allowWhileIdle: true },
       smallIcon: 'ic_stat_drop',
       iconColor: '#4a90e2',
+      largeIcon: `notif_face_${item.face}`,
+      attachments: [{ id: item.face, url: `res:///notif/${item.face}.png` }],
     })),
   });
 }
