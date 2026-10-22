@@ -2,7 +2,7 @@ import './schedule.css';
 import { dayKey, type AppState } from './data';
 import { number } from './format';
 import { mdIcon } from './components/Icon';
-import { nativeReminders, askPermission, scheduleNative, type Face, type NativeReminder } from './native-reminders';
+import { nativeReminders, askPermission, clearDelivered, scheduleNative, type Face, type NativeReminder } from './native-reminders';
 import { streakNow } from './hydration';
 
 // Today's drinking schedule: the daily amount split evenly over waking hours (e.g. 07:00–22:00
@@ -205,8 +205,14 @@ export function startReminders(state: () => AppState): void {
     const first = (() => { try { return localStorage.getItem(KEY) === null; } catch { return false; } })();
     void (async () => {
       if (first) writeSettings({ ...readSettings(), on: await askPermission().catch(() => false) });
+      await clearDelivered().catch(() => {});
       await planNative(state());
     })();
+    // Coming back to the app clears the badge, so the pending reminders count from 1 again.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      void clearDelivered().catch(() => {}).then(() => planNative(state()));
+    });
     // Re-plan only when something that changes the plan does (a drink, the goal, the day, settings).
     setInterval(() => {
       const st = state();
