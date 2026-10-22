@@ -9,7 +9,7 @@
 .buddy { display: grid; justify-items: center; gap: 6px; }
 .buddy { position: relative; }
 .buddy::before { content: ""; position: absolute; top: 46px; left: 50%; width: min(260px, 70vw); aspect-ratio: 1; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(circle, #e3efff 0%, rgba(227, 239, 255, 0) 70%); z-index: -1; }
-.buddy svg { display: block; width: min(190px, 52vw); height: auto; overflow: visible; }
+.buddy-stage > svg { display: block; width: min(190px, 52vw); height: auto; overflow: visible; }
 .buddy-pct { font-size: 44px; font-weight: 800; letter-spacing: -1.6px; line-height: 1; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .buddy-pct span { font-size: 22px; font-weight: 700; color: #8a95a6; margin-left: 2px; }
 .buddy.done .buddy-pct { color: #2f80ed; }
@@ -26,7 +26,7 @@
 .buddy-snout { fill: rgba(255, 255, 255, .7); stroke: #2a3443; stroke-width: 2.5; }
 .buddy-nose { fill: #2a3443; }
 .buddy-stage { position: relative; }
-.avatar-btn { position: absolute; top: 0; right: -14px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 4px 12px rgba(40, 70, 110, .15); font-size: 18px; }
+.avatar-btn { position: absolute; top: 0; right: -14px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 4px 12px rgba(40, 70, 110, .15); font-size: 18px; color: #d99a00; }
 .avatar-btn:hover { transform: scale(1.08); }
 .avatar-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .avatar-opt { display: grid; justify-items: center; gap: 4px; padding: 10px 6px 8px; border: 2px solid #e3e8ef; border-radius: 18px; background: #fff; font-size: 13px; font-weight: 600; color: var(--ink-2); }
@@ -56,7 +56,7 @@
 .buddy.near .buddy-sub { color: #9a6a00; font-weight: 600; }
 .buddy.over .buddy-wave { fill: #e0613a; }
 .buddy.over .buddy-wave.back { fill: #f3b39c; }
-.buddy.pulse svg { animation: buddy-hop .6s .25s ease-out; }
+.buddy.pulse .buddy-stage > svg { animation: buddy-hop .6s .25s ease-out; }
 @keyframes buddy-hop { 35% { transform: translateY(-8px) rotate(-3deg); } 70% { transform: translateY(0) rotate(2deg); } }
 .buddy-text { text-align: center; }
 .buddy-total { display: flex; align-items: baseline; justify-content: center; gap: 6px; color: var(--ink-2); }
@@ -192,7 +192,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pour-arrow, .big-add.nudge .pour-arrow, .big-add.tapped .swipe-amount, 
-  .buddy-water, .buddy-wave, .buddy-eyes, .buddy.pulse svg, .buddy.done .buddy-arm.right, .fx-cheer, .fx-cheer-card, .cup, .big-add, .big-add.tapped, .goal-pill::after { animation: none; transition: none; }
+  .buddy-water, .buddy-wave, .buddy-eyes, .buddy.pulse .buddy-stage > svg, .buddy.done .buddy-arm.right, .fx-cheer, .fx-cheer-card, .cup, .big-add, .big-add.tapped, .goal-pill::after { animation: none; transition: none; }
 }
 @media (max-width: 560px) {
   .hydro { padding: 16px 16px 22px; gap: 14px; }
@@ -208,7 +208,7 @@
    stays above the bottom tab bar without scrolling. */
 @media (max-height: 900px) {
   .hydro { gap: 10px; padding-top: 12px; }
-  .buddy svg { width: min(140px, 38vw); }
+  .buddy-stage > svg { width: min(140px, 38vw); }
   .buddy-pct { font-size: 34px; }
   .buddy-total b { font-size: 20px; }
   .sched-chip { min-height: 40px; }
