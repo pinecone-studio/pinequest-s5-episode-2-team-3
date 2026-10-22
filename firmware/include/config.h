@@ -2,8 +2,17 @@
 #include <cstdint>
 
 // Wiring. Change these to match your base; defaults suit an ESP32-S3 DevKitC.
+#if defined(BOARD_XH_S3E_AI)
+// XH-S3E-AI v1.0 (`pio run -e xh-s3e-ai`): HX711 sits on the header's IO41/SDA and IO42/SCL pins.
+// Those are the header's only I2C pins, so this board runs without the OLED.
+constexpr int PIN_HX711_DT = 41;
+constexpr int PIN_HX711_SCK = 42;
+constexpr bool HAS_OLED = false;
+#else
 constexpr int PIN_HX711_DT = 4;
 constexpr int PIN_HX711_SCK = 5;
+constexpr bool HAS_OLED = true;
+#endif
 // The BOOT button exists on every ESP32-S3 board. Short press: "this empty bottle is the new bottle".
 // Hold 5 s with nothing on the base: set the scale's zero.
 constexpr int PIN_BUTTON = 0;

@@ -272,9 +272,11 @@ void setup() {
   if (prefs.isKey("tare")) tracker.restoreTare(prefs.getFloat("tare", 0));
   loadQueue();
   scale.begin(PIN_HX711_DT, PIN_HX711_SCK);
-  Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
-  hasDisplay = display.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADDRESS);
-  if (!hasDisplay) Serial.println("OLED not found: check SDA/SCL and the I2C address; continuing without it");
+  if (HAS_OLED) {
+    Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
+    hasDisplay = display.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADDRESS);
+    if (!hasDisplay) Serial.println("OLED not found: check SDA/SCL and the I2C address; continuing without it");
+  }
   Serial.println(calibration.valid() ? "calibrated" : "not calibrated: empty base -> 'zero', then known weight -> 'cal <grams>'");
 
   networkEnabled = dusal::validDeviceId(DEVICE_ID);
