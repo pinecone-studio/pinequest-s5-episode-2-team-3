@@ -135,11 +135,19 @@ void recordDrink(int amountMl) {
   lastDrinkMl = amountMl;
 }
 
+// "measured 742 738 745 739 -> 741 g": the readings the settled weight was averaged from.
+void printMeasurements() {
+  Serial.print("measured");
+  for (uint8_t i = 0; i < tracker.measurementCount(); i++) Serial.printf(" %.0f", tracker.measurement(i));
+  Serial.printf(" -> %d g\n", tracker.settledG());
+}
+
 void onChange(const dusal::Update& update) {
+  if (update.change != dusal::Change::None) printMeasurements();
   switch (update.change) {
     case dusal::Change::Placed: Serial.printf("placed %d g\n", tracker.settledG()); break;
-    case dusal::Change::Drink: Serial.printf("drink %d ml\n", update.amountMl); recordDrink(update.amountMl); break;
-    case dusal::Change::Refill: Serial.printf("refill %d ml\n", update.amountMl); break;
+    case dusal::Change::Drink: Serial.printf("drink %d ml (%d -> %d g)\n", update.amountMl, update.fromG, tracker.settledG()); recordDrink(update.amountMl); break;
+    case dusal::Change::Refill: Serial.printf("refill %d ml (%d -> %d g)\n", update.amountMl, update.fromG, tracker.settledG()); break;
     case dusal::Change::Swapped: Serial.println("different bottle: tare cleared"); persistTare(); break;
     default: break;
   }
