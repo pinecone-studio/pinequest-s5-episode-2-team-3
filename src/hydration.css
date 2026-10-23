@@ -119,6 +119,8 @@
 .fx-drop svg { display: block; width: 100%; height: 100%; fill: var(--water); }
 .fx-float { position: fixed; z-index: 60; transform: translate(-50%, 0); font-size: 15px; font-weight: 700; color: var(--water); white-space: nowrap; pointer-events: none; animation: fx-float .9s ease-out forwards; }
 @keyframes fx-float { 0% { opacity: 0; transform: translate(-50%, 10px); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -26px); } }
+.fx-device { position: fixed; top: calc(env(safe-area-inset-top) + 14px); left: 50%; z-index: 61; padding: 8px 14px; border-radius: 999px; background: var(--water); color: #fff; font-size: 14px; font-weight: 700; white-space: nowrap; pointer-events: none; box-shadow: 0 6px 18px rgba(0, 150, 180, .3); animation: fx-device 2.4s ease-out forwards; }
+@keyframes fx-device { 0% { opacity: 0; transform: translate(-50%, -16px); } 12%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -10px); } }
 
 /* Streak: a flame chip by the title and the last seven days underneath the add button. */
 .streak { border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 0 12px; border-radius: 999px; background: #f1f3f6; color: #98a2b3; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -235,7 +237,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pour-panel, .pour-arrow, .big-add.nudge .pour-arrow, .big-add.tapped .swipe-amount, 
-  .buddy-water, .buddy-wave, .buddy-eyes, .buddy.pulse .buddy-stage > svg, .buddy.done .buddy-arm.right, .fx-cheer, .fx-cheer-card, .cup, .big-add, .big-add.tapped, .goal-pill::after { animation: none; transition: none; }
+  .buddy-water, .buddy-wave, .buddy-eyes, .buddy.pulse .buddy-stage > svg, .buddy.done .buddy-arm.right, .fx-cheer, .fx-cheer-card, .fx-device, .cup, .big-add, .big-add.tapped, .goal-pill::after { animation: none; transition: none; }
 }
 @media (max-width: 560px) {
   .hydro { padding: 16px 16px 22px; gap: 14px; }
