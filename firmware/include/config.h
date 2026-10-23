@@ -1,9 +1,9 @@
 #pragma once
 #include <cstdint>
 
-// Wiring. Change these to match your base; defaults suit an ESP32-S3 DevKitC.
-constexpr int PIN_HX711_DT = 4;
-constexpr int PIN_HX711_SCK = 5;
+// Wiring. Change these to match your base; defaults suit the XH-S3E-AI ESP32-S3 board.
+constexpr int PIN_HX711_DT = 41;
+constexpr int PIN_HX711_SCK = 42;
 // The BOOT button exists on every ESP32-S3 board. Short press: "this empty bottle is the new bottle".
 // Hold 5 s with nothing on the base: set the scale's zero.
 constexpr int PIN_BUTTON = 0;

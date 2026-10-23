@@ -9,10 +9,10 @@ namespace dusal {
 
 struct IntakeConfig {
   uint8_t window = 10;        // samples that must agree (10 = 1 s at 10 Hz)
-  float stableBandG = 4;      // max spread inside the window
+  float stableBandG = 15;     // max spread inside the window
   uint32_t settleMs = 1500;   // how long the window must stay in band
   float presentMinG = 30;     // below this the base is empty (bottle lifted)
-  int minChangeMl = 10;
+  int minChangeMl = 20;
   int maxChangeMl = 5000;     // a bigger jump is a different bottle, not a drink
 };
 

@@ -49,9 +49,10 @@ void intake_tests() {
     settle(t, 750);
     CHECK(settle(t, 745).change == Change::Noise);
     CHECK(settle(t, 741).change == Change::Noise);
-    Update sip = settle(t, 738);
+    CHECK(settle(t, 738).change == Change::Noise);
+    Update sip = settle(t, 728);
     CHECK(sip.change == Change::Drink);
-    CHECK_EQ(sip.amountMl, 12);
+    CHECK_EQ(sip.amountMl, 22);
   }
   {  // drinking it all: a bottle back on the base at its empty weight counts the rest
     IntakeTracker t;
