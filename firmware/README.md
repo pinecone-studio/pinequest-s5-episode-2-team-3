@@ -4,13 +4,13 @@
 
 ## Эд анги ба холболт
 
-Пинүүдийг `include/config.h`-д нэг газар өөрчилнө. Доорх нь ESP32-S3 DevKitC-ийн анхны утга; өөр самбар бол самбарынхаа pinout-оор солино.
+Пинүүдийг `include/config.h`-д нэг газар өөрчилнө. Доорх нь XH-S3E-AI (ESP32-S3) самбарын анхны утга; өөр самбар (жишээ нь DevKitC: DT=4, SCK=5) бол самбарынхаа pinout-оор солино.
 
 | Эд анги | Холболт | `config.h` |
 |---|---|---|
 | Load cell → HX711 | E+/E−/A+/A− (load cell-ийн утасны өнгө үйлдвэрлэгчээс хамаарна) | — |
-| HX711 DT | GPIO 4 | `PIN_HX711_DT` |
-| HX711 SCK | GPIO 5 | `PIN_HX711_SCK` |
+| HX711 DT | GPIO 41 | `PIN_HX711_DT` |
+| HX711 SCK | GPIO 42 | `PIN_HX711_SCK` |
 | HX711 VCC/GND | 3.3V / GND | — |
 | OLED SSD1306 SDA / SCL | GPIO 8 / 9, хаяг `0x3C` | `PIN_OLED_SDA`, `PIN_OLED_SCL`, `OLED_I2C_ADDRESS` |
 | Товч | Самбар дээрх BOOT (GPIO 0) | `PIN_BUTTON` |
@@ -58,4 +58,4 @@ BOOT-ийг дарсан чигтээ асааж болохгүй: ESP32 про�
 bun run test:firmware   # repo root: тооцоолол, дараалал, JSON, дэлгэц + Worker-тэй нийцэл
 ```
 
-Компьютер дээр зөвхөн `lib/dusal_core` (Arduino-гүй) хэсэг шалгагдана. GitHub дээр `firmware/` өөрчлөгдсөн PR бүрд эдгээр тест болон ESP32-S3-ийн бүтэн compile автоматаар ажиллана (`.github/workflows/firmware.yml`). `src/main.cpp` (HX711, Wi-Fi, HTTPS, OLED)-ийг `pio run`-аар compile хийж, бодит суурь дээр туршина. Босго утгууд (`intake.h`: 10 г, 4 г, 1.5 сек) прототипийнх; бодит load cell-ийн хэлбэлзлийг хэмжиж тохируулна.
+Компьютер дээр зөвхөн `lib/dusal_core` (Arduino-гүй) хэсэг шалгагдана. GitHub дээр `firmware/` өөрчлөгдсөн PR бүрд эдгээр тест болон ESP32-S3-ийн бүтэн compile автоматаар ажиллана (`.github/workflows/firmware.yml`). `src/main.cpp` (HX711, Wi-Fi, HTTPS, OLED)-ийг `pio run`-аар compile хийж, бодит суурь дээр туршина. Босго утгууд (`intake.h`: 20 г, 15 г, 1.5 сек) прототипийнх; бодит load cell-ийн хэлбэлзлийг хэмжиж тохируулна.

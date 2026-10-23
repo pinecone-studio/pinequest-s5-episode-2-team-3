@@ -247,6 +247,9 @@ void printStatus() {
                 static_cast<unsigned long>(bootId), WiFi.status() == WL_CONNECTED ? "ok" : "off", clockValid ? "ok" : "not set",
                 static_cast<unsigned>(queue.size()), static_cast<unsigned long>(queue.dropped()),
                 static_cast<unsigned long>(rejected), tracker.remainingMl());
+  Serial.printf("now %.1f g | settled %d g | phase %d (0 moving, 1 empty, 2 present) | tare %s %.1f g | offset %ld factor %.4f\n",
+                grams(lastRaw), tracker.settledG(), static_cast<int>(tracker.phase()), tracker.hasTare() ? "yes" : "no",
+                tracker.tareG(), calibration.offset, calibration.factor);
 }
 
 void handleSerial() {
