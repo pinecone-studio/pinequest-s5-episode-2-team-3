@@ -4,7 +4,9 @@ import './overview.css';
 import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
-import { buddySection, drinkTiles, streakParts, bindStreakCalendar, bindHydration } from './hydration';
+import { buddySection, drinkTiles, streakParts, bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
+import { startSync } from './sync';
+import { startDevices } from './devices';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
@@ -32,6 +34,15 @@ async function reload() {
   const loaded = await load();
   state = loaded.state;
   storageError = loaded.error;
+}
+
+// Sips the base counted today, so a sync that brings in a new one can show it arriving.
+let deviceSeen: Set<string> | null = null;
+function newDeviceSips(): number {
+  const sips = state.events.filter(e => e.deviceId && e.type === 'drink' && dayKey(new Date(e.at)) === today);
+  const fresh = deviceSeen ? sips.filter(e => !deviceSeen!.has(e.id)) : [];
+  deviceSeen = new Set(sips.map(e => e.id));
+  return fresh.reduce((sum, e) => sum + e.amount, 0);
 }
 
 function amountOn(events: readonly WaterEntry[], key: string, type: 'drink' | 'spill'): number {
@@ -337,14 +348,23 @@ function render() {
   });
 }
 
-onExternalChange(async () => { await reload(); render(); });
+onExternalChange(async () => {
+  await reload();
+  render();
+  const ml = newDeviceSips();
+  if (ml) void deviceDrop(ml);
+});
 window.addEventListener('storage', event => {
   if ([PROFILE_KEY, null].includes(event.key)) render();
 });
 // Roll over to the new day at midnight without a reload.
 setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 60_000);
 void reload().then(() => {
+  newDeviceSips();
   render();
+  // Keep pulling while home is open so a sip on the base shows up here within seconds.
+  startSync();
+  startDevices();
   startReminders(() => state);
   startAppIcon(() => state);
   // First visit: ask a few questions and start with the computed daily amount.

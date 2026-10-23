@@ -3,16 +3,20 @@
 
 // Turns raw weight samples from any bottle into drinks and refills. No Arduino code here,
 // so it is unit-tested on a computer (firmware/test). Rules match shared/device.ts:
-// changes under minChangeMl are noise but small sips accumulate against one anchor, and a
-// lifted bottle (empty base) is never counted as drunk.
+// a drop counts as drunk only from minDrinkMl, a rise is a refill from minChangeMl; anything
+// smaller keeps the anchor, so small sips add up until they reach minDrinkMl, and a lifted
+// bottle (empty base) is never counted as drunk.
 namespace dusal {
 
 struct IntakeConfig {
   uint8_t window = 10;        // samples that must agree (10 = 1 s at 10 Hz)
   float stableBandG = 15;     // max spread inside the window
   uint32_t settleMs = 1500;   // how long the window must stay in band
+  uint8_t measurements = 4;   // once still, this many window averages are taken and averaged
+  uint32_t measureGapMs = 200;
   float presentMinG = 30;     // below this the base is empty (bottle lifted)
-  int minChangeMl = 20;
+  int minChangeMl = 20;       // smallest rise that is a refill
+  int minDrinkMl = 100;       // smallest drop that is a drink
   int maxChangeMl = 5000;     // a bigger jump is a different bottle, not a drink
 };
 
@@ -22,9 +26,11 @@ enum class Change : uint8_t { None, Placed, Noise, Drink, Refill, Swapped };
 struct Update {
   Change change = Change::None;
   int amountMl = 0;
+  int fromG = 0;  // the anchor a drink or refill was measured against
 };
 
 constexpr int kMaxWindow = 32;
+constexpr int kMaxMeasurements = 8;
 
 class IntakeTracker {
  public:
@@ -36,6 +42,9 @@ class IntakeTracker {
   Phase phase() const { return phase_; }
   int settledG() const { return settledG_; }
   bool hasAnchor() const { return hasAnchor_; }
+  // The measurements averaged into the last settled weight.
+  uint8_t measurementCount() const { return taken_; }
+  float measurement(uint8_t i) const { return measured_[i]; }
 
   // The settled bottle on the base is empty: remember its weight so remaining water can be shown.
   bool tareBottle();
@@ -56,6 +65,9 @@ class IntakeTracker {
   bool inBand_ = false;
   bool settled_ = false;
   uint32_t bandSince_ = 0;
+  float measured_[kMaxMeasurements] = {};
+  uint8_t taken_ = 0;
+  uint32_t measuredAt_ = 0;
   Phase phase_ = Phase::Moving;
   int settledG_ = 0;
   bool hasAnchor_ = false;

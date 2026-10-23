@@ -8,6 +8,8 @@ namespace dusal {
 IntakeTracker::IntakeTracker(IntakeConfig config) : config_(config) {
   if (config_.window < 2) config_.window = 2;
   if (config_.window > kMaxWindow) config_.window = kMaxWindow;
+  if (config_.measurements < 1) config_.measurements = 1;
+  if (config_.measurements > kMaxMeasurements) config_.measurements = kMaxMeasurements;
 }
 
 Update IntakeTracker::feed(float grams, uint32_t nowMs) {
@@ -26,13 +28,20 @@ Update IntakeTracker::feed(float grams, uint32_t nowMs) {
     phase_ = Phase::Moving;
     return {};
   }
-  if (!inBand_) { inBand_ = true; bandSince_ = nowMs; }
+  if (!inBand_) { inBand_ = true; bandSince_ = nowMs; taken_ = 0; }
   if (settled_ || nowMs - bandSince_ < config_.settleMs) {
     if (!settled_) phase_ = Phase::Moving;
     return {};
   }
+  // Still: take a few window averages a moment apart and settle on their mean.
+  if (taken_ > 0 && nowMs - measuredAt_ < config_.measureGapMs) return {};
+  measured_[taken_++] = sum / count_;
+  measuredAt_ = nowMs;
+  if (taken_ < config_.measurements) return {};
+  float total = 0;
+  for (uint8_t i = 0; i < taken_; i++) total += measured_[i];
   settled_ = true;
-  settledG_ = static_cast<int>(std::lround(sum / count_));
+  settledG_ = static_cast<int>(std::lround(total / taken_));
   phase_ = settledG_ < config_.presentMinG ? Phase::Empty : Phase::Present;
   return evaluate(settledG_);
 }
@@ -47,7 +56,7 @@ Update IntakeTracker::evaluate(int grams) {
     update.change = Change::Placed;
   } else {
     const int delta = anchorG_ - grams;
-    if (std::abs(delta) < config_.minChangeMl) {
+    if (delta < config_.minDrinkMl && -delta < config_.minChangeMl) {
       update.change = Change::Noise;
     } else if (std::abs(delta) > config_.maxChangeMl) {
       anchorG_ = grams;
@@ -55,6 +64,7 @@ Update IntakeTracker::evaluate(int grams) {
       capacityMl_ = 0;
       update.change = Change::Swapped;
     } else {
+      update.fromG = anchorG_;
       anchorG_ = grams;
       update.change = delta > 0 ? Change::Drink : Change::Refill;
       update.amountMl = std::abs(delta);

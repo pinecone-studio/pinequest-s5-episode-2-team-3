@@ -1,6 +1,8 @@
 #include "check.h"
 #include "intake.h"
 
+#include <cmath>
+
 using namespace dusal;
 
 namespace {
@@ -44,15 +46,45 @@ void intake_tests() {
     CHECK(u.change == Change::Placed);
     for (int i = 0; i < 50; i++) CHECK(t.feed(500 + (i % 3), now += 100).change == Change::None);
   }
-  {  // noise keeps the anchor, so small sips accumulate
+  {  // drops under 100 ml keep the anchor, so small sips add up into one drink
     IntakeTracker t;
     settle(t, 750);
     CHECK(settle(t, 745).change == Change::Noise);
-    CHECK(settle(t, 741).change == Change::Noise);
-    CHECK(settle(t, 738).change == Change::Noise);
-    Update sip = settle(t, 728);
+    CHECK(settle(t, 700).change == Change::Noise);
+    CHECK(settle(t, 660).change == Change::Noise);
+    Update sip = settle(t, 640);
     CHECK(sip.change == Change::Drink);
-    CHECK_EQ(sip.amountMl, 22);
+    CHECK_EQ(sip.amountMl, 110);
+  }
+  {  // a small rise is still a refill and moves the anchor
+    IntakeTracker t;
+    settle(t, 500);
+    Update refill = settle(t, 540);
+    CHECK(refill.change == Change::Refill);
+    CHECK_EQ(refill.amountMl, 40);
+    CHECK(settle(t, 460).change == Change::Noise);
+  }
+  {  // the settled weight is the mean of 4 window averages taken 200 ms apart
+    IntakeTracker t;
+    now = 0;
+    Update u;
+    int feeds = 0;
+    // Drifts 1 g every sample inside the 15 g band, so each measurement sees a different average.
+    while (u.change == Change::None && feeds < 100) u = t.feed(600 + (feeds++ % 10), now += 100);
+    CHECK(u.change == Change::Placed);
+    CHECK_EQ(feeds, 31);  // 1 s to fill the window, 1.5 s still, then measurements at +0, +200, +400, +600 ms
+    CHECK_EQ(static_cast<int>(t.measurementCount()), 4);
+    float sum = 0;
+    for (uint8_t i = 0; i < t.measurementCount(); i++) sum += t.measurement(i);
+    CHECK_EQ(t.settledG(), static_cast<int>(std::lround(sum / 4)));
+  }
+  {  // a drink reports the weight it was measured against
+    IntakeTracker t;
+    settle(t, 850);
+    Update drink = settle(t, 741);
+    CHECK(drink.change == Change::Drink);
+    CHECK_EQ(drink.amountMl, 109);
+    CHECK_EQ(drink.fromG, 850);
   }
   {  // drinking it all: a bottle back on the base at its empty weight counts the rest
     IntakeTracker t;

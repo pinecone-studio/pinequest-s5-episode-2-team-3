@@ -15,7 +15,9 @@
     "test:contract": "bun test shared/contracts.test.ts backend/migration.test.ts backend/contract.test.ts",
     "test:sync": "bun test shared/sync.test.ts backend/sync.test.ts tests/local-store.test.ts tests/sync.test.ts",
     "test:device": "bun test shared/device.test.ts backend/device-migration.test.ts backend/devices.test.ts backend/device-events.test.ts tests/devices.test.ts",
-    "test:firmware": "sh firmware/test/run.sh && bun test tests/firmware-contract.test.ts"
+    "test:firmware": "sh firmware/test/run.sh && bun test tests/firmware-contract.test.ts",
+    "monitor": "python3 firmware/tools/monitor.py",
+    "demo": "python3 firmware/tools/monitor.py --demo"
   },
   "patchedDependencies": {
     "@capacitor/local-notifications@7.0.7": "patches/@capacitor%2Flocal-notifications@7.0.7.patch"

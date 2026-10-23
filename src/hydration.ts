@@ -390,7 +390,26 @@ function center(element: Element): { x: number; y: number } {
 async function flyDrop(from: Element, ml: number): Promise<void> {
   const buddy = document.querySelector('.buddy svg');
   if (!buddy) return;
-  const start = center(from), end = center(buddy);
+  await dropInto(center(from), center(buddy), ml);
+}
+
+// The base counted a sip on its own: a drop falls into the bottle from above with "+120 мл",
+// and a small "Суурь: 120 мл ус уулаа" chip says where it came from (the page has already re-rendered).
+export async function deviceDrop(ml: number): Promise<void> {
+  const buddy = document.querySelector('.buddy svg');
+  if (!buddy) return;
+  const chip = document.createElement('span');
+  chip.className = 'fx-device';
+  chip.setAttribute('role', 'status');
+  chip.textContent = `Суурь: ${number(ml)} мл ус уулаа`;
+  document.body.append(chip);
+  chip.addEventListener('animationend', () => chip.remove());
+  if (reducedMotion()) return;
+  const end = center(buddy);
+  await dropInto({ x: end.x, y: end.y - 150 }, end, ml);
+}
+
+async function dropInto(start: { x: number; y: number }, end: { x: number; y: number }, ml: number): Promise<void> {
   if (end.y < 0 || end.y > innerHeight) return;
   const drop = document.createElement('span');
   drop.className = 'fx-drop';

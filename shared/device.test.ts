@@ -26,14 +26,15 @@ test('lifted bottle is unstable and keeps the anchor; old or equal timestamps ar
   expect(classify(start, reading('old', 100, 0))).toMatchObject({ outcome: 'stale', next: start });
 });
 
-test('jitter below 10 ml is noise, but small sips accumulate against one anchor', () => {
+test('drops under 100 ml are not a drink yet, but small sips accumulate against one anchor', () => {
   let current = anchored(reading('a', 750, 0));
-  for (const [i, ml] of [745, 741].entries()) {
+  for (const [i, ml] of [745, 700, 660].entries()) {
     const step = classify(current, reading(`s${i}`, ml, i + 1));
     expect(step.outcome).toBe('noise');
     current = step.next;
   }
-  expect(classify(current, reading('s2', 738, 3))).toMatchObject({ outcome: 'drink', amount: 12 });
+  expect(classify(current, reading('s3', 640, 4))).toMatchObject({ outcome: 'drink', amount: 110 });
+  expect(classify(anchored(reading('b', 500, 0)), reading('up', 540, 1))).toMatchObject({ outcome: 'refill', amount: 0 });
 });
 
 test('long stable gap or capacity change resyncs without inventing a drink', () => {
