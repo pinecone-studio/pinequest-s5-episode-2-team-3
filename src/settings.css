@@ -13,8 +13,9 @@
 .settings-page :is(.sync-status, .device-panel) { margin: 0; padding: 20px; border: 0; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); color: var(--ink-2); font-size: 15px; }
 .settings-page .device-heading h2 { font-size: 21px; font-weight: 600; letter-spacing: -.3px; }
 .settings-page :is(.sync-status, .device-panel) button { min-height: 44px; padding: 0 16px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-weight: 600; }
-.settings-page .device-panel select { min-height: 50px; padding: 8px 12px; font-size: 16px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; }
-.settings-page .device-panel select:focus { border-color: #8ddfee; background: #fff; }
+.settings-page .device-panel select { min-height: 50px; padding: 8px 12px; font-size: 16px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background-color: #f8fafc; }
+.settings-page .device-panel select:focus { border-color: #8ddfee; background-color: #fff; }
+.settings-page .device-panel select { padding-right: 44px; }
 .settings-page .device-panel .device-time { color: var(--muted-2); }
 
 .mode-options { border: 0; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }

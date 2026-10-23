@@ -13,8 +13,9 @@ main.home, .type-menu { --muted-2: #5f6877; }
 .history-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 14px; align-items: end; padding: 18px 20px; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); }
 .history-filters label { font-size: 14px; color: var(--muted-2); margin-bottom: 6px; }
 .history-filters > div { min-width: 0; }
-.history-filters :is(input, select) { min-width: 0; height: 50px; font-size: 16px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; padding: 8px 12px; }
-.history-filters :is(input, select):focus { border-color: #8ddfee; background: #fff; }
+.history-filters :is(input, select) { min-width: 0; height: 50px; font-size: 16px; color: var(--ink-2); border: 1px solid #e3e7ee; border-radius: 12px; background-color: #f8fafc; padding: 8px 12px; }
+.history-filters :is(input, select):focus { border-color: #8ddfee; background-color: #fff; }
+.history-filters select { padding-right: 44px; }
 .history-filters #clear-filters { min-height: 50px; padding: 0 16px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-size: 15px; font-weight: 600; text-decoration: none; }
 .history-summary { display: flex; flex-wrap: wrap; gap: 10px; font-size: 14px; color: var(--muted-2); }
 .history-summary span { padding: 10px 16px; border-radius: 14px; background: rgba(255, 255, 255, .75); box-shadow: 0 1px 4px rgba(20, 32, 52, .06); }
