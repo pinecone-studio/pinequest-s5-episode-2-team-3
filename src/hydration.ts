@@ -124,7 +124,8 @@ export const streakNow = (events: readonly WaterEntry[], goal: number, mode: Mod
 export function streakParts(events: readonly WaterEntry[], goal: number, mode: Mode): { chip: string; week: string } {
   const counts = dayCounter(events, goal, mode), mood = dayMood(events, goal, mode);
   const streak = currentStreak(counts);
-  const chip = `<button type="button" class="streak${streak ? ' hot' : ''}" data-calendar aria-label="${streak} өдөр дараалан, календарь нээх"><span aria-hidden="true">${mdIcon('local_fire_department')}</span>${streak}</button>`;
+  const tip = !streak ? 'Дараалсан өдөр одоогоор алга' : mode === 'limit' ? `${streak} өдөр дараалан хязгаартаа багтсан` : `${streak} өдөр дараалан ус уусан`;
+  const chip = `<button type="button" class="streak${streak ? ' hot' : ''}" data-calendar data-tip="${tip}" aria-label="${tip}, календарь нээх"><span aria-hidden="true">${mdIcon('local_fire_department')}</span>${streak}</button>`;
   const week = `<div class="week-wrap"><div class="week-box"><div class="week-corners"><button type="button" class="week-cal" data-calendar aria-label="Сарын календарь нээх">${mdIcon('calendar_month')}</button>${chip}</div><ol class="week-strip" aria-label="Өдрүүд, хажуу тийш гүйлгэнэ">${STRIP.map(back => {
     const d = daysBack(back), k = dayKey(d);
     if (back < 0) return `<li class="future"><button type="button" disabled aria-label="${dayTitle(d)}"><span class="wd">${-back === STRIP_DAYS ? `${d.getMonth() + 1}/${d.getDate()}` : WEEKDAYS[d.getDay()]}</span><span class="mark"></span></button></li>`;

@@ -125,6 +125,10 @@
 .streak > span { filter: grayscale(1); opacity: .5; }
 .streak.hot { background: #fff3e6; color: #e8710a; }
 .streak.hot > span { filter: none; opacity: 1; }
+/* Hover (or keyboard focus) explains the number; anchored right since the chip sits at the right edge. */
+.streak[data-tip] { position: relative; }
+.streak[data-tip]::after { content: attr(data-tip); position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; padding: 6px 10px; border-radius: 10px; background: var(--ink-2); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(-4px); transition: opacity .15s, transform .15s; }
+.streak[data-tip]:hover::after, .streak[data-tip]:focus-visible::after { opacity: 1; transform: none; }
 .week-wrap { display: grid; justify-items: center; gap: 6px; width: 100%; }
 /* Seven days fit across; swipe sideways for up to a week either way. */
 /* Both ends fade like the cups row, so days slide in and out softly instead of being cut off. */
