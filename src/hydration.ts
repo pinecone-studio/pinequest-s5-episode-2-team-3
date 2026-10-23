@@ -394,14 +394,14 @@ async function flyDrop(from: Element, ml: number): Promise<void> {
 }
 
 // The base counted a sip on its own: a drop falls into the bottle from above with "+120 мл",
-// and a small "Сууриас" chip says where it came from (the page has already re-rendered).
+// and a small "Суурь: 120 мл ус уулаа" chip says where it came from (the page has already re-rendered).
 export async function deviceDrop(ml: number): Promise<void> {
   const buddy = document.querySelector('.buddy svg');
   if (!buddy) return;
   const chip = document.createElement('span');
   chip.className = 'fx-device';
   chip.setAttribute('role', 'status');
-  chip.textContent = `Сууриас +${number(ml)} мл`;
+  chip.textContent = `Суурь: ${number(ml)} мл ус уулаа`;
   document.body.append(chip);
   chip.addEventListener('animationend', () => chip.remove());
   if (reducedMotion()) return;
