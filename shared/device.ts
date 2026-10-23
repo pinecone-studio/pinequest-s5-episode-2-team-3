@@ -1,6 +1,8 @@
 import { CONTRACT_VERSION, ContractError, validateDeviceReading, validateEntry, validateId, type DeviceReading, type WaterEntry } from './contracts';
 
 export const MIN_CHANGE_ML = 10;
+// A drop counts as drunk only from 100 ml; smaller sips add up against the anchor until they get there.
+export const MIN_DRINK_ML = 100;
 export const MAX_STABLE_GAP_MS = 5 * 60_000;
 export const DEVICE_FRESH_MS = 60_000;
 export const OUTCOMES = ['baseline', 'resync', 'drink', 'refill', 'noise', 'unstable', 'stale'] as const;
@@ -37,8 +39,8 @@ export function classify(previous: ReadingState | null, reading: DeviceReading):
   if (baseline === null || lastStableAt === null) return { outcome: 'baseline', amount: 0, next };
   if (Date.parse(reading.at) - Date.parse(lastStableAt) > MAX_STABLE_GAP_MS) return { outcome: 'resync', amount: 0, next };
   const delta = baseline - reading.remainingMl;
-  // Keep the anchor for tiny changes: small sips accumulate without summing sensor jitter.
-  if (Math.abs(delta) < MIN_CHANGE_ML) return { outcome: 'noise', amount: 0, next: { ...next, baselineMl: baseline } };
+  // Keep the anchor for small changes: sips accumulate without summing sensor jitter.
+  if (delta < MIN_DRINK_ML && -delta < MIN_CHANGE_ML) return { outcome: 'noise', amount: 0, next: { ...next, baselineMl: baseline } };
   return { outcome: delta > 0 ? 'drink' : 'refill', amount: Math.max(0, delta), next };
 }
 

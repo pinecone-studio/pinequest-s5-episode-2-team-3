@@ -3,8 +3,9 @@
 
 // Turns raw weight samples from any bottle into drinks and refills. No Arduino code here,
 // so it is unit-tested on a computer (firmware/test). Rules match shared/device.ts:
-// changes under minChangeMl are noise but small sips accumulate against one anchor, and a
-// lifted bottle (empty base) is never counted as drunk.
+// a drop counts as drunk only from minDrinkMl, a rise is a refill from minChangeMl; anything
+// smaller keeps the anchor, so small sips add up until they reach minDrinkMl, and a lifted
+// bottle (empty base) is never counted as drunk.
 namespace dusal {
 
 struct IntakeConfig {
@@ -12,7 +13,8 @@ struct IntakeConfig {
   float stableBandG = 15;     // max spread inside the window
   uint32_t settleMs = 1500;   // how long the window must stay in band
   float presentMinG = 30;     // below this the base is empty (bottle lifted)
-  int minChangeMl = 20;
+  int minChangeMl = 20;       // smallest rise that is a refill
+  int minDrinkMl = 100;       // smallest drop that is a drink
   int maxChangeMl = 5000;     // a bigger jump is a different bottle, not a drink
 };
 

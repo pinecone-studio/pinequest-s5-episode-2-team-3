@@ -47,7 +47,7 @@ Update IntakeTracker::evaluate(int grams) {
     update.change = Change::Placed;
   } else {
     const int delta = anchorG_ - grams;
-    if (std::abs(delta) < config_.minChangeMl) {
+    if (delta < config_.minDrinkMl && -delta < config_.minChangeMl) {
       update.change = Change::Noise;
     } else if (std::abs(delta) > config_.maxChangeMl) {
       anchorG_ = grams;

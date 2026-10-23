@@ -58,4 +58,4 @@ BOOT-ийг дарсан чигтээ асааж болохгүй: ESP32 про�
 bun run test:firmware   # repo root: тооцоолол, дараалал, JSON, дэлгэц + Worker-тэй нийцэл
 ```
 
-Компьютер дээр зөвхөн `lib/dusal_core` (Arduino-гүй) хэсэг шалгагдана. GitHub дээр `firmware/` өөрчлөгдсөн PR бүрд эдгээр тест болон ESP32-S3-ийн бүтэн compile автоматаар ажиллана (`.github/workflows/firmware.yml`). `src/main.cpp` (HX711, Wi-Fi, HTTPS, OLED)-ийг `pio run`-аар compile хийж, бодит суурь дээр туршина. Босго утгууд (`intake.h`: 20 г, 15 г, 1.5 сек) прототипийнх; бодит load cell-ийн хэлбэлзлийг хэмжиж тохируулна.
+Компьютер дээр зөвхөн `lib/dusal_core` (Arduino-гүй) хэсэг шалгагдана. GitHub дээр `firmware/` өөрчлөгдсөн PR бүрд эдгээр тест болон ESP32-S3-ийн бүтэн compile автоматаар ажиллана (`.github/workflows/firmware.yml`). `src/main.cpp` (HX711, Wi-Fi, HTTPS, OLED)-ийг `pio run`-аар compile хийж, бодит суурь дээр туршина. Босго утгууд (`intake.h`: уулт 100 г, дүүргэлт 20 г, 15 г, 1.5 сек) прототипийнх; бодит load cell-ийн хэлбэлзлийг хэмжиж тохируулна.

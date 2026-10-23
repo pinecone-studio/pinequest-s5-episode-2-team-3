@@ -44,15 +44,23 @@ void intake_tests() {
     CHECK(u.change == Change::Placed);
     for (int i = 0; i < 50; i++) CHECK(t.feed(500 + (i % 3), now += 100).change == Change::None);
   }
-  {  // noise keeps the anchor, so small sips accumulate
+  {  // drops under 100 ml keep the anchor, so small sips add up into one drink
     IntakeTracker t;
     settle(t, 750);
     CHECK(settle(t, 745).change == Change::Noise);
-    CHECK(settle(t, 741).change == Change::Noise);
-    CHECK(settle(t, 738).change == Change::Noise);
-    Update sip = settle(t, 728);
+    CHECK(settle(t, 700).change == Change::Noise);
+    CHECK(settle(t, 660).change == Change::Noise);
+    Update sip = settle(t, 640);
     CHECK(sip.change == Change::Drink);
-    CHECK_EQ(sip.amountMl, 22);
+    CHECK_EQ(sip.amountMl, 110);
+  }
+  {  // a small rise is still a refill and moves the anchor
+    IntakeTracker t;
+    settle(t, 500);
+    Update refill = settle(t, 540);
+    CHECK(refill.change == Change::Refill);
+    CHECK_EQ(refill.amountMl, 40);
+    CHECK(settle(t, 460).change == Change::Noise);
   }
   {  // drinking it all: a bottle back on the base at its empty weight counts the rest
     IntakeTracker t;
