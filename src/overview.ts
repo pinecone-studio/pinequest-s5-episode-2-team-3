@@ -194,7 +194,7 @@ function bindPlan() {
     showError('');
     writeProfile(p);
     // Picking or clearing a diagnosis shows or hides the doctor's part, so redraw the form.
-    if (target.id === 'plan-condition') { render(); return; }
+    if (target.id === 'plan-condition') { if (source !== 'ai') draft = suggestion(p, source); render(); return; }
     refreshCards(p);
     if (source !== 'ai') { draft = suggestion(p, source); show(); }
   });
