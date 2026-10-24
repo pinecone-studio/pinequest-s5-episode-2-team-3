@@ -14,7 +14,7 @@
     "ios": "bun run cap:sync && cap open ios",
     "test:contract": "bun test shared/contracts.test.ts backend/migration.test.ts backend/contract.test.ts",
     "test:sync": "bun test shared/sync.test.ts backend/sync.test.ts tests/local-store.test.ts tests/sync.test.ts",
-    "test:device": "bun test shared/device.test.ts backend/device-migration.test.ts backend/devices.test.ts backend/device-events.test.ts tests/devices.test.ts"
+    "test:device": "bun test shared/device.test.ts backend/device-migration.test.ts backend/devices.test.ts backend/device-events.test.ts tests/devices.test.ts tests/scale.test.ts"
   },
   "patchedDependencies": {
     "@capacitor/local-notifications@7.0.7": "patches/@capacitor%2Flocal-notifications@7.0.7.patch"
@@ -26,6 +26,7 @@
     "vite": "^6.4.1"
   },
   "dependencies": {
+    "@capacitor-community/bluetooth-le": "7.3.2",
     "@capacitor/android": "7.6.9",
     "@capacitor/core": "7.6.9",
     "@capacitor/ios": "7.6.9",

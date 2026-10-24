@@ -7,3 +7,5 @@
 .device-panel p { margin: 8px 0 0; }
 .device-panel .device-time { color: #5d6870; }
 .device-panel .device-error { color: #914530; }
+.device-panel .scale-live { color: var(--ink-2, #284b49); font-weight: 600; }
+.device-panel .scale-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
