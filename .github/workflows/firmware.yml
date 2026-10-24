@@ -1,4 +1,4 @@
-# Compiles the smart base firmware on every change, so it stays buildable before the hardware exists.
+# Compiles the scale firmware on every change, so it stays buildable.
 name: firmware
 
 on:
@@ -13,19 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Core logic tests (no board needed)
-        run: sh firmware/test/run.sh
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: actions/cache@v4
-        with:
-          path: ~/.platformio
-          key: pio-${{ hashFiles('firmware/platformio.ini') }}
-      - name: Install PlatformIO
-        run: pip install platformio==6.1.16
-      - name: Build for ESP32-S3
-        # The real secrets.h is git-ignored; the template is enough to compile. Nothing is uploaded.
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install ESP32 core and libraries
         run: |
-          cp firmware/include/secrets.example.h firmware/include/secrets.h
-          pio run -d firmware
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.12 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli lib install "HX711 Arduino Library@0.7.5" "U8g2@2.36.19"
+      - name: Build for ESP32-WROOM-32
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 firmware
