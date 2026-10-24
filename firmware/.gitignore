@@ -1,4 +1,0 @@
-# Wi-Fi password and device token live here; copy include/secrets.example.h.
-include/secrets.h
-.pio/
-test/build/
