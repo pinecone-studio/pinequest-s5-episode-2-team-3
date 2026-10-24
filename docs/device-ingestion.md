@@ -1,6 +1,6 @@
 # 3-р ажил: ухаалаг суурь → backend → апп
 
-Хүн дурын саваа суурин дээр тавина. Суурь (load cell + HX711 + ESP32-S3) жингийн өөрчлөлтөөс **уусан хэмжээг өөрөө тооцож**, Wi-Fi/HTTPS-ээр серверт илгээнэ. Апп `/api/sync`-ээр бүртгэлээ авч, `/api/devices`-ээс суурийн төлөвийг (үлдэгдэл, өргөсөн эсэх, сүүлд хэзээ мэдээлсэн) харуулна. Firmware: [firmware/README.md](../firmware/README.md).
+Хүн дурын саваа суурин дээр тавина. Суурь (load cell + HX711 + ESP32) жингийн өөрчлөлтөөс **уусан хэмжээг өөрөө тооцож**, Wi-Fi/HTTPS-ээр серверт илгээнэ. Апп `/api/sync`-ээр бүртгэлээ авч, `/api/devices`-ээс суурийн төлөвийг (үлдэгдэл, өргөсөн эсэх, сүүлд хэзээ мэдээлсэн) харуулна. Firmware: [firmware/README.md](../firmware/README.md).
 
 Уусныг **зөвхөн суурь** тоолно. Сервер хэмжилтээс уулт үүсгэхгүй, тиймээс нэг уулт хоёр удаа тоологдохгүй.
 
@@ -43,7 +43,7 @@ Retry нь хэрэглэгчийн «Асгасан» засварыг дарж
 
 ## Суурийн тооцоолох дүрэм
 
-Firmware-ийн `lib/dusal_core/intake` нь `shared/device.ts`-ийн босготой ижил.
+Суурийн firmware энэ дүрмийг `shared/device.ts`-ийн босготой ижлээр хэрэгжүүлэх ёстой (одоогийн `firmware/` нь зөвхөн жин харуулдаг, серверт илгээдэггүй).
 
 | Нөхцөл | Үйлдэл |
 |---|---|
@@ -100,12 +100,11 @@ VITE_API_URL=http://127.0.0.1:8790 bun run dev --port 5177 --strictPort
 bun run test:contract
 bun run test:sync
 bun run test:device
-bun run test:firmware
 bun run build
 node --check public/sw.js
 ```
 
-Тестүүд бодит Worker SQL-ийг SQLite дээр ажиллуулж, auth, суурийн уултын retry/засвар/устгал, төлөвийн stale/out-of-order, concurrent retry, rollback-ийг шалгана. Суурийн төлөв + уулт → app sync → cached status бүрэн урсгал мөн тесттэй. `bun run test:firmware` нь firmware-ийн тооцоолол, дараалал, JSON-ийг компьютер дээр шалгаж, тэр JSON-ийг жинхэнэ Worker-т илгээж шалгана. Локал Wrangler/D1 дээр synthetic payload-оор шалгасан нь бодит load cell-ийн нарийвчлал, утасны app/HTTPS deployment шалгагдсан гэсэн үг биш.
+Тестүүд бодит Worker SQL-ийг SQLite дээр ажиллуулж, auth, суурийн уултын retry/засвар/устгал, төлөвийн stale/out-of-order, concurrent retry, rollback-ийг шалгана. Суурийн төлөв + уулт → app sync → cached status бүрэн урсгал мөн тесттэй. Локал Wrangler/D1 дээр synthetic payload-оор шалгасан нь бодит load cell-ийн нарийвчлал, утасны app/HTTPS deployment шалгагдсан гэсэн үг биш.
 
 ## Буцаах
 
