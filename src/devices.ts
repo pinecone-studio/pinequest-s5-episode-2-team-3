@@ -1,12 +1,15 @@
 import { store, announce } from './storage';
 import { sync } from './sync';
 import { DeviceClient } from './device-client';
+import { scale } from './scale';
 
 export const devices = new DeviceClient(store, fetch, () => announce('device'), () => sync.run());
 let started = false;
 export function startDevices(): void {
   if (started) return;
   started = true;
+  // A remembered Bluetooth base reconnects on every page that shows device data.
+  scale.start();
   void devices.refresh();
   window.addEventListener('online', () => void devices.refresh());
   window.addEventListener('focus', () => void devices.refresh());
