@@ -1,16 +1,81 @@
 import { devices, startDevices, deviceSummary } from '../devices';
-import { escape } from '../format';
+import { scale } from '../scale';
+import type { ScaleStatus } from '../scale-protocol';
+import { escape, number } from '../format';
 import './device-panel.css';
 
-export function DevicePanel(): string { return '<section class="device-panel" aria-labelledby="device-title" data-device-panel></section>'; }
+export function DevicePanel(): string {
+  return `<section class="device-panel" aria-labelledby="scale-title" data-scale-panel></section>
+    <section class="device-panel" aria-labelledby="device-title" data-device-panel></section>`;
+}
 let listening = false;
 export function bindDevicePanel(onMeasurement: () => void): void {
   startDevices();
   if (!listening) {
     window.addEventListener('dusal-device-view', () => { renderPanel(); onMeasurement(); });
+    window.addEventListener('dusal-scale', renderScale);
     listening = true;
   }
   renderPanel();
+  renderScale();
+}
+
+function scaleLine(s: ScaleStatus | null): string {
+  if (!s) return '';
+  if (!s.calibrated) return 'Суурь калибровк хийгдээгүй байна (Serial Monitor: tare, cal 500).';
+  const parts = [`Жин ${number(s.weightG)} г`];
+  if (s.phase === 'moving') parts.push('тогтворжиж байна…');
+  else if (s.phase === 'empty') parts.push('сав тавиагүй');
+  else if (s.remainingMl !== null) parts.push(`үлдсэн ус ${number(s.remainingMl)} мл`);
+  else if (!s.bottleSet) parts.push('хоосон саваа тавиад суурийн BOOT товчийг дарна уу');
+  if (s.waiting) parts.push(`илгээгдээгүй уулт ${number(s.waiting)}`);
+  return parts.join(' · ');
+}
+
+function scaleText(): string {
+  const name = escape(scale.name || 'Суурь');
+  if (scale.phase === 'unsupported') return 'Энэ төхөөрөмж дээр Bluetooth ашиглах боломжгүй. Android апп эсвэл Chrome хөтөч ашиглана уу.';
+  if (scale.phase === 'connected') return `${name} холбогдсон. Уусан ус автоматаар бүртгэгдэнэ.`;
+  if (scale.phase === 'connecting') return `${name}-тай холбогдож байна…`;
+  return scale.saved ? `${name} холбогдоогүй байна.` : 'Ухаалаг суурийг Bluetooth-ээр холбоно. Суурь асаалттай, утсанд ойрхон байх ёстой.';
+}
+
+// Rebuilt only when the connection changes; the live line is updated in place every second.
+function renderScale(): void {
+  const host = document.querySelector<HTMLElement>('[data-scale-panel]');
+  if (!host) return;
+  const key = [scale.phase, scale.saved, scale.name, scale.message].join('|');
+  if (host.dataset.key !== key) {
+    host.dataset.key = key;
+    const buttons = scale.phase === 'unsupported' ? '' : scale.phase === 'off' && !scale.saved
+      ? '<button type="button" data-scale-pair>Суурь хайх</button>'
+      : `${scale.phase === 'off' ? '<button type="button" data-scale-retry>Дахин холбох</button>' : ''}<button type="button" data-scale-forget>Салгах</button>`;
+    host.innerHTML = `<div class="device-heading"><h2 id="scale-title">Bluetooth суурь</h2></div>
+      <p role="status">${scaleText()}</p>
+      <p class="scale-live" data-scale-live></p>
+      ${scale.message ? `<p>${escape(scale.message)}</p>` : ''}
+      ${buttons ? `<div class="scale-actions">${buttons}</div>` : ''}
+      <p class="device-error" role="alert" hidden></p>`;
+    host.querySelector('[data-scale-pair]')?.addEventListener('click', () => void act(host, () => scale.pair()));
+    host.querySelector('[data-scale-retry]')?.addEventListener('click', () => scale.reconnect());
+    host.querySelector('[data-scale-forget]')?.addEventListener('click', () => void act(host, () => scale.forget()));
+  }
+  const live = host.querySelector<HTMLElement>('[data-scale-live]')!;
+  live.textContent = scale.phase === 'connected' ? scaleLine(scale.status) : '';
+  live.hidden = !live.textContent;
+}
+
+async function act(host: HTMLElement, action: () => Promise<void>): Promise<void> {
+  const alert = host.querySelector<HTMLElement>('.device-error')!;
+  alert.hidden = true;
+  host.querySelectorAll<HTMLButtonElement>('button').forEach(e => { e.disabled = true; });
+  try { await action(); }
+  catch (error) {
+    // Closing the system's device picker is not an error.
+    if (error instanceof Error && /cancel/i.test(`${error.name} ${error.message}`)) return;
+    alert.hidden = false;
+    alert.textContent = 'Bluetooth асаалттай, апп Bluetooth ашиглах зөвшөөрөлтэй эсэхийг шалгана уу.';
+  } finally { host.querySelectorAll<HTMLButtonElement>('button').forEach(e => { e.disabled = false; }); }
 }
 function renderPanel(): void {
   const host = document.querySelector<HTMLElement>('[data-device-panel]');
