@@ -12,6 +12,8 @@
 #include <U8g2lib.h>
 #include <Wire.h>
 #include <esp_timer.h>
+#include "image.h"  // the Dusal bottle, tools/make_image.py
+#include "text.h"   // Mongolian words (the OLED fonts here have no Ө/Ү), tools/make_text.py
 
 // ---------- Settings ----------
 // Wiring for an ESP32-WROOM-32 DevKit. Change these if your board is wired differently.
@@ -32,7 +34,7 @@ const uint8_t OLED_I2C_ADDRESS = 0x3C;
 const float MAX_LOAD_G = 5000;         // load cell rating; above this the screen shows OVER
 const int SMOOTHING_SAMPLES = 10;      // moving average; the HX711 gives 10 samples/s, so about 1 s
 const int TARE_SAMPLES = 20;           // tare and calibration average 2 s of readings
-const uint32_t SCREEN_INTERVAL_MS = 200;
+const uint32_t SCREEN_INTERVAL_MS = 100;  // 10 frames a second, so the bottle on the screen moves smoothly
 
 // Drink detection, same thresholds as shared/device.ts. 1 g of water = 1 ml.
 const float PRESENT_MIN_G = 30;        // below this the base is empty (bottle lifted)
@@ -408,7 +410,52 @@ bool readScale() {
   return true;
 }
 
-// Big weight in the middle (water only once the bottle is set), a hint line on top with the Bluetooth state.
+void drawText(const Text& t, int x, int y) { display.drawXBMP(x, y, t.width, t.height, t.bits); }
+
+bool imagePixel(int x, int y) {
+  if (x < 0 || y < 0 || x >= kImageWidth || y >= kImageHeight) return false;
+  return kImage[y * ((kImageWidth + 7) / 8) + x / 8] >> (x % 8) & 1;
+}
+
+// The Dusal bottle on the left is alive: it bobs a pixel or two, waves its hand and blinks every few seconds.
+void drawMascot() {
+  static const uint8_t bob[] = {0, 1, 2, 1};
+  const int dy = bob[millis() / 400 % 4];
+  display.drawXBMP(0, dy, kImageWidth, kImageHeight, kImage);
+  // The hand (x 41-50, y 23-40 in image.h) swings ±14° about the wrist. Each screen pixel near it looks up
+  // where it came from in the still drawing, so the turned hand has no holes.
+  const int handX = 41, handTop = 23, handBottom = 40, pivotX = 42, pivotY = 39;
+  const float angle = 0.25f * sinf(millis() * 2 * PI / 900);
+  const float c = cosf(angle), s = sinf(angle);
+  display.setDrawColor(0);
+  display.drawBox(handX, handTop + dy, kImageWidth - handX, handBottom - handTop + 1);
+  display.setDrawColor(1);
+  for (int y = handTop - 6; y <= handBottom + 2; y++) {
+    for (int x = handX - 3; x < kImageWidth + 4; x++) {
+      const float rx = x - pivotX, ry = y - pivotY;
+      const int sx = lroundf(pivotX + rx * c + ry * s), sy = lroundf(pivotY - rx * s + ry * c);
+      if (sx >= handX && sy >= handTop && sy <= handBottom && imagePixel(sx, sy)) display.drawPixel(x, y + dy);
+    }
+  }
+  if (millis() % 4000 < 180) {  // eyes shut: wipe them and draw a lid line (eye boxes from image.h)
+    for (int eyeX : {15, 27}) {
+      display.setDrawColor(0);
+      display.drawBox(eyeX, 28 + dy, 7, 6);
+      display.setDrawColor(1);
+      display.drawHLine(eyeX, 31 + dy, 7);
+    }
+  }
+}
+
+// A number with its unit ("мл", "г") after it, on the same baseline.
+void drawValue(const char* number, const Text& unit, int x, int baseline) {
+  display.setFont(u8g2_font_helvB18_tn);
+  display.drawStr(x, baseline, number);
+  drawText(unit, x + display.getStrWidth(number) + 3, baseline - unit.height);
+}
+
+// The bottle on the left; on the right the water in the bottle (once its empty weight is set) or the weight,
+// and the Bluetooth state at the bottom.
 void drawScreen() {
   static uint32_t lastDraw = 0;
   if (!hasDisplay || millis() - lastDraw < SCREEN_INTERVAL_MS) return;
@@ -416,26 +463,25 @@ void drawScreen() {
   if (!hx711Alive()) { showMessage("HX711 alga", "DT/SCK, 3.3V shalga"); return; }
   if (!calibrated()) { showMessage("Kalibrovk hii", "Serial: tare, cal 500"); return; }
 
-  float g = grams();
+  const float g = grams();
+  const bool water = bottleG > 0;
   char number[12];
   if (g > MAX_LOAD_G) snprintf(number, sizeof number, "OVER");
-  else if (bottleG > 0 && g < PRESENT_MIN_G) snprintf(number, sizeof number, "--");
-  else snprintf(number, sizeof number, "%ld", lroundf(g - bottleG));
+  else if (water && g < PRESENT_MIN_G) snprintf(number, sizeof number, "--");
+  else if (water) snprintf(number, sizeof number, "%ld", lroundf(g - bottleG));
+  else snprintf(number, sizeof number, fabsf(g) < 99.95f ? "%.1f" : "%.0f", g);  // ~0.1 g resolution
   char link[12] = "";
   if (queued) snprintf(link, sizeof link, bleConnected ? "BT %d" : "%d hulee", queued);
   else if (bleConnected) strcpy(link, "BT");
 
+  const int x = kImageWidth + 6;
   display.clearBuffer();
+  drawMascot();
+  drawText(water ? kTextWater : kTextWeight, x, 6);
+  drawValue(number, water ? kTextMl : kTextG, x, 38);
+  if (!water && phase == PRESENT) drawText(kTextTare, x, 46);  // a bottle is on: its empty weight is not set yet
   display.setFont(u8g2_font_6x10_tr);
-  display.drawStr(0, 10, bottleG > 0 ? "US" : "JIN");
-  display.drawStr((128 - display.getStrWidth(link)) / 2, 10, link);
-  display.drawStr(128 - display.getStrWidth("BOOT=tare"), 10, "BOOT=tare");
-  display.drawHLine(0, 14, 128);
-  display.setFont(u8g2_font_logisoso28_tr);
-  int right = 104;
-  display.drawStr(right - display.getStrWidth(number), 54, number);
-  display.setFont(u8g2_font_helvB14_tr);
-  display.drawStr(right + 6, 54, "g");
+  display.drawStr(x, 63, link);
   display.sendBuffer();
 }
 
