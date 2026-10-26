@@ -35,6 +35,10 @@ const float MAX_LOAD_G = 5000;         // load cell rating; above this the scree
 const int SMOOTHING_SAMPLES = 10;      // moving average; the HX711 gives 10 samples/s, so about 1 s
 const int TARE_SAMPLES = 20;           // tare and calibration average 2 s of readings
 const uint32_t SCREEN_INTERVAL_MS = 100;  // 10 frames a second, so the bottle on the screen moves smoothly
+// The screen wakes when the weight changes by more than SCREEN_WAKE_G and goes dark after SCREEN_ON_MS
+// without a change. Saves power and keeps the OLED from burning in.
+const uint32_t SCREEN_ON_MS = 10000;
+const float SCREEN_WAKE_G = 3;
 
 // Drink detection, same thresholds as shared/device.ts. 1 g of water = 1 ml.
 const float PRESENT_MIN_G = 30;        // below this the base is empty (bottle lifted)
@@ -410,6 +414,18 @@ bool readScale() {
   return true;
 }
 
+uint32_t screenOnUntil = SCREEN_ON_MS;
+bool screenOn = true;
+float wakeG = 0;  // the weight when the screen last woke
+
+// Touching or changing what is on the scale keeps the screen on; it sleeps once the weight stays put.
+void watchScreen() {
+  if (!calibrated() || fabsf(grams() - wakeG) <= SCREEN_WAKE_G) return;
+  wakeG = grams();
+  screenOnUntil = millis() + SCREEN_ON_MS;
+  if (!screenOn && hasDisplay) { display.setPowerSave(0); screenOn = true; }
+}
+
 void drawText(const Text& t, int x, int y) { display.drawXBMP(x, y, t.width, t.height, t.bits); }
 
 bool imagePixel(int x, int y) {
@@ -462,6 +478,10 @@ void drawScreen() {
   lastDraw = millis();
   if (!hx711Alive()) { showMessage("HX711 alga", "DT/SCK, 3.3V shalga"); return; }
   if (!calibrated()) { showMessage("Kalibrovk hii", "Serial: tare, cal 500"); return; }
+  if ((int32_t)(millis() - screenOnUntil) >= 0) {
+    if (screenOn) { display.setPowerSave(1); screenOn = false; }
+    return;
+  }
 
   const float g = grams();
   const bool water = bottleG > 0;
@@ -553,7 +573,7 @@ void loop() {
     if (millis() - pressedAt >= 50) pressBoot();
     pressedAt = 0;
   }
-  if (readScale()) track();
+  if (readScale()) { track(); watchScreen(); }
   serviceBle();
   drawScreen();
 }
