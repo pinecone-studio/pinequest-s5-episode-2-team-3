@@ -203,7 +203,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         <button type="button" class="ob-social" data-social>Apple-аар үргэлжлүүлэх</button>
         <p class="ob-demo">Demo: имэйл, нууц үг хаашаа ч илгээгдэхгүй. Нэр зөвхөн энэ утсанд хадгалагдана.</p>
         <p class="ob-error" role="alert" hidden></p>
-        <div class="ob-actions single"><button type="button" class="ob-primary" data-signup>Бүртгүүлэх</button></div></div>`;
+        <div class="ob-actions"><button type="button" class="ob-ghost" data-demo>Demo</button><button type="button" class="ob-primary" data-signup>Бүртгүүлэх</button></div></div>`;
     }
     if (screen === 'making') {
       return `<div class="ob-making"><h2 id="onb-title">Таны усны төлөвлөгөөг гаргаж байна…</h2><p class="ob-lead">Түр хүлээнэ үү.</p>
@@ -338,6 +338,11 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       if (!name.trim()) { error.textContent = 'Нэрээ бичнэ үү.'; error.hidden = false; return; }
       if (!agreed) { error.textContent = 'Үйлчилгээний нөхцөлийг зөвшөөрнө үү.'; error.hidden = false; return; }
       saveMember(name);
+      screen = 'step'; step = 1; draw();
+    });
+    // Demo: skip the form; the typed name is kept, otherwise "Demo".
+    on('[data-demo]', () => {
+      saveMember(box.querySelector<HTMLInputElement>('#ob-name')!.value.trim() || 'Demo');
       screen = 'step'; step = 1; draw();
     });
     on('[data-sex]', el => { sex = el.dataset.sex as Sex; if (sex !== 'female' && FOR_WOMEN.includes(p.condition)) p.condition = 'none'; draw(); });
