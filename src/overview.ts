@@ -90,7 +90,8 @@ function versusGoal(d: { ml: number; mode: 'goal' | 'limit' }): { text: string; 
 // One card per source; AI stays unselectable until it has answered.
 function optionCard(s: Source, p: Profile): string {
   const d = suggestion(p, s);
-  const empty = aiAsking ? 'Бодож байна…' : aiReady === false ? 'Идэвхгүй' : 'Асуугаагүй';
+  const empty = aiAsking ? 'Бодож байна…' : aiReady === false ? 'Идэвхгүй' : aiError ? 'Хариу ирсэнгүй'
+    : p.condition === 'other' && p.conditionNote.trim().length < 3 ? 'Оношоо бичнэ үү' : 'Асуугаагүй';
   return `<button type="button" class="plan-option" role="radio" aria-checked="${s === source}" data-source="${s}" ${d ? '' : 'disabled'} ${s === 'doctor' && p.condition === 'none' ? 'hidden' : ''}>
     <span class="opt-name">${SOURCES[s]}</span>
     ${d ? `<span class="opt-amount" data-opt-amount="${s}">${liters(d.ml)} л</span><span class="opt-kind" data-opt-kind="${s}">${kindLabel(d.mode)}</span>` : `<span class="opt-empty">${empty}</span>`}
@@ -129,7 +130,8 @@ function planSection(p: Profile): string {
         <label>Жин, кг<input id="plan-weight" name="weight" type="number" inputmode="numeric" min="10" max="250" value="${p.weight}"/></label>
         <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
         <label class="wide">Онош<select id="plan-condition" name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${p.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
-        ${p.condition === 'other' ? `<label class="wide">Ямар онош вэ?<input id="plan-condition-note" name="conditionNote" type="text" maxlength="60" placeholder="Жишээ: чихрийн шижин" value="${escape(p.conditionNote)}"/></label>` : ''}
+        ${p.condition === 'other' ? `<label class="wide">Ямар онош вэ?<input id="plan-condition-note" name="conditionNote" type="text" maxlength="60" placeholder="Оношоо энд бичнэ үү" aria-describedby="plan-condition-hint" value="${escape(p.conditionNote)}"/>
+          <small id="plan-condition-hint">${aiReady === false ? 'AI идэвхгүй байна. Энэ оношид тохирох хэмжээг эмчээсээ асуугаарай.' : 'Бичээд түр хүлээхэд AI таны оношийг харгалзан тооцно. «Тооцоолсон» хэмжээ өөрчлөгдөхгүй.'}</small></label>` : ''}
       </div>
       <div class="plan-doctor" ${noDoctor ? 'hidden' : ''}>
       <p class="plan-step">Эмчийн заавар <small>байвал</small></p>
