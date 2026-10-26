@@ -1,0 +1,53 @@
+/* Family: one white card like the settings sections; a ranked list of buddies with their progress. */
+.family-page { --muted-2: #5f6877; --water: #00bedc; --water-soft: #dff6fa; }
+.fam-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 18px 14px; }
+.fam-card { display: grid; gap: 14px; padding: 20px; border-radius: 22px; background: #fff; box-shadow: 0 6px 24px rgba(20, 32, 52, .06); color: var(--ink-2); }
+.fam-card h1 { font-size: 26px; font-weight: 700; letter-spacing: -.8px; }
+.fam-card label { margin: 0; color: var(--muted-2); font-size: 14px; }
+.fam-card input { margin-top: 6px; min-height: 50px; border: 1px solid #e3e7ee; border-radius: 12px; background-color: #f8fafc; font-size: 17px; color: var(--ink-2); }
+.fam-card input:focus { border-color: #8ddfee; background-color: #fff; }
+.fam-card .form-error { margin: 0; }
+
+.fam-join { justify-items: center; text-align: center; }
+.fam-join > p { color: var(--muted-2); max-width: 34ch; }
+.fam-join form { display: grid; gap: 12px; width: 100%; text-align: left; }
+.fam-hero { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #fff5d6; color: #d99a00; font-size: 34px; }
+.fam-base { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 12px; background: #ecf8f1; color: #1f7a4f; font-size: 14px; }
+.fam-base .md-icon { font-size: 20px; }
+.fam-hint { margin: -4px 0 0; font-size: 13px; color: var(--muted-2); }
+.fam-hint a { color: #0096b4; text-decoration: underline; }
+.fam-go { width: 100%; }
+.fam-scan { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; border: 1.5px dashed #8ddfee; border-radius: 14px; background: #f1fbfd; color: #005f73; font-size: 15px; font-weight: 700; }
+.fam-scan .md-icon { font-size: 20px; color: #00bedc; }
+.fam-scan:hover { background: #e8f9fc; }
+
+.fam-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.fam-head span { font-size: 14px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+.fam-board { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.fam-row { display: grid; grid-template-columns: 30px 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 18px; background: #f7f9fc; }
+.fam-row.me { background: #e8f9fc; box-shadow: inset 0 0 0 1.5px #8ddfee; }
+.fam-rank { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-size: 15px; font-weight: 800; color: #6a7586; font-variant-numeric: tabular-nums; }
+.fam-rank.medal { background: var(--medal); color: #fff; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .12); }
+.fam-rank.none { color: #8a95a6; font-size: 18px; }
+.fam-avatar svg { display: block; width: 44px; height: auto; overflow: visible; }
+/* The buddy is drawn small here: thinner lines read better. */
+.fam-avatar :is(.buddy-outline, .buddy-ear) { stroke-width: 6; }
+.fam-main { display: grid; gap: 4px; min-width: 0; }
+.fam-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; }
+.fam-main b small { font-weight: 500; color: #0096b4; font-size: 13px; }
+.fam-bar { height: 8px; border-radius: 999px; background: #e3e9f0; overflow: hidden; }
+.fam-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #33cfe6, #00bedc); transition: width .6s ease-out; }
+.fam-row.limit .fam-bar i { background: #9fb3c8; }
+.fam-ml { font-size: 12px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+.fam-status { font-size: 15px; font-weight: 800; color: #0096b4; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fam-row.limit .fam-status { font-size: 13px; font-weight: 600; color: #5f6877; }
+.fam-status .md-icon { color: #d99a00; }
+
+.fam-note, .fam-empty { margin: 0; font-size: 13px; color: var(--muted-2); }
+.fam-invite { display: flex; gap: 8px; margin: 0; padding: 12px; border-radius: 14px; background: #f1fbfd; color: #005f73; font-size: 14px; }
+.fam-invite .md-icon { flex-shrink: 0; color: #00bedc; font-size: 20px; }
+.fam-rename { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; }
+.fam-rename[hidden] { display: none; }
+.fam-actions { display: flex; align-items: center; gap: 4px 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted-2); }
+.fam-actions span { margin-right: auto; }
+@media (prefers-reduced-motion: reduce) { .fam-bar i { transition: none; } }

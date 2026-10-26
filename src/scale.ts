@@ -38,6 +38,8 @@ export class ScaleLink {
   private started = false;
 
   get saved(): boolean { return readSaved() !== null; }
+  // The connected base's device ID, which is also its family's ID (shared/family.ts); '' when not connected.
+  get baseId(): string { return this.phase === 'connected' ? this.deviceId : ''; }
   private changed(): void { window.dispatchEvent(new Event('dusal-scale')); }
   private init(): Promise<void> {
     return this.ready ??= BleClient.initialize().catch(error => { this.ready = undefined; throw error; });
@@ -47,11 +49,34 @@ export class ScaleLink {
     if (this.started || this.phase === 'unsupported') return;
     this.started = true;
     this.reconnect();
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.reconnect(); });
+    document.addEventListener('visibilitychange', () => {
+      // The base takes one phone at a time: the Android app lets go when it goes to the background so
+      // another family member can connect, and takes it back on return. (A browser would have to ask
+      // the person to pick the base again, so it keeps the link.)
+      if (document.hidden && Capacitor.isNativePlatform()) void this.release();
+      else if (!document.hidden) this.reconnect();
+    });
   }
   reconnect(): void {
     const saved = readSaved();
     if (saved && this.phase === 'off') void this.connect(saved);
+  }
+  // The saved base's Bluetooth address, for its QR; only the Android app has a stable one.
+  get address(): string | null { return Capacitor.isNativePlatform() ? readSaved()?.bleId ?? null : null; }
+  // From the base's QR: connect straight to its address, without the system's device list.
+  async connectTo(bleId: string, name: string): Promise<void> {
+    if (!Capacitor.isNativePlatform()) throw new Error('Шууд холболт зөвхөн Android апп дээр ажиллана.');
+    const saved = { bleId, name };
+    writeSaved(saved);
+    await this.connect(saved);
+  }
+  private async release(): Promise<void> {
+    clearTimeout(this.retry);
+    const bleId = this.bleId;
+    if (!bleId) return;
+    this.bleId = null; this.status = null; this.phase = 'off'; this.message = '';
+    this.changed();
+    await BleClient.disconnect(bleId).catch(() => {});
   }
   // Asks the user to pick the scale (system dialog), then connects.
   async pair(): Promise<void> {
@@ -84,6 +109,7 @@ export class ScaleLink {
       await BleClient.startNotifications(bleId, SCALE_SERVICE, DRINK_CHAR, value => this.receive(value));
       this.phase = 'connected';
       this.changed();
+      if (document.hidden && Capacitor.isNativePlatform()) { void this.release(); return; }
       // A drink already waiting is notified again only after a few seconds; take it now.
       this.receive(await BleClient.read(bleId, SCALE_SERVICE, DRINK_CHAR));
     } catch {

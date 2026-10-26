@@ -9,6 +9,7 @@ export default defineConfig({
         main: resolve(import.meta.dirname, 'index.html'),
         entries: resolve(import.meta.dirname, 'entries.html'),
         history: resolve(import.meta.dirname, 'history.html'),
+        family: resolve(import.meta.dirname, 'family.html'),
         overview: resolve(import.meta.dirname, 'overview.html'),
         settings: resolve(import.meta.dirname, 'settings.html'),
       },
