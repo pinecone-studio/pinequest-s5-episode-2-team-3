@@ -32,7 +32,7 @@ using OledDisplay = U8G2_SSD1306_128X64_NONAME_F_HW_I2C;
 const uint8_t OLED_I2C_ADDRESS = 0x3C;
 
 const float MAX_LOAD_G = 5000;         // load cell rating; above this the screen shows OVER
-const int SMOOTHING_SAMPLES = 10;      // moving average; the HX711 gives 10 samples/s, so about 1 s
+const int SMOOTHING_SAMPLES = 8;       // moving average; the HX711 gives 10 samples/s, so 0.8 s
 const int TARE_SAMPLES = 20;           // tare and calibration average 2 s of readings
 const uint32_t SCREEN_INTERVAL_MS = 100;  // 10 frames a second, so the bottle on the screen moves smoothly
 // The screen wakes when the weight changes by more than SCREEN_WAKE_G and goes dark after SCREEN_ON_MS
@@ -40,14 +40,15 @@ const uint32_t SCREEN_INTERVAL_MS = 100;  // 10 frames a second, so the bottle o
 const uint32_t SCREEN_ON_MS = 10000;
 const float SCREEN_WAKE_G = 3;
 
-// Drink detection, same thresholds as shared/device.ts. 1 g of water = 1 ml.
-const float PRESENT_MIN_G = 30;        // below this the base is empty (bottle lifted)
-const float STABLE_BAND_G = 15;        // the last second of samples must agree this closely
-const uint32_t SETTLE_MS = 1500;       // ...for this long before the weight counts as settled
-const int MEASUREMENTS = 4;            // then this many 1 s averages, 200 ms apart, are averaged
-const uint32_t MEASURE_GAP_MS = 200;
-const int MIN_DRINK_ML = 100;          // smallest settled drop that is a drink; smaller sips add up
-const int MIN_REFILL_ML = 20;          // smallest settled rise that is a refill
+// Drink detection, same thresholds as shared/device.ts. 1 g of water = 1 ml. The load cell drifts only
+// ±0.3 g when still, so a single sip counts and the phone hears of it about 1.7 s after the bottle is put down.
+const float PRESENT_MIN_G = 2;         // below this the base is empty (bottle lifted)
+const float STABLE_BAND_G = 15;        // the last 0.8 s of samples must agree this closely
+const uint32_t SETTLE_MS = 700;        // ...for this long before the weight counts as settled
+const int MEASUREMENTS = 3;            // then this many 0.8 s averages, 100 ms apart, are averaged
+const uint32_t MEASURE_GAP_MS = 100;
+const int MIN_DRINK_ML = 5;            // smallest settled drop that is a drink; smaller changes add up
+const int MIN_REFILL_ML = 5;           // smallest settled rise that is a refill
 const int MAX_CHANGE_ML = 5000;        // a bigger jump is a different bottle, not a drink
 
 const int QUEUE_CAPACITY = 64;         // unconfirmed drinks kept in flash; when full the oldest is dropped
