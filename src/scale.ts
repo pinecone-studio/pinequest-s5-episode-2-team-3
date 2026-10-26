@@ -41,7 +41,9 @@ export class ScaleLink {
   get saved(): boolean { return readSaved() !== null; }
   private changed(): void { window.dispatchEvent(new Event('dusal-scale')); }
   private init(): Promise<void> {
-    return this.ready ??= BleClient.initialize().catch(error => { this.ready = undefined; throw error; });
+    // Only the Bluetooth permissions: a location grant given "only this time" expires and then Bluetooth
+    // fails with "Permission denied" although it is on.
+    return this.ready ??= BleClient.initialize({ androidNeverForLocation: true }).catch(error => { this.ready = undefined; throw error; });
   }
 
   start(): void {
