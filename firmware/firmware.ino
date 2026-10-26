@@ -62,6 +62,13 @@ const uint32_t DRINK_RESEND_MS = 3000;     // the oldest drink is repeated until
 #define DRINK_UUID   "d05a1002-6c2b-4b8e-9f3a-2f1e0c7a5b01"  // read/notify, 14 bytes or empty: see putDrink()
 #define ACK_UUID     "d05a1003-6c2b-4b8e-9f3a-2f1e0c7a5b01"  // write, 8 bytes: boot + n of a saved drink
 #define ID_UUID      "d05a1004-6c2b-4b8e-9f3a-2f1e0c7a5b01"  // read, ASCII device ID, e.g. "dusal-a1b2"
+// write/notify, ASCII. What BOOT does, for a base whose button is sealed in its case, plus what the app knows:
+//   "tare"          the empty bottle is on the scale: once it has settled, remember its weight -> "tare <g>" or "tare-failed"
+//   "zero"          nothing is on the scale: zero it -> "zero"
+//   "bottle <g>"    a bottle saved in the app is used now: its empty weight, and a fresh anchor so the swap
+//                   is never a drink or a refill -> "bottle <g>"
+//   "today <ml>"    the app's total for today (also hand-logged drinks, deletions, the demo reset) for the screen
+#define COMMAND_UUID "d05a1005-6c2b-4b8e-9f3a-2f1e0c7a5b01"
 
 HX711 scale;
 Preferences prefs;
@@ -109,11 +116,16 @@ uint32_t drinkCount = 0;
 char deviceId[16];
 BLECharacteristic* statusChar = nullptr;
 BLECharacteristic* drinkChar = nullptr;
+BLECharacteristic* commandChar = nullptr;
 // Set from the Bluetooth task, handled in loop().
 volatile bool bleConnected = false;
 volatile bool advertiseAgain = false;
 volatile bool ackPending = false;
 volatile uint32_t ackBoot = 0, ackN = 0;
+char command[24];
+volatile bool commandPending = false;
+uint32_t tareUntil = 0;  // an app tare is waiting for the bottle to settle, until this time
+int todayMl = 0;         // drunk today, as the app counts it, plus drinks counted here since
 uint32_t statusSentAt = 0;
 uint32_t drinkSentAt = 0;  // 0: send the oldest drink now
 
@@ -253,6 +265,8 @@ void recordDrink(int amountMl) {
     Serial.println("drink queue full: oldest unsent drink dropped");
   }
   queue[queued++] = { bootId, ++drinkCount, (uint16_t)amountMl, uptimeSec() };
+  todayMl += amountMl;
+  prefs.putInt("today", todayMl);
   saveQueue();
   putDrink();
   drinkSentAt = 0;
@@ -330,6 +344,16 @@ class ServerEvents : public BLEServerCallbacks {
   void onDisconnect(BLEServer*) override { bleConnected = false; advertiseAgain = true; }
 };
 
+class CommandEvents : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* c) override {
+    if (commandPending) return;
+    size_t length = min(c->getLength(), sizeof command - 1);
+    memcpy(command, c->getData(), length);
+    command[length] = 0;
+    commandPending = true;
+  }
+};
+
 class AckEvents : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* c) override {
     if (c->getLength() != 8) return;
@@ -357,6 +381,9 @@ void startBle() {
   drinkChar->addDescriptor(new BLE2902());
   BLECharacteristic* ack = service->createCharacteristic(ACK_UUID, BLECharacteristic::PROPERTY_WRITE);
   ack->setCallbacks(new AckEvents());
+  commandChar = service->createCharacteristic(COMMAND_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
+  commandChar->addDescriptor(new BLE2902());
+  commandChar->setCallbacks(new CommandEvents());
   BLECharacteristic* id = service->createCharacteristic(ID_UUID, BLECharacteristic::PROPERTY_READ);
   id->setValue((uint8_t*)deviceId, strlen(deviceId));
   service->start();
@@ -383,7 +410,53 @@ void sendStatus() {
   statusChar->notify();
 }
 
+void answer(const char* text) {
+  Serial.printf("app command: %s\n", text);
+  if (!commandChar) return;
+  commandChar->setValue((uint8_t*)text, strlen(text));
+  commandChar->notify();
+}
+
+void runCommand() {
+  if (commandPending) {
+    String line(command);
+    commandPending = false;
+    if (line == "tare") tareUntil = millis() + 15000;
+    else if (line == "zero") { tare(); answer("zero"); }
+    else if (line.startsWith("bottle ")) {
+      float g = line.substring(7).toFloat();
+      if (g > 0 && g < MAX_CHANGE_ML) {
+        setBottle(g);
+        hasAnchor = settled && phase == PRESENT;
+        anchorG = settledG;
+        char text[24];
+        snprintf(text, sizeof text, "bottle %.0f", g);
+        answer(text);
+      }
+    } else if (line.startsWith("today ")) {
+      todayMl = max(0L, line.substring(6).toInt());
+      prefs.putInt("today", todayMl);
+    }
+  }
+  // The app's tare: wait until the bottle has settled, then take that weight as the empty bottle.
+  if (tareUntil) {
+    if (settled && phase == PRESENT) {
+      setBottle(settledG);
+      hasAnchor = true;
+      anchorG = settledG;
+      char text[24];
+      snprintf(text, sizeof text, "tare %d", settledG);
+      answer(text);
+      tareUntil = 0;
+    } else if ((int32_t)(millis() - tareUntil) >= 0) {
+      answer("tare-failed");
+      tareUntil = 0;
+    }
+  }
+}
+
 void serviceBle() {
+  runCommand();
   if (advertiseAgain) {
     advertiseAgain = false;
     BLEDevice::startAdvertising();
@@ -466,13 +539,13 @@ void drawMascot() {
 
 // A number with its unit ("мл", "г") after it, on the same baseline.
 void drawValue(const char* number, const Text& unit, int x, int baseline) {
-  display.setFont(u8g2_font_helvB18_tn);
+  display.setFont(u8g2_font_helvB12_tn);
   display.drawStr(x, baseline, number);
   drawText(unit, x + display.getStrWidth(number) + 3, baseline - unit.height);
 }
 
-// The bottle on the left; on the right the water in the bottle (once its empty weight is set) or the weight,
-// and the Bluetooth state at the bottom.
+// The bottle on the left; on the right what was drunk today, the water in the bottle (once its empty weight is
+// set) or the weight, and the Bluetooth state at the bottom.
 void drawScreen() {
   static uint32_t lastDraw = 0;
   if (!hasDisplay || millis() - lastDraw < SCREEN_INTERVAL_MS) return;
@@ -495,14 +568,22 @@ void drawScreen() {
   if (queued) snprintf(link, sizeof link, bleConnected ? "BT %d" : "%d hulee", queued);
   else if (bleConnected) strcpy(link, "BT");
 
+  char today[12];
+  if (todayMl < 1000) snprintf(today, sizeof today, "%d", todayMl);
+  else snprintf(today, sizeof today, "%.1f", todayMl / 1000.0f);  // "1.3 л"
+
   const int x = kImageWidth + 6;
   display.clearBuffer();
   drawMascot();
-  drawText(water ? kTextWater : kTextWeight, x, 6);
-  drawValue(number, water ? kTextMl : kTextG, x, 38);
-  if (!water && phase == PRESENT) drawText(kTextTare, x, 46);  // a bottle is on: its empty weight is not set yet
-  display.setFont(u8g2_font_6x10_tr);
-  display.drawStr(x, 63, link);
+  drawText(kTextToday, x, 0);
+  drawValue(today, todayMl < 1000 ? kTextMl : kTextL, x, 24);
+  drawText(water ? kTextWater : kTextWeight, x, 28);
+  drawValue(number, water ? kTextMl : kTextG, x, 52);
+  if (!water && phase == PRESENT) drawText(kTextTare, x, 55);  // a bottle is on: its empty weight is not set yet
+  else {
+    display.setFont(u8g2_font_6x10_tr);
+    display.drawStr(x, 64, link);
+  }
   display.sendBuffer();
 }
 
@@ -542,6 +623,7 @@ void setup() {
   prefs.begin("scale");
   factor = prefs.getFloat("factor", 0);
   bottleG = prefs.getFloat("bottle", 0);
+  todayMl = prefs.getInt("today", 0);
   bootId = prefs.getUInt("boot", 0) + 1;
   prefs.putUInt("boot", bootId);
   loadQueue();

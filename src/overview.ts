@@ -9,6 +9,7 @@ import { pace } from './pace';
 import { startSync } from './sync';
 import { startDevices } from './devices';
 import { pushWidget } from './widget';
+import { scale } from './scale';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
 import { readMember, saveMember } from './member';
@@ -421,6 +422,7 @@ function render() {
   bindFamily();
   bindHydration(drink, addDrink, render);
   bindStreakCalendar(state.events, state.goal, state.mode);
+  scale.shareToday(drink);  // the base's screen shows the same total
   bindSchedule(() => state, render);
   document.querySelector('#undo')?.addEventListener('click', undo);
   document.querySelector('#demo-reset')?.addEventListener('click', resetToday);

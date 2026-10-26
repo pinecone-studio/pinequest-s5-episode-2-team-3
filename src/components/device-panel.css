@@ -17,3 +17,11 @@
 .profile-panel input { width: 100%; min-height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #b5ceca; border-radius: 8px; font: inherit; font-size: 15px; }
 .profile-panel .profile-label { margin: 12px 0 4px; }
 .profile-panel .profile-avatars .avatar-opt svg { width: 52px; }
+.scale-bottles { margin-top: 8px; }
+.bottle-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.bottle-chip { display: inline-flex; border: 1px solid #b5ceca; border-radius: 999px; overflow: hidden; background: #f6faf9; }
+.bottle-chip.on { border-color: #00bedc; background: #e3f7fb; font-weight: 600; }
+.device-panel .bottle-chip button { min-height: 40px; border: 0; border-radius: 0; background: transparent; }
+.device-panel .bottle-chip .bottle-remove { padding: 8px 12px; color: #5d6870; }
+.bottle-add div { display: flex; gap: 8px; }
+.bottle-add input { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #b5ceca; border-radius: 8px; font: inherit; }

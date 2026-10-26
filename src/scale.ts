@@ -1,9 +1,9 @@
 import { BleClient } from '@capacitor-community/bluetooth-le';
 import { Capacitor } from '@capacitor/core';
-import type { WaterEntry } from './data';
+import { dayKey, type WaterEntry } from './data';
 import { announce, store } from './storage';
 import { sync } from './sync';
-import { ACK_CHAR, DRINK_CHAR, ID_CHAR, SCALE_SERVICE, STATUS_CHAR, ackBytes, deviceIdFrom, drinkEntry, parseDrink, parseStatus, type ScaleStatus } from './scale-protocol';
+import { ACK_CHAR, COMMAND_CHAR, DRINK_CHAR, ID_CHAR, SCALE_SERVICE, STATUS_CHAR, ackBytes, deviceIdFrom, drinkEntry, parseDrink, parseStatus, type ScaleStatus } from './scale-protocol';
 
 // Remembered so the Android app reconnects by itself; a browser has to ask the user every time.
 const SAVED_KEY = 'dusal-scale-v1';
@@ -23,12 +23,29 @@ function writeSaved(saved: Saved | null): void {
 }
 const supported = () => Capacitor.isNativePlatform() || (typeof navigator !== 'undefined' && 'bluetooth' in navigator);
 
+// Named bottles with their empty weight, kept on this phone. Choosing one tells the base which weight to take
+// off, and that the next weight is a new bottle, not a drink or a refill.
+export interface Bottle { id: string; name: string; grams: number }
+const BOTTLES_KEY = 'dusal-bottles-v1';
+export function savedBottles(): { list: Bottle[]; selected: string | null } {
+  try {
+    const saved = JSON.parse(localStorage.getItem(BOTTLES_KEY) ?? 'null');
+    if (saved && Array.isArray(saved.list)) return saved;
+  } catch { /* none saved yet */ }
+  return { list: [], selected: null };
+}
+function writeBottles(value: { list: Bottle[]; selected: string | null }): void {
+  try { localStorage.setItem(BOTTLES_KEY, JSON.stringify(value)); } catch { /* the base still has the weight */ }
+}
+
 // The smart base over Bluetooth LE. It counts drinks itself and repeats the oldest one until the app
 // confirms it, so a drink is confirmed only after it is in local storage; sync then uploads it as usual.
 export class ScaleLink {
   phase: ScalePhase = supported() ? 'off' : 'unsupported';
   name = readSaved()?.name ?? '';
   message = '';
+  // What the last tare/zero/bottle command did, in words for the panel.
+  result = '';
   status: ScaleStatus | null = null;
   private bleId: string | null = null;
   // The base's own ID ("dusal-a1b2"), read on connect; it is also its family's ID (src/family.ts).
@@ -37,6 +54,9 @@ export class ScaleLink {
   private retry?: ReturnType<typeof setTimeout>;
   private saving = Promise.resolve();
   private started = false;
+  private newBottleName: string | null = null;
+  private today = -1;
+  private sentToday = -1;
 
   get saved(): boolean { return readSaved() !== null; }
   private changed(): void { window.dispatchEvent(new Event('dusal-scale')); }
@@ -83,7 +103,11 @@ export class ScaleLink {
       this.baseId = deviceIdFrom(await BleClient.read(bleId, SCALE_SERVICE, ID_CHAR));
       await BleClient.startNotifications(bleId, SCALE_SERVICE, STATUS_CHAR, value => this.onStatus(value));
       await BleClient.startNotifications(bleId, SCALE_SERVICE, DRINK_CHAR, value => this.receive(value));
+      // A base with older firmware has no command channel; it still weighs and counts.
+      await BleClient.startNotifications(bleId, SCALE_SERVICE, COMMAND_CHAR, value => this.answered(value)).catch(() => {});
       this.phase = 'connected';
+      this.sentToday = -1;
+      void this.sendToday();
       this.changed();
       // A drink already waiting is notified again only after a few seconds; take it now.
       this.receive(await BleClient.read(bleId, SCALE_SERVICE, DRINK_CHAR));
@@ -107,6 +131,82 @@ export class ScaleLink {
   private later(): void {
     clearTimeout(this.retry);
     if (this.saved) this.retry = setTimeout(() => { if (!document.hidden) this.reconnect(); }, RETRY_MS);
+  }
+
+  // ---------- Commands (what BOOT does, for a base sealed in its case) ----------
+
+  async command(text: string): Promise<void> {
+    const bleId = this.bleId;
+    if (!bleId) throw new Error('Эхлээд суурьтай Bluetooth-ээр холбогдоно уу.');
+    await BleClient.write(bleId, SCALE_SERVICE, COMMAND_CHAR, new DataView(new TextEncoder().encode(text).buffer));
+  }
+  private say(result: string): void { this.result = result; this.changed(); }
+
+  // The empty bottle is on the base: weigh it once it is still and save it under this name.
+  async addBottle(name: string): Promise<void> {
+    this.newBottleName = name.trim() || `Сав ${savedBottles().list.length + 1}`;
+    this.say('Жин тогтворжихыг хүлээж байна…');
+    try { await this.command('tare'); } catch (error) { this.newBottleName = null; throw error; }
+  }
+  async chooseBottle(id: string): Promise<void> {
+    const saved = savedBottles();
+    const bottle = saved.list.find(b => b.id === id);
+    if (!bottle) return;
+    writeBottles({ ...saved, selected: id });
+    this.say('Сонгож байна…');
+    await this.command(`bottle ${bottle.grams}`);
+  }
+  removeBottle(id: string): void {
+    const saved = savedBottles();
+    writeBottles({ list: saved.list.filter(b => b.id !== id), selected: saved.selected === id ? null : saved.selected });
+    this.changed();
+  }
+  async zero(): Promise<void> {
+    this.say('Тэглэж байна…');
+    await this.command('zero');
+  }
+  private answered(value: DataView): void {
+    const text = new TextDecoder().decode(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+    const tare = /^tare (\d+)$/.exec(text);
+    const chosen = /^bottle (\d+)$/.exec(text);
+    const saved = savedBottles();
+    if (tare && this.newBottleName !== null) {
+      const bottle = { id: crypto.randomUUID(), name: this.newBottleName, grams: Number(tare[1]) };
+      writeBottles({ list: [...saved.list, bottle], selected: bottle.id });
+      this.result = `«${bottle.name}» хадгалагдлаа: ${bottle.grams} г ✓`;
+    } else if (chosen) {
+      const bottle = saved.list.find(b => b.id === saved.selected);
+      this.result = `${bottle ? `«${bottle.name}»` : 'Сав'} сонгогдлоо (${chosen[1]} г) ✓`;
+    } else {
+      this.result = tare ? `Савны жин: ${tare[1]} г ✓`
+        : text === 'tare-failed' ? 'Жин тогтворжсонгүй. Саваа хөдөлгөлгүй тавиад дахин оролдоно уу.'
+        : text === 'zero' ? 'Суурийн жинг тэглэлээ ✓' : this.result;
+    }
+    if (tare || text === 'tare-failed') this.newBottleName = null;
+    this.changed();
+  }
+
+  // The base's screen shows the app's total for today, so hand-logged drinks, deletions and resets show there too.
+  shareToday(ml: number, force = false): void {
+    this.today = Math.max(0, Math.round(ml));
+    if (force) this.sentToday = -1;
+    void this.sendToday();
+  }
+  private async sendToday(): Promise<void> {
+    if (this.phase !== 'connected' || this.today < 0 || this.today === this.sentToday) return;
+    this.sentToday = this.today;
+    await this.command(`today ${this.today}`).catch(() => { this.sentToday = -1; });
+  }
+  // Clears today's drinks from the log (with the base's screen) — for a fresh demo.
+  async resetToday(): Promise<void> {
+    const today = dayKey();
+    const removed = await store.update(record => {
+      const before = record.state.events.length;
+      record.state.events = record.state.events.filter(e => !(e.type === 'drink' && dayKey(new Date(e.at)) === today));
+      return before - record.state.events.length;
+    });
+    if (removed) { announce('sync'); void sync.run(); }
+    this.shareToday(0, true);
   }
 
   private onStatus(value: DataView): void {
