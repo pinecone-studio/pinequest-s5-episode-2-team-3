@@ -29,3 +29,13 @@ export function latestHeart(samples: readonly HealthSample[]): { bpm: number; at
   for (const s of samples) if (!last || s.startDate > last.startDate) last = s;
   return last ? { bpm: Math.round(last.value), at: last.startDate } : null;
 }
+
+// Extra water on a day with exercise, from the watch's active calories. Everyday movement is already
+// in the profile's activity level, so the first 300 kcal add nothing; beyond that about 1 ml per kcal
+// (roughly what sweat costs), capped at 1 l. Never under a doctor's limit (kidney or heart failure).
+export const BONUS_FROM_KCAL = 300;
+export const BONUS_MAX_ML = 1000;
+export function exerciseBonusMl(activeKcal: number | null, mode: 'goal' | 'limit'): number {
+  if (mode === 'limit' || activeKcal === null || activeKcal <= BONUS_FROM_KCAL) return 0;
+  return Math.min(BONUS_MAX_ML, Math.round((activeKcal - BONUS_FROM_KCAL) / 50) * 50);
+}
