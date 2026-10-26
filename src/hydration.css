@@ -282,3 +282,24 @@
   .cup { flex-basis: 56px; height: 56px; }
   .swipe-amount b { font-size: 40px; }
 }
+
+/* Family leaderboard (src/family-view.ts): ranked by share of each person's own goal. */
+.fam { width: 100%; margin-top: 16px; padding: 14px 16px; border-radius: 20px; background: rgba(255, 255, 255, .85); box-shadow: 0 6px 18px rgba(40, 60, 90, .08); text-align: left; }
+.fam-head { display: flex; justify-content: space-between; align-items: center; }
+.fam-head h2 { margin: 0; font-size: 16px; color: var(--ink-2); }
+.fam-list { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.fam-row { display: grid; grid-template-columns: 28px 36px minmax(0, 1fr) 72px 56px; align-items: center; gap: 8px; min-height: 44px; }
+.fam-row.me { font-weight: 700; }
+.fam-place { font-size: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.fam-avatar svg { display: block; width: 32px; height: auto; overflow: visible; }
+.fam-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; color: var(--ink-2); }
+.fam-name small { font-weight: 400; color: var(--muted-2); }
+.fam-bar { height: 8px; border-radius: 4px; background: #d7eef3; overflow: hidden; }
+.fam-bar span { display: block; height: 100%; border-radius: 4px; background: #00bedc; }
+.fam-value { font-size: 13px; text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.fam-empty { margin: 8px 0 0; font-size: 14px; color: var(--muted-2); }
+.fam-join { display: grid; gap: 6px; margin-top: 10px; }
+.fam-join label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.fam-join div { display: flex; gap: 8px; }
+.fam-join input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 2px solid #e3e8ef; border-radius: 12px; font: inherit; }
+.fam-join button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #00bedc; color: #fff; font-weight: 700; }
