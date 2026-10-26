@@ -136,6 +136,29 @@ export function streakParts(events: readonly WaterEntry[], goal: number, mode: M
   return { chip, week };
 }
 
+// Hydrify home's week card: this week Monday to Sunday (as in the kit), each day a ring filled to its share of
+// the goal (full and blue on a day that counted, orange past a doctor's limit), the streak and the
+// month calendar in the head. Tapping a day opens its breakdown, as on the old strip.
+export function hxWeekCard(events: readonly WaterEntry[], goal: number, mode: Mode): string {
+  const counts = dayCounter(events, goal, mode), totals = dayTotals(events);
+  const streak = currentStreak(counts);
+  const today = dayKey(), C = 2 * Math.PI * 17;
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + i); return d; });
+  return `<section class="hx-card hx-home-week" aria-labelledby="hx-week-title">
+    <div class="hx-card-head"><h2 id="hx-week-title">Энэ долоо хоног</h2>
+      <span class="hx-week-tools"><button type="button" class="hx-streak-chip${streak ? ' hot' : ''}" data-calendar aria-label="${streak} өдөр дараалан, календарь нээх"><span aria-hidden="true">🔥</span>${streak}</button>
+      <button type="button" class="hx-cal-btn" data-calendar aria-label="Сарын календарь нээх"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button></span></div>
+    <ol class="hx-week-rings">${days.map(d => {
+      const k = dayKey(d), future = k > today, ml = totals.get(k) ?? 0;
+      const met = !future && k <= today && counts(k), over = mode === 'limit' && ml > goal;
+      const frac = met && mode === 'goal' ? 1 : Math.min(1, ml / goal);
+      return `<li class="${k === today ? 'today' : ''}${met ? ' met' : ''}${over ? ' over' : ''}"><small>${WEEKDAYS[d.getDay()].slice(0, 2)}</small>
+        <button type="button" class="hx-day" ${future ? 'disabled' : `data-day="${k}"`} aria-label="${dayTitle(d)}: ${number(ml)} мл${met ? ', биелсэн' : ''}">
+          <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" class="bg"/>${frac > 0 ? `<circle cx="20" cy="20" r="17" class="fg" stroke-dasharray="${(frac * C).toFixed(1)} ${C.toFixed(1)}"/>` : ''}</svg><b>${met ? '✓' : d.getDate()}</b></button></li>`;
+    }).join('')}</ol>
+  </section>`;
+}
+
 // The strip under the cups: a week back and a week ahead of today, no further. Nearby days show
 // weekday names, the far ends their date. It opens with today in the middle.
 const STRIP_DAYS = 7;
@@ -149,6 +172,7 @@ let stripScroll: number | null = null;
 // Tapping a day in the strip opens that day's breakdown.
 export function bindStreakCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): void {
   document.querySelectorAll<HTMLButtonElement>('[data-calendar]').forEach(b => b.addEventListener('click', () => openCalendar(events, goal, mode)));
+  document.querySelectorAll<HTMLButtonElement>('.hx-home-week [data-day]').forEach(b => b.addEventListener('click', () => openDay(events, goal, mode, b.dataset.day!)));
   const strip = document.querySelector<HTMLElement>('.week-strip');
   if (!strip) return;
   const today = strip.querySelector<HTMLElement>('li.today')!;

@@ -4,7 +4,7 @@ import './overview.css';
 import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
-import { streakParts, bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
+import { hxWeekCard, bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
 import { hxGauge, hxHeader, hxHistory, openCupSheet, readCup, readCupKind } from './hydrify';
 import { setKind } from './drinks';
 import { cachedWeather, weatherChip, weatherIfAllowed } from './weather';
@@ -434,7 +434,6 @@ function greeting(): string {
 
 function render() {
   const drink = drankOn(state.events, today);
-  const streak = streakParts(state.events, state.goal, state.mode);
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home home-app" tabindex="-1">
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
@@ -445,10 +444,10 @@ function render() {
         ${weatherChip(weather, state.mode)}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${hxHistory(state.events)}
-        <div class="hx-streak">${streak.week}</div>
+        ${hxWeekCard(state.events, state.goal, state.mode)}
         ${familySection()}
       </div>
-      <footer class="home-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Холболт, нөөц ба тохиргоо</a></p></footer>
+      <footer class="home-footer hx-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/history.html">Бүх бүртгэл</a> · <a href="/settings.html#linked">Холболт, нөөц ба тохиргоо</a></p></footer>
     </div>
     <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>
       <div class="plan-sheet"><button type="button" class="plan-close" id="plan-close" aria-label="Хаах">${mdIcon('close')}</button>${planSection(readProfile())}</div>

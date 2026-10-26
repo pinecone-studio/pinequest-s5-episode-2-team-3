@@ -124,7 +124,7 @@ function renderResults() {
 
 // Hydrify's week strip (screen 38) that opens into a month (screen 46): each day a ring filled to
 // that day's share of the goal. Tapping a day shows only its entries; tapping it again shows all.
-const WEEK = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
+const WEEK = ['Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя', 'Ня']; // Monday first, as in the kit
 const MONTHS = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
 let expanded = false;
 let monthOffset = 0;
@@ -143,12 +143,12 @@ function calendar(): string {
   const toggle = `<button type="button" class="hx-cal-toggle" data-expand aria-expanded="${expanded}" aria-label="${expanded ? 'Хураах' : 'Сарын хуанли'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   const head = `<div class="hx-cal-week" aria-hidden="true">${WEEK.map(w => `<small>${w}</small>`).join('')}</div>`;
   if (!expanded) {
-    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - d.getDay() + i); return d; });
+    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + i); return d; });
     return `<section class="hx-card hx-cal" aria-label="Энэ долоо хоног">${head}<div class="hx-cal-grid">${days.map(d => dayRing(d, totals)).join('')}</div>${toggle}</section>`;
   }
   const first = new Date(); first.setHours(12, 0, 0, 0); first.setDate(1); first.setMonth(first.getMonth() + monthOffset);
   const count = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
-  const cells = Array.from({ length: first.getDay() }, () => '<span></span>')
+  const cells = Array.from({ length: (first.getDay() + 6) % 7 }, () => '<span></span>')
     .concat(Array.from({ length: count }, (_, i) => { const d = new Date(first); d.setDate(i + 1); return dayRing(d, totals); }));
   return `<section class="hx-card hx-cal" aria-label="Сарын хуанли">
     <div class="hx-cal-month"><button type="button" data-month="-1" aria-label="Өмнөх сар">‹</button><b>${first.getFullYear()} оны ${MONTHS[first.getMonth()]}</b><button type="button" data-month="1" aria-label="Дараах сар" ${monthOffset >= 0 ? 'disabled' : ''}>›</button></div>
