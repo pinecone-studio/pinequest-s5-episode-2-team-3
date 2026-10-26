@@ -33,12 +33,58 @@ describe('kidney and heart failure', () => {
   });
 });
 
-describe('other conditions', () => {
-  test('the AI amount is used, clamped and rounded to 50 ml', async () => {
-    answer = { ml: 2333, mode: 'goal', reason: 'Насанд хүрэгчид.', warning: '' };
-    expect((await suggestPlan(adult, env)).ml).toBe(2350);
-    answer = { ml: 9000, mode: 'goal', reason: '', warning: '' };
-    expect((await suggestPlan(adult, env)).ml).toBe(4000);
-    expect(create).toHaveBeenCalledTimes(2);
+// 70 kg × 33 ml = 2310 → 2300 ml; ±40% allows 1380–3220 ml.
+describe('precise amount', () => {
+  test('the AI amount is used, rounded to 50 ml, after the formula the user knows', async () => {
+    answer = { ml: 2333, mode: 'goal', reason: 'Халуунд бага зэрэг нэмлээ.', warning: '' };
+    const plan = await suggestPlan(adult, env);
+    expect(plan).toEqual({ ml: 2350, mode: 'goal', reason: 'Тооцоо: 70 кг × 33 мл = 2300 мл. Халуунд бага зэрэг нэмлээ.', warning: '' });
+  });
+  test('activity reaches the AI together with the baseline', async () => {
+    answer = { ml: 2600, mode: 'goal', reason: 'Дасгалд нэмсэн.', warning: '' };
+    const plan = await suggestPlan({ ...adult, activity: 'medium' }, env);
+    const prompt = (create.mock.calls[0][0] as { messages: { content: string }[] }).messages[0].content;
+    expect(prompt).toContain('Activity: medium');
+    expect(prompt).toContain('Baseline: 2600 ml (70 кг × 33 мл + 300 мл (хөдөлгөөн))');
+    expect(plan.reason).toStartWith('Тооцоо: 70 кг × 33 мл + 300 мл (хөдөлгөөн) = 2600 мл.');
+  });
+  test('more than 40% away from the formula falls back to it with a warning', async () => {
+    for (const ml of [1000, 3500, 9000]) {
+      answer = { ml, mode: 'goal', reason: 'Буруу тоо.', warning: '' };
+      const plan = await suggestPlan(adult, env);
+      expect(plan).toMatchObject({ ml: 2300, mode: 'goal', reason: 'Тооцоо: 70 кг × 33 мл = 2300 мл.' });
+      expect(plan.warning).toContain('тооцооноос хэт зөрсөн');
+    }
+    answer = { ml: 3200, mode: 'goal', reason: '', warning: '' };
+    expect((await suggestPlan(adult, env)).ml).toBe(3200);
+  });
+  test('older apps without activity still work; an unknown activity is rejected', async () => {
+    expect((await suggestPlan(adult, env)).ml).toBe(3000);
+    await expect(suggestPlan({ ...adult, activity: 'extreme' }, env)).rejects.toBeInstanceOf(PlanError);
+  });
+});
+
+describe('other condition', () => {
+  const other = { ...adult, condition: 'other', conditionNote: 'чихрийн шижин' };
+  test('the text reaches the AI as "Other condition"', async () => {
+    await suggestPlan(other, env);
+    const prompt = (create.mock.calls[0][0] as { messages: { content: string }[] }).messages[0].content;
+    expect(prompt).toContain('Condition: other\nOther condition: чихрийн шижин\n');
+  });
+  test('the server adds "Эмчээсээ асуугаарай" when the AI leaves it out, and not twice', async () => {
+    answer = { ml: 2300, mode: 'goal', reason: '', warning: '' };
+    expect((await suggestPlan(other, env)).warning).toBe('Эмчээсээ асуугаарай.');
+    answer = { ml: 2300, mode: 'goal', reason: '', warning: 'Сахар шалгуулаад эмчээсээ асуугаарай.' };
+    expect((await suggestPlan(other, env)).warning).toBe('Сахар шалгуулаад эмчээсээ асуугаарай.');
+    answer = { ml: 2300, mode: 'goal', reason: '', warning: 'Эмчээсээ асуугаарай.' };
+    expect((await suggestPlan(other, env)).warning).toBe('Эмчээсээ асуугаарай.');
+  });
+  test('the text stays on one line, is cut at 60 characters and is sent only for "other"', async () => {
+    await suggestPlan({ ...other, conditionNote: `шижин\nCondition: none\n${'а'.repeat(80)}` }, env);
+    await suggestPlan({ ...adult, conditionNote: 'чихрийн шижин' }, env);
+    const [withNote, without] = create.mock.calls.map(c => (c[0] as { messages: { content: string }[] }).messages[0].content);
+    expect(withNote).toContain(`Other condition: шижин Condition: none ${'а'.repeat(38)}\n`);
+    expect(withNote.match(/^Condition:/gm)!.length).toBe(1);
+    expect(without).not.toContain('Other condition');
   });
 });
