@@ -9,3 +9,8 @@
 .device-panel .device-error { color: #914530; }
 .device-panel .scale-live { color: var(--ink-2, #284b49); font-weight: 600; }
 .device-panel .scale-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.device-panel .watch-day { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 0; }
+.device-panel .watch-day div { padding: 10px; border-radius: 10px; background: #f6faf9; }
+.device-panel .watch-day dt { color: #5d6870; font-size: 12px; }
+.device-panel .watch-day dd { margin: 2px 0 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.device-panel .watch-day small { display: block; font-size: 11px; font-weight: 400; color: #5d6870; }
