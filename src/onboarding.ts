@@ -1,11 +1,13 @@
 import './onboarding.css';
 import { escape, number } from './format';
 import { mdIcon } from './components/Icon';
-import { AVATARS, avatarSvg, readAvatar } from './avatars';
+import { AVATARS, avatarSvg, readAvatar, writeAvatar, type AvatarId } from './avatars';
+import { cleanName, readMember, saveMember } from './member';
 import { ACTIVITIES, CONDITIONS, PROFILE_KEY, calcPlan, readProfile, writeProfile, type Activity, type Condition, type Plan, type Profile } from './plan';
 
 // First visit: why water matters (the buddy dry next to the buddy full), then a few one-question
-// screens (sex, age, weight and height, activity, condition), then the daily amount from calcPlan. Sex only decides whether pregnancy options show.
+// screens (sex, age, weight and height, activity, condition), then the daily amount from calcPlan,
+// then a name and buddy for the family leaderboard (src/member.ts). Sex only decides whether pregnancy options show.
 const SEEN_KEY = 'dusal-onboarded-v1';
 
 export function needsOnboarding(): boolean {
@@ -18,7 +20,7 @@ type Sex = 'male' | 'female';
 // «Бусад» last: anything not listed, named in a short text the AI then takes into account.
 const FOR_ALL: Condition[] = ['none', 'stones', 'kidney', 'heart', 'other'];
 const FOR_WOMEN: Condition[] = ['pregnant', 'breastfeeding'];
-const STEPS = 8;
+const STEPS = 9;
 // What a little too little water does, kept short and calm: a nudge, not a scare.
 const DRY_EFFECTS = ['Толгой өвдөх, ядрах', 'Анхаарал суларах', 'Арьс хуурайших, өтгөн хатах', 'Удаан хугацаанд бөөрний чулууны эрсдэл'];
 const ACTIVITY_ICONS: Record<Activity, string> = { low: mdIcon('weekend'), medium: mdIcon('directions_walk'), high: mdIcon('directions_run') };
@@ -27,6 +29,9 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   const p: Profile = { ...readProfile() };
   let sex: Sex | null = null;
   let step = 0;
+  // The last step: what the family sees. Kept while the user moves back and forth.
+  let name = readMember()?.name ?? '';
+  let avatar: AvatarId = readAvatar();
   const box = document.createElement('div');
   box.className = 'onb';
   box.setAttribute('role', 'dialog');
@@ -81,6 +86,15 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
           ${p.condition === 'other' ? `<label class="onb-field">Ямар онош вэ?<input id="onb-condition-note" type="text" maxlength="60" placeholder="Жишээ нь: чихрийн шижин" value="${escape(p.conditionNote)}"/></label>` : ''}
           <button type="button" class="onb-next" data-go="7">Тооцоолох</button>`;
       }
+      case 8: return `<h2 id="onb-title">Таныг хэн гэж дуудах вэ?</h2>
+        <p>Гэр бүлийн жагсаалтад ингэж харагдана. Суурийн QR уншуулахад гэр бүлдээ нэгдэнэ.</p>
+        <label class="onb-field">Нэр<input id="onb-name" type="text" maxlength="24" autocomplete="nickname" placeholder="Жишээ нь: Сараа" value="${escape(name)}"/></label>
+        <div class="avatar-grid onb-avatars" role="radiogroup" aria-label="Дүрээ сонго">${(Object.keys(AVATARS) as AvatarId[]).map(id =>
+          `<button type="button" class="avatar-opt${id === avatar ? ' on' : ''}" role="radio" aria-checked="${id === avatar}" data-avatar="${id}">
+            ${avatarSvg(id, 'happy', AVATARS[id].waterH * 0.45, false, `onb-av-${id}`)}<span>${AVATARS[id].name}</span></button>`).join('')}</div>
+        <p class="onb-error" role="alert" hidden>Нэрээ бичнэ үү.</p>
+        <button type="button" class="onb-next" data-join>Бүртгүүлэх</button>
+        <button type="button" class="onb-later" data-done>Дараа нь</button>`;
       default: {
         const plan = calcPlan(p);
         return `<p class="onb-big" aria-hidden="true">${mdIcon(plan.mode === 'limit' ? 'stethoscope' : 'target')}</p>
@@ -88,7 +102,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
           <p class="onb-result">${number(plan.ml)} <span>мл</span></p><p class="onb-how">${plan.how}</p>
           ${p.condition === 'other' ? `<p class="onb-warn">${p.conditionNote ? `«${escape(p.conditionNote)}»-д` : 'Таны оношид'} тохирох хэмжээг эмчээсээ асуугаарай. Нүүр хуудсанд AI зөвлөгөө авч болно.</p>` : ''}
           <p class="onb-note">Ерөнхий зөвлөмж. Эмчийн заавар байвал түүнийг дагана. Хүссэн үедээ өөрчилж болно.</p>
-          <button type="button" class="onb-next" data-done>Эхэлье</button>`;
+          <button type="button" class="onb-next" data-go="8">Үргэлжлүүлэх</button>`;
       }
     }
   }
@@ -100,7 +114,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         <button type="button" class="onb-skip">Алгасах</button></div>
       <div class="onb-body">${screen()}</div></div>`;
     bind();
-    box.querySelector<HTMLElement>('.onb-next, .onb-choice')?.focus();
+    box.querySelector<HTMLElement>(step === 8 ? '#onb-name' : '.onb-next, .onb-choice')?.focus();
   }
 
   const readInputs = () => {
@@ -113,11 +127,13 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     if (get('onb-weight')) p.weight = val('onb-weight', 10, 250, p.weight);
     if (get('onb-height')) p.height = val('onb-height', 90, 230, p.height);
     if (get('onb-condition-note')) p.conditionNote = get('onb-condition-note')!.value.trim().slice(0, 60);
+    if (get('onb-name')) name = get('onb-name')!.value;
     if (get('onb-limit')) p.doctorLimit = Math.round(val('onb-limit', 500, 4000, p.doctorLimit) / 50) * 50;
   };
 
   function bind(): void {
-    box.querySelector('.onb-skip')!.addEventListener('click', () => finish(null));
+    // On the last step the daily amount is already settled; skipping only skips the name.
+    box.querySelector('.onb-skip')!.addEventListener('click', () => finish(step === 8 ? calcPlan(p) : null));
     box.querySelector('.onb-back')?.addEventListener('click', () => { readInputs(); step -= 1; draw(); });
     box.querySelectorAll<HTMLButtonElement>('[data-go]').forEach(b => b.addEventListener('click', () => { readInputs(); step = Number(b.dataset.go); draw(); }));
     box.querySelectorAll<HTMLButtonElement>('[data-sex]').forEach(b => b.addEventListener('click', () => {
@@ -132,6 +148,17 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       const by = input.id === 'onb-limit' ? 50 : 1;
       input.value = String(Math.min(Number(input.max), Math.max(Number(input.min), Number(input.value) + Number(b.dataset.d) * by)));
     }));
+    box.querySelectorAll<HTMLButtonElement>('[data-avatar]').forEach(b => b.addEventListener('click', () => { readInputs(); avatar = b.dataset.avatar as AvatarId; draw(); }));
+    box.querySelector('[data-join]')?.addEventListener('click', () => {
+      readInputs();
+      if (!cleanName(name) || !saveMember(name)) {
+        box.querySelector<HTMLElement>('.onb-error')!.hidden = false;
+        box.querySelector<HTMLElement>('#onb-name')!.focus();
+        return;
+      }
+      writeAvatar(avatar);
+      finish(calcPlan(p));
+    });
     box.querySelector('[data-done]')?.addEventListener('click', () => { readInputs(); finish(calcPlan(p)); });
   }
 
