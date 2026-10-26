@@ -74,7 +74,9 @@ function suggestion(p: Profile, s: Source): Draft | null {
   if (s === 'ai') return aiPlan;
   if (s === 'doctor') return { ml: p.doctorLimit, mode: p.doctorMode, how: 'Эмчийн заасан хэмжээ', warning: '' };
   const plan = calcPlan(p);
-  return { ...plan, warning: plan.mode === 'limit' ? 'Хязгаарыг эмч тогтооно. «Эмчийн заавар»-т оруулна уу.' : '' };
+  const warning = plan.mode === 'limit' ? 'Хязгаарыг эмч тогтооно. «Эмчийн заавар»-т оруулна уу.'
+    : p.condition === 'other' ? 'Таны оношид тохирох хэмжээг эмчээсээ асуугаарай.' : '';
+  return { ...plan, warning };
 }
 
 // Compare the suggestion with the saved goal so it's clear what saving would change.
@@ -127,6 +129,7 @@ function planSection(p: Profile): string {
         <label>Жин, кг<input id="plan-weight" name="weight" type="number" inputmode="numeric" min="10" max="250" value="${p.weight}"/></label>
         <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
         <label class="wide">Онош<select id="plan-condition" name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${p.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        ${p.condition === 'other' ? `<label class="wide">Ямар онош вэ?<input id="plan-condition-note" name="conditionNote" type="text" maxlength="60" placeholder="Жишээ: чихрийн шижин" value="${escape(p.conditionNote)}"/></label>` : ''}
       </div>
       <div class="plan-doctor" ${noDoctor ? 'hidden' : ''}>
       <p class="plan-step">Эмчийн заавар <small>байвал</small></p>
@@ -154,11 +157,13 @@ function planSection(p: Profile): string {
 
 let aiNote = '';
 
-// Activity is chosen in onboarding and has no field here, so it comes from the saved profile.
+// Activity is chosen in onboarding and has no field here, so it comes from the saved profile;
+// so does the condition note while its field is hidden.
 function readForm(form: HTMLFormElement): Partial<Profile> {
   const d = new FormData(form);
   const n = (k: string) => Number(d.get(k));
-  return { age: n('age'), weight: n('weight'), height: n('height'), activity: readProfile().activity, condition: String(d.get('condition')) as Profile['condition'], doctorLimit: n('doctorLimit'), doctorMode: d.get('doctorMode') === 'goal' ? 'goal' : 'limit' };
+  const saved = readProfile();
+  return { age: n('age'), weight: n('weight'), height: n('height'), activity: saved.activity, condition: String(d.get('condition')) as Profile['condition'], doctorLimit: n('doctorLimit'), doctorMode: d.get('doctorMode') === 'goal' ? 'goal' : 'limit', conditionNote: d.has('conditionNote') ? String(d.get('conditionNote')) : saved.conditionNote };
 }
 
 function bindPlan() {
@@ -212,6 +217,7 @@ function bindPlan() {
       if (source === 'ai') source = 'calc';
       draft = suggestion(p, source);
       render();
+      document.querySelector<HTMLElement>('#plan-condition-note')?.focus();
       return;
     }
     refreshCards(p);
@@ -240,7 +246,7 @@ function bindPlan() {
     try {
       // Check the answer again: an older Worker may still pass the AI's number through for kidney/heart failure
       // or one far from the formula.
-      const ai = guardPlan(p, await askAi({ age: p.age, weight: p.weight, height: p.height, activity: p.activity, condition: p.condition, doctorLimit: p.doctorLimit, note: aiNote }));
+      const ai = guardPlan(p, await askAi({ age: p.age, weight: p.weight, height: p.height, activity: p.activity, condition: p.condition, doctorLimit: p.doctorLimit, conditionNote: p.conditionNote.trim(), note: aiNote }));
       aiPlan = { ml: ai.ml, mode: ai.mode, how: ai.reason, warning: ai.warning };
       source = 'ai';
       draft = aiPlan;

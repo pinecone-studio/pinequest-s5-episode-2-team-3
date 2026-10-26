@@ -6,23 +6,24 @@ export { ACTIVITIES, CONDITIONS, calcPlan } from '../shared/plan';
 export type { Activity, Condition, Plan } from '../shared/plan';
 export const PROFILE_KEY = 'dusal-profile-v1';
 
-export interface Profile extends PlanInput { doctorLimit: number; doctorMode: 'goal' | 'limit' }
+export interface Profile extends PlanInput { doctorLimit: number; doctorMode: 'goal' | 'limit'; conditionNote: string }
 
-const DEFAULT: Profile = { age: 30, weight: 65, height: 165, activity: 'low', condition: 'none', doctorLimit: 1500, doctorMode: 'limit' };
+const DEFAULT: Profile = { age: 30, weight: 65, height: 165, activity: 'low', condition: 'none', doctorLimit: 1500, doctorMode: 'limit', conditionNote: '' };
 const isInt = (n: unknown, lo: number, hi: number): n is number => typeof n === 'number' && Number.isInteger(n) && n >= lo && n <= hi;
 
 export function validProfile(p: Partial<Profile>): p is Profile {
   return isInt(p.age, 4, 110) && isInt(p.weight, 10, 250) && isInt(p.height, 90, 230)
     && typeof p.activity === 'string' && Object.hasOwn(ACTIVITIES, p.activity)
     && typeof p.condition === 'string' && Object.hasOwn(CONDITIONS, p.condition) && isInt(p.doctorLimit, 500, 4000)
-    && (p.doctorMode === 'goal' || p.doctorMode === 'limit');
+    && (p.doctorMode === 'goal' || p.doctorMode === 'limit')
+    && typeof p.conditionNote === 'string' && p.conditionNote.length <= 60;
 }
 
 export function readProfile(): Profile {
   try {
     const p = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? 'null') as Partial<Profile> | null;
-    // Profiles saved before doctorMode or activity existed are still valid.
-    const merged = p ? { doctorMode: DEFAULT.doctorMode, activity: DEFAULT.activity, ...p } : null;
+    // Profiles saved before doctorMode, activity or conditionNote existed are still valid.
+    const merged = p ? { doctorMode: DEFAULT.doctorMode, activity: DEFAULT.activity, conditionNote: DEFAULT.conditionNote, ...p } : null;
     return merged && validProfile(merged) ? merged : DEFAULT;
   } catch {
     return DEFAULT;
