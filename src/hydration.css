@@ -262,3 +262,4 @@
   .cup { flex-basis: 56px; height: 56px; }
   .swipe-amount b { font-size: 40px; }
 }
+.goal-pill .goal-bonus { color: #0a8a6a; font-size: 12px; font-weight: 600; }
