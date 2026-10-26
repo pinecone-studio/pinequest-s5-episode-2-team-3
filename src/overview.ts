@@ -7,13 +7,14 @@ import { load, save, saveMessage, onExternalChange } from './storage';
 import { bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
 import { hxGauge, hxHeader, openCupSheet, readCup, readCupKind } from './hydrify';
 import { setKind } from './drinks';
-import { cachedWeather, weatherChip, weatherIfAllowed } from './weather';
 import { bindWatchCard, loadInsight, watchCard } from './watch-card';
 import { health } from './health';
 import { celebrateIfReached, showYesterday } from './day-result';
 import { startSync } from './sync';
 import { startDevices } from './devices';
+import { loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
 import { pushWidget } from './widget';
+import { scale } from './scale';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
 import { readMember, saveMember } from './member';
@@ -348,8 +349,6 @@ function bindPlan() {
 }
 
 let drinking = false;
-// Today's "feels like" temperature, once location was allowed (onboarding's climate step).
-let weather = cachedWeather();
 async function addDrink(ml: number) {
   const before = drankOn(state.events, today);
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
@@ -435,16 +434,18 @@ function greeting(): string {
 }
 
 function render() {
-  loadInsight({ drink: drankOn(state.events, today), goal: state.goal, mode: state.mode, feels: weather?.feels ?? null }, aiReady, render);
+  loadInsight({ drink: drankOn(state.events, today), goal: state.goal, mode: state.mode, feels: todayFeels() }, aiReady, render);
   const drink = drankOn(state.events, today);
+  // Today's weather may raise today's target; the saved goal (and so past days) stays as it is.
+  const goal = todayGoal(state.goal, state.mode);
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home home-app" tabindex="-1">
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       <div class="hydro">
         ${hxHeader('Нүүр')}
-        ${hxGauge(drink, state.goal, state.mode, readCup(), drinking)}
-        ${weatherChip(weather, state.mode)}
+        ${hxGauge(drink, goal, state.mode, readCup(), drinking)}
+        ${weatherChip(state.mode)}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${watchCard()}
         ${familySection()}
@@ -462,6 +463,7 @@ function render() {
   document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
+  scale.shareToday(drink);  // the base's screen shows the same total
   bindSchedule(() => state, render);
   // The tab bar's middle button ("/#reminders") opens today's schedule here.
   if (location.hash === '#reminders') { history.replaceState(null, '', '/'); document.querySelector<HTMLButtonElement>('#sched-open')?.click(); }
@@ -508,11 +510,11 @@ void reload().then(() => {
   // Keep pulling while home is open so a sip on the base shows up here within seconds.
   startSync();
   startDevices();
+  void loadWeather(state.goal, render);
   // Connecting to a base joins its family; the board redraws when the server answers.
   startFamily();
   window.addEventListener('dusal-health', render);
   void health.start();
-  void weatherIfAllowed().then(w => { if (w && w.feels !== weather?.feels) { weather = w; render(); } });
   window.addEventListener('dusal-family', render);
   startReminders(() => state);
   startAppIcon(() => state);

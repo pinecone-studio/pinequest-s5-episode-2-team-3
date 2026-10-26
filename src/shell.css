@@ -92,3 +92,31 @@ main.home > .app-shell { flex: 1 0 auto; display: flex; flex-direction: column; 
 .md-gold { color: #d99a00; }
 .md-ok { color: #1f9d55; }
 .md-warn { color: #d97706; }
+
+/* Page slide (nav.ts): the browser keeps the old page until the new one is drawn, then content
+   slides while the header and tab bar stay put. */
+@view-transition { navigation: auto; }
+.app-top { view-transition-name: app-top; }
+.app-top .site-nav { view-transition-name: tab-bar; }
+::view-transition-group(app-top), ::view-transition-group(tab-bar) { animation: none; }
+::view-transition-old(app-top), ::view-transition-old(tab-bar) { display: none; }
+::view-transition-new(app-top), ::view-transition-new(tab-bar) { animation: none; }
+::view-transition-old(root) { animation: page-out-fade .2s ease-in both; }
+::view-transition-new(root) { animation: page-in-fade .28s ease-out both; }
+html[data-nav="forward"]::view-transition-old(root) { animation: page-out-left .22s ease-in both; }
+html[data-nav="forward"]::view-transition-new(root) { animation: page-in-right .3s cubic-bezier(.2, .8, .25, 1) both; }
+html[data-nav="back"]::view-transition-old(root) { animation: page-out-right .22s ease-in both; }
+html[data-nav="back"]::view-transition-new(root) { animation: page-in-left .3s cubic-bezier(.2, .8, .25, 1) both; }
+@keyframes page-in-fade { from { opacity: 0; } }
+@keyframes page-out-fade { to { opacity: 0; } }
+@keyframes page-in-right { from { opacity: 0; transform: translateX(40px); } }
+@keyframes page-in-left { from { opacity: 0; transform: translateX(-40px); } }
+@keyframes page-out-left { to { opacity: 0; transform: translateX(-30px); } }
+@keyframes page-out-right { to { opacity: 0; transform: translateX(30px); } }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
+
+/* Inside the phone app's tab host (tabs.html) the host draws the tab bar, so pages hide their own
+   and keep the bottom padding that leaves room for it. */
+html.embedded .app-top .site-nav { display: none; }

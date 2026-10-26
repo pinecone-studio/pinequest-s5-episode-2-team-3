@@ -1,5 +1,5 @@
 import { devices, startDevices, deviceSummary } from '../devices';
-import { scale } from '../scale';
+import { savedBottles, scale } from '../scale';
 import type { ScaleStatus } from '../scale-protocol';
 import { escape, number } from '../format';
 import './device-panel.css';
@@ -40,12 +40,33 @@ function scaleText(): string {
   return scale.saved ? `${name} холбогдоогүй байна.` : 'Ухаалаг суурийг Bluetooth-ээр холбоно. Суурь асаалттай, утсанд ойрхон байх ёстой.';
 }
 
-// Rebuilt only when the connection changes; the live line is updated in place every second.
+// Each bottle keeps its empty weight; choosing one before putting it on the base keeps a swap from counting.
+// These do what the base's BOOT button does, for a base sealed in its case.
+function bottlesBlock(): string {
+  const { list, selected } = savedBottles();
+  return `<div class="scale-bottles">
+    ${list.length ? `<p class="device-time">Саваа солихдоо эхлээд энд сонгоод, дараа нь суурь дээр тавина.</p>
+    <div class="bottle-list">${list.map(b => `<span class="bottle-chip${b.id === selected ? ' on' : ''}">
+      <button type="button" data-bottle="${escape(b.id)}" aria-pressed="${b.id === selected}">${escape(b.name)} · ${number(b.grams)} г</button>
+      <button type="button" class="bottle-remove" data-bottle-remove="${escape(b.id)}" aria-label="${escape(b.name)}-г устгах">×</button></span>`).join('')}</div>` : ''}
+    <form class="bottle-add" data-bottle-add data-transient>
+      <label for="bottle-name">Шинэ сав</label>
+      <div><input id="bottle-name" name="name" maxlength="24" placeholder="Нэр, жишээ нь: Цэнхэр сав" autocomplete="off">
+      <button type="submit">Хоосон жинг авах</button></div>
+    </form>
+    <p class="device-time">${scale.result ? `<b>${escape(scale.result)}</b>` : 'Шинэ савыг хоосноор нь суурь дээр тавиад нэр өгч «Хоосон жинг авах»-г дарна.'}</p>
+    <div class="scale-actions"><button type="button" data-reset-today>Өнөөдрийн дүнг тэглэх</button><button type="button" data-scale-zero>Суурийн жинг тэглэх</button></div>
+  </div>`;
+}
+
+// Rebuilt only when the connection, the bottles or a command result change; the live line is updated in
+// place every second.
 function renderScale(): void {
   const host = document.querySelector<HTMLElement>('[data-scale-panel]');
   if (!host) return;
-  const key = [scale.phase, scale.saved, scale.name, scale.message].join('|');
-  if (host.dataset.key !== key) {
+  const key = [scale.phase, scale.saved, scale.name, scale.message, scale.result, JSON.stringify(savedBottles())].join('|');
+  // Do not wipe a bottle name while it is being typed.
+  if (host.dataset.key !== key && document.activeElement !== host.querySelector('#bottle-name')) {
     host.dataset.key = key;
     const buttons = scale.phase === 'unsupported' ? '' : scale.phase === 'off' && !scale.saved
       ? '<button type="button" data-scale-pair>Суурь хайх</button>'
@@ -55,10 +76,20 @@ function renderScale(): void {
       <p class="scale-live" data-scale-live></p>
       ${scale.message ? `<p>${escape(scale.message)}</p>` : ''}
       ${buttons ? `<div class="scale-actions">${buttons}</div>` : ''}
+      ${scale.phase === 'connected' ? bottlesBlock() : ''}
       <p class="device-error" role="alert" hidden></p>`;
     host.querySelector('[data-scale-pair]')?.addEventListener('click', () => void act(host, () => scale.pair()));
     host.querySelector('[data-scale-retry]')?.addEventListener('click', () => scale.reconnect());
     host.querySelector('[data-scale-forget]')?.addEventListener('click', () => void act(host, () => scale.forget()));
+    host.querySelectorAll<HTMLButtonElement>('[data-bottle]').forEach(b => b.addEventListener('click', () => void act(host, () => scale.chooseBottle(b.dataset.bottle!))));
+    host.querySelectorAll<HTMLButtonElement>('[data-bottle-remove]').forEach(b => b.addEventListener('click', () => scale.removeBottle(b.dataset.bottleRemove!)));
+    host.querySelector('[data-scale-zero]')?.addEventListener('click', () => void act(host, () => scale.zero()));
+    host.querySelector('[data-reset-today]')?.addEventListener('click', () => void act(host, () => scale.resetToday()));
+    host.querySelector<HTMLFormElement>('[data-bottle-add]')?.addEventListener('submit', event => {
+      event.preventDefault();
+      const name = new FormData(event.target as HTMLFormElement).get('name');
+      void act(host, () => scale.addBottle(typeof name === 'string' ? name : ''));
+    });
   }
   const live = host.querySelector<HTMLElement>('[data-scale-live]')!;
   live.textContent = scale.phase === 'connected' ? scaleLine(scale.status) : '';

@@ -5,6 +5,7 @@ import { EVENT_COLUMNS, insertEvent, toEvent } from './events.js';
 import { readSnapshot, applySnapshot } from './sync.js';
 import { PlanError, suggestPlan } from './plan.js';
 import { suggestInsight } from './insight.js';
+import { weatherAdjust } from './weather.js';
 
 import { CONTRACT_VERSION, ContractError, validateId, validateSettings, validateEntry, validateEventPatch } from '../../shared/contracts.ts';
 
@@ -40,6 +41,7 @@ async function route(request, env) {
 
   if (pathname === '/api/plan' && method === 'POST') return json(await suggestPlan(await readJson(request), env));
   if (pathname === '/api/insight' && method === 'POST') return json(await suggestInsight(await readJson(request), env));
+  if (pathname === '/api/weather' && method === 'GET') return json(await weatherAdjust(searchParams, env));
 
   if (pathname === '/api/devices' && method === 'GET') return json(await listDevices(db));
   const readingPath = pathname.match(/^\/api\/devices\/([a-zA-Z0-9-]{1,64})\/readings$/);

@@ -12,6 +12,8 @@
 #include <U8g2lib.h>
 #include <Wire.h>
 #include <esp_timer.h>
+#include "image.h"  // the Dusal bottle, tools/make_image.py
+#include "text.h"   // Mongolian words (the OLED fonts here have no Ө/Ү), tools/make_text.py
 
 // ---------- Settings ----------
 // Wiring for an ESP32-WROOM-32 DevKit. Change these if your board is wired differently.
@@ -30,18 +32,23 @@ using OledDisplay = U8G2_SSD1306_128X64_NONAME_F_HW_I2C;
 const uint8_t OLED_I2C_ADDRESS = 0x3C;
 
 const float MAX_LOAD_G = 5000;         // load cell rating; above this the screen shows OVER
-const int SMOOTHING_SAMPLES = 10;      // moving average; the HX711 gives 10 samples/s, so about 1 s
+const int SMOOTHING_SAMPLES = 8;       // moving average; the HX711 gives 10 samples/s, so 0.8 s
 const int TARE_SAMPLES = 20;           // tare and calibration average 2 s of readings
-const uint32_t SCREEN_INTERVAL_MS = 200;
+const uint32_t SCREEN_INTERVAL_MS = 100;  // 10 frames a second, so the bottle on the screen moves smoothly
+// The screen wakes when the weight changes by more than SCREEN_WAKE_G and goes dark after SCREEN_ON_MS
+// without a change. Saves power and keeps the OLED from burning in.
+const uint32_t SCREEN_ON_MS = 10000;
+const float SCREEN_WAKE_G = 3;
 
-// Drink detection, same thresholds as shared/device.ts. 1 g of water = 1 ml.
-const float PRESENT_MIN_G = 30;        // below this the base is empty (bottle lifted)
-const float STABLE_BAND_G = 15;        // the last second of samples must agree this closely
-const uint32_t SETTLE_MS = 1500;       // ...for this long before the weight counts as settled
-const int MEASUREMENTS = 4;            // then this many 1 s averages, 200 ms apart, are averaged
-const uint32_t MEASURE_GAP_MS = 200;
-const int MIN_DRINK_ML = 100;          // smallest settled drop that is a drink; smaller sips add up
-const int MIN_REFILL_ML = 20;          // smallest settled rise that is a refill
+// Drink detection, same thresholds as shared/device.ts. 1 g of water = 1 ml. The load cell drifts only
+// ±0.3 g when still, so a single sip counts and the phone hears of it about 1.7 s after the bottle is put down.
+const float PRESENT_MIN_G = 2;         // below this the base is empty (bottle lifted)
+const float STABLE_BAND_G = 15;        // the last 0.8 s of samples must agree this closely
+const uint32_t SETTLE_MS = 700;        // ...for this long before the weight counts as settled
+const int MEASUREMENTS = 3;            // then this many 0.8 s averages, 100 ms apart, are averaged
+const uint32_t MEASURE_GAP_MS = 100;
+const int MIN_DRINK_ML = 5;            // smallest settled drop that is a drink; smaller changes add up
+const int MIN_REFILL_ML = 5;           // smallest settled rise that is a refill
 const int MAX_CHANGE_ML = 5000;        // a bigger jump is a different bottle, not a drink
 
 const int QUEUE_CAPACITY = 64;         // unconfirmed drinks kept in flash; when full the oldest is dropped
@@ -55,6 +62,13 @@ const uint32_t DRINK_RESEND_MS = 3000;     // the oldest drink is repeated until
 #define DRINK_UUID   "d05a1002-6c2b-4b8e-9f3a-2f1e0c7a5b01"  // read/notify, 14 bytes or empty: see putDrink()
 #define ACK_UUID     "d05a1003-6c2b-4b8e-9f3a-2f1e0c7a5b01"  // write, 8 bytes: boot + n of a saved drink
 #define ID_UUID      "d05a1004-6c2b-4b8e-9f3a-2f1e0c7a5b01"  // read, ASCII device ID, e.g. "dusal-a1b2"
+// write/notify, ASCII. What BOOT does, for a base whose button is sealed in its case, plus what the app knows:
+//   "tare"          the empty bottle is on the scale: once it has settled, remember its weight -> "tare <g>" or "tare-failed"
+//   "zero"          nothing is on the scale: zero it -> "zero"
+//   "bottle <g>"    a bottle saved in the app is used now: its empty weight, and a fresh anchor so the swap
+//                   is never a drink or a refill -> "bottle <g>"
+//   "today <ml>"    the app's total for today (also hand-logged drinks, deletions, the demo reset) for the screen
+#define COMMAND_UUID "d05a1005-6c2b-4b8e-9f3a-2f1e0c7a5b01"
 
 HX711 scale;
 Preferences prefs;
@@ -102,11 +116,16 @@ uint32_t drinkCount = 0;
 char deviceId[16];
 BLECharacteristic* statusChar = nullptr;
 BLECharacteristic* drinkChar = nullptr;
+BLECharacteristic* commandChar = nullptr;
 // Set from the Bluetooth task, handled in loop().
 volatile bool bleConnected = false;
 volatile bool advertiseAgain = false;
 volatile bool ackPending = false;
 volatile uint32_t ackBoot = 0, ackN = 0;
+char command[24];
+volatile bool commandPending = false;
+uint32_t tareUntil = 0;  // an app tare is waiting for the bottle to settle, until this time
+int todayMl = 0;         // drunk today, as the app counts it, plus drinks counted here since
 uint32_t statusSentAt = 0;
 uint32_t drinkSentAt = 0;  // 0: send the oldest drink now
 
@@ -246,6 +265,8 @@ void recordDrink(int amountMl) {
     Serial.println("drink queue full: oldest unsent drink dropped");
   }
   queue[queued++] = { bootId, ++drinkCount, (uint16_t)amountMl, uptimeSec() };
+  todayMl += amountMl;
+  prefs.putInt("today", todayMl);
   saveQueue();
   putDrink();
   drinkSentAt = 0;
@@ -323,6 +344,16 @@ class ServerEvents : public BLEServerCallbacks {
   void onDisconnect(BLEServer*) override { bleConnected = false; advertiseAgain = true; }
 };
 
+class CommandEvents : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* c) override {
+    if (commandPending) return;
+    size_t length = min(c->getLength(), sizeof command - 1);
+    memcpy(command, c->getData(), length);
+    command[length] = 0;
+    commandPending = true;
+  }
+};
+
 class AckEvents : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* c) override {
     if (c->getLength() != 8) return;
@@ -350,6 +381,9 @@ void startBle() {
   drinkChar->addDescriptor(new BLE2902());
   BLECharacteristic* ack = service->createCharacteristic(ACK_UUID, BLECharacteristic::PROPERTY_WRITE);
   ack->setCallbacks(new AckEvents());
+  commandChar = service->createCharacteristic(COMMAND_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
+  commandChar->addDescriptor(new BLE2902());
+  commandChar->setCallbacks(new CommandEvents());
   BLECharacteristic* id = service->createCharacteristic(ID_UUID, BLECharacteristic::PROPERTY_READ);
   id->setValue((uint8_t*)deviceId, strlen(deviceId));
   service->start();
@@ -376,7 +410,53 @@ void sendStatus() {
   statusChar->notify();
 }
 
+void answer(const char* text) {
+  Serial.printf("app command: %s\n", text);
+  if (!commandChar) return;
+  commandChar->setValue((uint8_t*)text, strlen(text));
+  commandChar->notify();
+}
+
+void runCommand() {
+  if (commandPending) {
+    String line(command);
+    commandPending = false;
+    if (line == "tare") tareUntil = millis() + 15000;
+    else if (line == "zero") { tare(); answer("zero"); }
+    else if (line.startsWith("bottle ")) {
+      float g = line.substring(7).toFloat();
+      if (g > 0 && g < MAX_CHANGE_ML) {
+        setBottle(g);
+        hasAnchor = settled && phase == PRESENT;
+        anchorG = settledG;
+        char text[24];
+        snprintf(text, sizeof text, "bottle %.0f", g);
+        answer(text);
+      }
+    } else if (line.startsWith("today ")) {
+      todayMl = max(0L, line.substring(6).toInt());
+      prefs.putInt("today", todayMl);
+    }
+  }
+  // The app's tare: wait until the bottle has settled, then take that weight as the empty bottle.
+  if (tareUntil) {
+    if (settled && phase == PRESENT) {
+      setBottle(settledG);
+      hasAnchor = true;
+      anchorG = settledG;
+      char text[24];
+      snprintf(text, sizeof text, "tare %d", settledG);
+      answer(text);
+      tareUntil = 0;
+    } else if ((int32_t)(millis() - tareUntil) >= 0) {
+      answer("tare-failed");
+      tareUntil = 0;
+    }
+  }
+}
+
 void serviceBle() {
+  runCommand();
   if (advertiseAgain) {
     advertiseAgain = false;
     BLEDevice::startAdvertising();
@@ -408,34 +488,102 @@ bool readScale() {
   return true;
 }
 
-// Big weight in the middle (water only once the bottle is set), a hint line on top with the Bluetooth state.
+uint32_t screenOnUntil = SCREEN_ON_MS;
+bool screenOn = true;
+float wakeG = 0;  // the weight when the screen last woke
+
+// Touching or changing what is on the scale keeps the screen on; it sleeps once the weight stays put.
+void watchScreen() {
+  if (!calibrated() || fabsf(grams() - wakeG) <= SCREEN_WAKE_G) return;
+  wakeG = grams();
+  screenOnUntil = millis() + SCREEN_ON_MS;
+  if (!screenOn && hasDisplay) { display.setPowerSave(0); screenOn = true; }
+}
+
+void drawText(const Text& t, int x, int y) { display.drawXBMP(x, y, t.width, t.height, t.bits); }
+
+bool imagePixel(int x, int y) {
+  if (x < 0 || y < 0 || x >= kImageWidth || y >= kImageHeight) return false;
+  return kImage[y * ((kImageWidth + 7) / 8) + x / 8] >> (x % 8) & 1;
+}
+
+// The Dusal bottle on the left is alive: it bobs a pixel or two, waves its hand and blinks every few seconds.
+void drawMascot() {
+  static const uint8_t bob[] = {0, 1, 2, 1};
+  const int dy = bob[millis() / 400 % 4];
+  display.drawXBMP(0, dy, kImageWidth, kImageHeight, kImage);
+  // The hand (x 41-50, y 23-40 in image.h) swings ±14° about the wrist. Each screen pixel near it looks up
+  // where it came from in the still drawing, so the turned hand has no holes.
+  const int handX = 41, handTop = 23, handBottom = 40, pivotX = 42, pivotY = 39;
+  const float angle = 0.25f * sinf(millis() * 2 * PI / 900);
+  const float c = cosf(angle), s = sinf(angle);
+  display.setDrawColor(0);
+  display.drawBox(handX, handTop + dy, kImageWidth - handX, handBottom - handTop + 1);
+  display.setDrawColor(1);
+  for (int y = handTop - 6; y <= handBottom + 2; y++) {
+    for (int x = handX - 3; x < kImageWidth + 4; x++) {
+      const float rx = x - pivotX, ry = y - pivotY;
+      const int sx = lroundf(pivotX + rx * c + ry * s), sy = lroundf(pivotY - rx * s + ry * c);
+      if (sx >= handX && sy >= handTop && sy <= handBottom && imagePixel(sx, sy)) display.drawPixel(x, y + dy);
+    }
+  }
+  if (millis() % 4000 < 180) {  // eyes shut: wipe them and draw a lid line (eye boxes from image.h)
+    for (int eyeX : {15, 27}) {
+      display.setDrawColor(0);
+      display.drawBox(eyeX, 28 + dy, 7, 6);
+      display.setDrawColor(1);
+      display.drawHLine(eyeX, 31 + dy, 7);
+    }
+  }
+}
+
+// A number with its unit ("мл", "г") after it, on the same baseline.
+void drawValue(const char* number, const Text& unit, int x, int baseline) {
+  display.setFont(u8g2_font_helvB12_tn);
+  display.drawStr(x, baseline, number);
+  drawText(unit, x + display.getStrWidth(number) + 3, baseline - unit.height);
+}
+
+// The bottle on the left; on the right what was drunk today, the water in the bottle (once its empty weight is
+// set) or the weight, and the Bluetooth state at the bottom.
 void drawScreen() {
   static uint32_t lastDraw = 0;
   if (!hasDisplay || millis() - lastDraw < SCREEN_INTERVAL_MS) return;
   lastDraw = millis();
   if (!hx711Alive()) { showMessage("HX711 alga", "DT/SCK, 3.3V shalga"); return; }
   if (!calibrated()) { showMessage("Kalibrovk hii", "Serial: tare, cal 500"); return; }
+  if ((int32_t)(millis() - screenOnUntil) >= 0) {
+    if (screenOn) { display.setPowerSave(1); screenOn = false; }
+    return;
+  }
 
-  float g = grams();
+  const float g = grams();
+  const bool water = bottleG > 0;
   char number[12];
   if (g > MAX_LOAD_G) snprintf(number, sizeof number, "OVER");
-  else if (bottleG > 0 && g < PRESENT_MIN_G) snprintf(number, sizeof number, "--");
-  else snprintf(number, sizeof number, "%ld", lroundf(g - bottleG));
+  else if (water && g < PRESENT_MIN_G) snprintf(number, sizeof number, "--");
+  else if (water) snprintf(number, sizeof number, "%ld", lroundf(g - bottleG));
+  else snprintf(number, sizeof number, fabsf(g) < 99.95f ? "%.1f" : "%.0f", g);  // ~0.1 g resolution
   char link[12] = "";
   if (queued) snprintf(link, sizeof link, bleConnected ? "BT %d" : "%d hulee", queued);
   else if (bleConnected) strcpy(link, "BT");
 
+  char today[12];
+  if (todayMl < 1000) snprintf(today, sizeof today, "%d", todayMl);
+  else snprintf(today, sizeof today, "%.1f", todayMl / 1000.0f);  // "1.3 л"
+
+  const int x = kImageWidth + 6;
   display.clearBuffer();
-  display.setFont(u8g2_font_6x10_tr);
-  display.drawStr(0, 10, bottleG > 0 ? "US" : "JIN");
-  display.drawStr((128 - display.getStrWidth(link)) / 2, 10, link);
-  display.drawStr(128 - display.getStrWidth("BOOT=tare"), 10, "BOOT=tare");
-  display.drawHLine(0, 14, 128);
-  display.setFont(u8g2_font_logisoso28_tr);
-  int right = 104;
-  display.drawStr(right - display.getStrWidth(number), 54, number);
-  display.setFont(u8g2_font_helvB14_tr);
-  display.drawStr(right + 6, 54, "g");
+  drawMascot();
+  drawText(kTextToday, x, 0);
+  drawValue(today, todayMl < 1000 ? kTextMl : kTextL, x, 24);
+  drawText(water ? kTextWater : kTextWeight, x, 28);
+  drawValue(number, water ? kTextMl : kTextG, x, 52);
+  if (!water && phase == PRESENT) drawText(kTextTare, x, 55);  // a bottle is on: its empty weight is not set yet
+  else {
+    display.setFont(u8g2_font_6x10_tr);
+    display.drawStr(x, 64, link);
+  }
   display.sendBuffer();
 }
 
@@ -475,6 +623,7 @@ void setup() {
   prefs.begin("scale");
   factor = prefs.getFloat("factor", 0);
   bottleG = prefs.getFloat("bottle", 0);
+  todayMl = prefs.getInt("today", 0);
   bootId = prefs.getUInt("boot", 0) + 1;
   prefs.putUInt("boot", bootId);
   loadQueue();
@@ -507,7 +656,7 @@ void loop() {
     if (millis() - pressedAt >= 50) pressBoot();
     pressedAt = 0;
   }
-  if (readScale()) track();
+  if (readScale()) { track(); watchScreen(); }
   serviceBle();
   drawScreen();
 }
