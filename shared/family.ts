@@ -1,7 +1,7 @@
 // Family leaderboard, shared by the app and the Worker. A family is everyone who uses the same base:
 // the base's device ID is the family ID. Each phone is one member with a random ID it keeps to itself;
 // the leaderboard never sends member IDs back, so nobody can overwrite another member's numbers.
-import { ContractError, validateId } from './contracts.ts';
+import { ContractError, validateId } from './contracts';
 
 export interface MemberReport {
   name: string;
