@@ -1,3 +1,4 @@
+import { entryIcon, entryName } from './drinks';
 import './hydration.css';
 import { number, time } from './format';
 import { mdIcon } from './components/Icon';
@@ -183,32 +184,42 @@ export function bindStreakCalendar(events: readonly WaterEntry[], goal: number, 
 
 // One day's breakdown: its drop, the total against the goal or limit, and every entry with its time.
 function openDay(events: readonly WaterEntry[], goal: number, mode: Mode, key: string): void {
-  const list = events.filter(e => dayKey(new Date(e.at)) === key).sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  const list = events.filter(e => dayKey(new Date(e.at)) === key).sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   const drunk = list.reduce((sum, e) => (e.type === 'drink' ? sum + e.amount : sum), 0);
-  const face = dayMood(events, goal, mode)(key);
   const pct = Math.round((drunk / goal) * 100);
+  const over = mode === 'limit' && drunk > goal;
+  const { box, close } = hxSheet('day-title', `<h2 id="day-title">${dayTitle(new Date(`${key}T12:00`))}</h2>
+    <div class="hx-daysum">${ring(Math.min(1, drunk / goal), over, `${Math.min(999, pct)}%`, 64)}
+      <div><p class="hx-daysum-ml"><b>${number(drunk)}</b> / ${number(goal)} мл</p><p class="hx-daysum-note">${mode === 'goal' ? (drunk >= goal ? 'Зорилт биелсэн 🎉' : `Зорилтын ${pct}%`) : over ? `Хязгаараас ${number(drunk - goal)} мл хэтэрсэн` : `Хязгаарын ${pct}%`}</p></div></div>
+    ${list.length ? `<ul class="hx-list">${list.map(e => `<li class="${e.type}"><span class="hx-icon">${entryIcon(e)}</span><span class="hx-what"><b>${escape(entryName(e))}${e.type === 'drink' ? '' : ` · ${TYPES[e.type]}`}</b><small>${time(e.at)}</small></span><span class="hx-ml">${number(e.amount)} мл</span><span></span></li>`).join('')}</ul>` : '<p class="hx-empty">Энэ өдөр бүртгэл алга.</p>'}
+    <div class="hx-sheet-actions single"><a class="hx-light ac-btn" href="/history.html">Түүх рүү</a><button type="button" class="hx-blue" data-close>Хаах</button></div>`);
+  box.querySelector('[data-close]')!.addEventListener('click', close);
+}
+
+// A goal ring like the history page's: filled to a share, blue (orange past a doctor's limit).
+function ring(frac: number, over: boolean, label: string, size = 40): string {
+  const C = 2 * Math.PI * 17;
+  return `<span class="hx-ring${over ? ' over' : ''}${frac >= 1 && !over ? ' full' : ''}" style="width: ${size}px; height: ${size}px"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" class="bg"/>${frac > 0 ? `<circle cx="20" cy="20" r="17" class="fg" stroke-dasharray="${(frac * C).toFixed(1)} ${C.toFixed(1)}"/>` : ''}</svg><b>${label}</b></span>`;
+}
+
+// Bottom sheet in the Hydrify style, closed by Escape or a tap outside.
+function hxSheet(labelledBy: string, html: string): { box: HTMLElement; close: () => void } {
   const box = document.createElement('div');
-  box.className = 'cal';
-  box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-modal', 'true');
-  box.setAttribute('aria-labelledby', 'day-title');
-  box.innerHTML = `<div class="cal-card day-card">
-    <div class="cal-top"><h2 id="day-title">${dayTitle(new Date(`${key}T12:00`))}</h2><button type="button" class="cal-close" aria-label="Хаах">${mdIcon('close')}</button></div>
-    <div class="day-sum">${face ? dropFace(face) : ''}<div><b>${number(drunk)}</b><span> / ${number(goal)} мл</span><p>${mode === 'goal' ? `Зорилтын ${pct}%` : drunk > goal ? `Хязгаараас ${number(drunk - goal)} мл хэтэрсэн` : `Хязгаарын ${pct}%`}${face ? ` · ${MOOD_LABEL[face]}` : ''}</p></div></div>
-    <div class="day-bar${mode === 'limit' && drunk > goal ? ' over' : ''}"><i style="width: ${Math.min(100, pct)}%"></i></div>
-    ${list.length ? `<ol class="day-list">${list.map(e => `<li class="${e.type}"><span class="t">${time(e.at)}</span><span class="ml">${e.type === 'drink' ? '+' : ''}${number(e.amount)} мл</span><span class="ty">${TYPES[e.type]}</span></li>`).join('')}</ol>` : '<p class="day-empty">Энэ өдөр бүртгэл алга.</p>'}
-  </div>`;
+  box.className = 'hx-dim';
+  box.innerHTML = `<div class="hx-bottom hx-cal-sheet" role="dialog" aria-modal="true" aria-labelledby="${labelledBy}">${html}</div>`;
   document.body.append(box);
   const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
   document.addEventListener('keydown', onKey);
-  box.querySelector('.cal-close')!.addEventListener('click', close);
   box.addEventListener('click', e => { if (e.target === box) close(); });
-  box.querySelector<HTMLButtonElement>('.cal-close')!.focus();
+  box.querySelector<HTMLElement>('button, a')?.focus();
+  return { box, close };
 }
 
+// Month of goal rings (kit 46) with the current and best streak; ‹ › walk through months and a day
+// opens its breakdown.
 function openCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): void {
-  const counts = dayCounter(events, goal, mode), mood = dayMood(events, goal, mode);
+  const counts = dayCounter(events, goal, mode), totals = dayTotals(events);
   const keys = events.filter(e => e.type === 'drink').map(e => dayKey(new Date(e.at))).sort();
   let best = 0;
   if (keys.length) {
@@ -220,49 +231,43 @@ function openCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): 
   }
   const today = dayKey();
   let month = noon(new Date()); month.setDate(1);
-  const box = document.createElement('div');
-  box.className = 'cal';
-  box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-modal', 'true');
-  box.setAttribute('aria-labelledby', 'cal-title');
-  document.body.append(box);
-  const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-  document.addEventListener('keydown', onKey);
+  const { box, close } = hxSheet('cal-title', '');
+  const panel = box.querySelector<HTMLElement>('.hx-bottom')!;
 
   function draw(): void {
     const y = month.getFullYear(), m = month.getMonth();
     const first = (new Date(y, m, 1).getDay() + 6) % 7; // Monday-first
     const len = new Date(y, m + 1, 0).getDate();
     let met = 0;
-    const cells = Array.from({ length: first }, () => '<li class="pad"></li>');
+    const cells = Array.from({ length: first }, () => '<li></li>');
     for (let d = 1; d <= len; d++) {
-      const k = dayKey(new Date(y, m, d, 12));
-      if (counts(k)) met++;
-      if (k > today) { cells.push(`<li class="future"><span class="n">${d}</span></li>`); continue; }
-      const face = mood(k);
-      cells.push(`<li class="m-${face ?? 'none'}${k === today ? ' today' : ' past'}"><span class="n">${d}</span><span class="f">${face ? dropFace(face) : ''}</span></li>`);
+      const k = dayKey(new Date(y, m, d, 12)), ml = totals.get(k) ?? 0;
+      const ok = k <= today && counts(k), over = mode === 'limit' && ml > goal;
+      if (ok) met++;
+      const frac = ok && mode === 'goal' ? 1 : Math.min(1, ml / goal);
+      cells.push(`<li class="${k === today ? 'today' : ''}${ok ? ' met' : ''}"><button type="button" ${k > today ? 'disabled' : `data-day="${k}"`} aria-label="${m + 1}-р сарын ${d}: ${number(ml)} мл${ok ? ', биелсэн' : ''}">${ring(frac, over, String(d))}</button></li>`);
     }
-    box.innerHTML = `<div class="cal-card">
-      <div class="cal-top"><h2 id="cal-title">Streak</h2><button type="button" class="cal-close" aria-label="Хаах">${mdIcon('close')}</button></div>
-      <div class="cal-stats">
-        <div><b>${mdIcon('local_fire_department', 'md-fire')} ${currentStreak(counts)}</b><span>Одоогийн</span></div>
-        <div><b>${mdIcon('emoji_events', 'md-gold')} ${best}</b><span>Хамгийн урт</span></div>
-        <div><b>${mdIcon('check_circle', 'md-ok')} ${met}</b><span>Энэ сард</span></div>
+    const isNow = y === new Date().getFullYear() && m === new Date().getMonth();
+    panel.innerHTML = `<h2 id="cal-title">Streak</h2>
+      <div class="hx-cal-stats">
+        <div><b><span aria-hidden="true">🔥</span> ${currentStreak(counts)}</b><small>Одоогийн</small></div>
+        <div><b><span aria-hidden="true">🏆</span> ${best}</b><small>Хамгийн урт</small></div>
+        <div><b><span aria-hidden="true">✅</span> ${met}</b><small>Энэ сард</small></div>
       </div>
-      <div class="cal-nav"><button type="button" data-m="-1" aria-label="Өмнөх сар">‹</button><b>${y} оны ${m + 1}-р сар</b><button type="button" data-m="1" aria-label="Дараах сар">›</button></div>
-      <ol class="cal-grid" aria-label="${y} оны ${m + 1}-р сар">${['Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя', 'Ня'].map(w => `<li class="wd">${w}</li>`).join('')}${cells.join('')}</ol>
-      <p class="cal-legend">${LEGEND[mode]}</p>
-      <p class="cal-note">${mode === 'goal' ? `Өдрийн зорилт ${number(goal)} мл` : `Эмчийн хязгаар ${number(goal)} мл`}</p>
-    </div>`;
-    box.querySelector('.cal-close')!.addEventListener('click', close);
-    box.querySelectorAll<HTMLButtonElement>('[data-m]').forEach(b => b.addEventListener('click', () => {
+      <div class="hx-cal-month"><button type="button" data-m="-1" aria-label="Өмнөх сар">‹</button><b>${y} оны ${m + 1}-р сар</b><button type="button" data-m="1" aria-label="Дараах сар" ${isNow ? 'disabled' : ''}>›</button></div>
+      <div class="hx-cal-week" aria-hidden="true">${['Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя', 'Ня'].map(w => `<small>${w}</small>`).join('')}</div>
+      <ol class="hx-cal-days">${cells.join('')}</ol>
+      <p class="hx-cal-legend"><span><i class="full"></i>Биелсэн</span><span><i class="part"></i>Дутуу</span>${mode === 'limit' ? '<span><i class="over"></i>Хэтэрсэн</span>' : ''}<span><i></i>Бүртгэлгүй</span></p>
+      <p class="ac-small center">${mode === 'goal' ? `Өдрийн зорилт ${number(goal)} мл` : `Эмчийн хязгаар ${number(goal)} мл`}</p>
+      <div class="hx-sheet-actions single"><button type="button" class="hx-blue" data-close>Хаах</button></div>`;
+    panel.querySelector('[data-close]')!.addEventListener('click', close);
+    panel.querySelectorAll<HTMLButtonElement>('[data-m]').forEach(b => b.addEventListener('click', () => {
       month = new Date(month.getFullYear(), month.getMonth() + Number(b.dataset.m), 1, 12); draw();
     }));
-    box.querySelector<HTMLButtonElement>('.cal-close')!.focus();
+    panel.querySelectorAll<HTMLButtonElement>('[data-day]').forEach(b => b.addEventListener('click', () => openDay(events, goal, mode, b.dataset.day!)));
   }
-  box.addEventListener('click', e => { if (e.target === box) close(); });
   draw();
+  panel.querySelector<HTMLButtonElement>('[data-close]')!.focus();
 }
 
 // Under the bottle: how today is going against the clock, how long since the last drink, and one
