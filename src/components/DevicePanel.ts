@@ -1,5 +1,6 @@
 import { devices, startDevices, deviceSummary } from '../devices';
 import { scale } from '../scale';
+import { openBaseQr } from './BaseQr';
 import type { ScaleStatus } from '../scale-protocol';
 import { escape, number } from '../format';
 import './device-panel.css';
@@ -44,12 +45,12 @@ function scaleText(): string {
 function renderScale(): void {
   const host = document.querySelector<HTMLElement>('[data-scale-panel]');
   if (!host) return;
-  const key = [scale.phase, scale.saved, scale.name, scale.message].join('|');
+  const key = [scale.phase, scale.saved, scale.name, scale.message, scale.baseId].join('|');
   if (host.dataset.key !== key) {
     host.dataset.key = key;
     const buttons = scale.phase === 'unsupported' ? '' : scale.phase === 'off' && !scale.saved
       ? '<button type="button" data-scale-pair>Суурь хайх</button>'
-      : `${scale.phase === 'off' ? '<button type="button" data-scale-retry>Дахин холбох</button>' : ''}<button type="button" data-scale-forget>Салгах</button>`;
+      : `${scale.phase === 'off' ? '<button type="button" data-scale-retry>Дахин холбох</button>' : ''}${scale.baseId ? '<button type="button" data-scale-qr>QR хэвлэх</button>' : ''}<button type="button" data-scale-forget>Салгах</button>`;
     host.innerHTML = `<div class="device-heading"><h2 id="scale-title">Bluetooth суурь</h2></div>
       <p role="status">${scaleText()}</p>
       <p class="scale-live" data-scale-live></p>
@@ -58,6 +59,7 @@ function renderScale(): void {
       <p class="device-error" role="alert" hidden></p>`;
     host.querySelector('[data-scale-pair]')?.addEventListener('click', () => void act(host, () => scale.pair()));
     host.querySelector('[data-scale-retry]')?.addEventListener('click', () => scale.reconnect());
+    host.querySelector('[data-scale-qr]')?.addEventListener('click', () => openBaseQr({ baseId: scale.baseId, bleId: scale.address, name: scale.name || null }));
     host.querySelector('[data-scale-forget]')?.addEventListener('click', () => void act(host, () => scale.forget()));
   }
   const live = host.querySelector<HTMLElement>('[data-scale-live]')!;

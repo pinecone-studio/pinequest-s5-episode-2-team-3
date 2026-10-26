@@ -17,6 +17,9 @@
 .fam-hint { margin: -4px 0 0; font-size: 13px; color: var(--muted-2); }
 .fam-hint a { color: #0096b4; text-decoration: underline; }
 .fam-go { width: 100%; }
+.fam-scan { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; border: 1.5px dashed #8ddfee; border-radius: 14px; background: #f1fbfd; color: #005f73; font-size: 15px; font-weight: 700; }
+.fam-scan .md-icon { font-size: 20px; color: #00bedc; }
+.fam-scan:hover { background: #e8f9fc; }
 
 .fam-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .fam-head span { font-size: 14px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
