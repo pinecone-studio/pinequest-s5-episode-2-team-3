@@ -51,8 +51,6 @@
 @keyframes plan-fade { from { opacity: 0; } }
 @keyframes plan-rise { from { transform: translateY(24px) scale(.97); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .plan-wrap:not([hidden]), .plan-wrap:not([hidden]) .plan-sheet { animation: none; } }
-/* Redrawn while open (AI answer arriving): don't play the opening animation again. */
-.plan-wrap.still, .plan-wrap.still .plan-sheet { animation: none; }
 
 /* One-screen calculator: numbered-feel steps, then the three suggestions as selectable cards. */
 .plan-step { margin: 16px 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--muted-2); }
