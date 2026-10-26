@@ -210,8 +210,16 @@ function bindPlan() {
     if (!validProfile(p)) { showError('Нас 4–110, жин 10–250 кг, өндөр 90–230 см, эмчийн хэмжээ 500–4,000 мл байна.'); return; }
     showError('');
     writeProfile(p);
-    // Picking or clearing a diagnosis shows or hides the doctor's part, so redraw the form.
-    if (target.id === 'plan-condition') { render(); document.querySelector<HTMLElement>('#plan-condition-note')?.focus(); return; }
+    // Picking or clearing a diagnosis shows or hides the doctor's part, so redraw the form. The amount below
+    // follows the new diagnosis, and an AI answer given for the old one is dropped (it may be unsafe now).
+    if (target.id === 'plan-condition') {
+      aiPlan = null;
+      if (source === 'ai') source = 'calc';
+      draft = suggestion(p, source);
+      render();
+      document.querySelector<HTMLElement>('#plan-condition-note')?.focus();
+      return;
+    }
     refreshCards(p);
     if (source !== 'ai') { draft = suggestion(p, source); show(); }
   });
