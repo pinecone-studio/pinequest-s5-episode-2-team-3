@@ -7,6 +7,7 @@ import { load, save, saveMessage, onExternalChange } from './storage';
 import { streakParts, bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
 import { hxGauge, hxHeader, hxHistory, openCupSheet, readCup, readCupKind } from './hydrify';
 import { setKind } from './drinks';
+import { cachedWeather, weatherChip, weatherIfAllowed } from './weather';
 import { celebrateIfReached, showYesterday } from './day-result';
 import { startSync } from './sync';
 import { startDevices } from './devices';
@@ -345,6 +346,8 @@ function bindPlan() {
 }
 
 let drinking = false;
+// Today's "feels like" temperature, once location was allowed (onboarding's climate step).
+let weather = cachedWeather();
 async function addDrink(ml: number) {
   const before = drankOn(state.events, today);
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
@@ -439,6 +442,7 @@ function render() {
       <div class="hydro">
         ${hxHeader('Нүүр')}
         ${hxGauge(drink, state.goal, state.mode, readCup(), drinking)}
+        ${weatherChip(weather, state.mode)}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${hxHistory(state.events)}
         <div class="hx-streak">${streak.week}</div>
@@ -504,6 +508,7 @@ void reload().then(() => {
   startDevices();
   // Connecting to a base joins its family; the board redraws when the server answers.
   startFamily();
+  void weatherIfAllowed().then(w => { if (w && w.feels !== weather?.feels) { weather = w; render(); } });
   window.addEventListener('dusal-family', render);
   startReminders(() => state);
   startAppIcon(() => state);

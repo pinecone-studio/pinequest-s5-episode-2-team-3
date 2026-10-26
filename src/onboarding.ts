@@ -6,6 +6,7 @@ import { saveMember, readMember } from './member';
 import { readSettings, writeSettings } from './schedule';
 import { openAmountSheet } from './hx-edit';
 import { about } from './prefs';
+import { climateOf, fetchWeather } from './weather';
 
 // First visit, Hydrify layout (demo): three walkthrough slides, a sign-up form (name kept on this
 // phone; email and password are not sent anywhere), nine one-question steps with a progress bar
@@ -23,9 +24,9 @@ type Screen = 'walk' | 'signup' | 'step' | 'making' | 'ready';
 const QUESTIONS = 9;
 type Climate = 'hot' | 'mild' | 'cold';
 const CLIMATES: Record<Climate, { label: string; icon: string; extra: number }> = {
-  hot: { label: 'Халуун', icon: '☀️', extra: 500 },
-  mild: { label: 'Дунд зэрэг', icon: '⛅', extra: 0 },
-  cold: { label: 'Хүйтэн', icon: '❄️', extra: 0 },
+  hot: { label: 'Халуун', icon: '<circle cx="16" cy="16" r="6.5" fill="#ffb300"/><g stroke="#ffb300" stroke-width="2.4" stroke-linecap="round"><path d="M16 2.5v4M16 25.5v4M2.5 16h4M25.5 16h4M6.5 6.5l2.8 2.8M22.7 22.7l2.8 2.8M6.5 25.5l2.8-2.8M22.7 9.3l2.8-2.8"/></g>', extra: 500 },
+  mild: { label: 'Дунд зэрэг', icon: '<circle cx="12" cy="12" r="5.5" fill="#ffb300"/><g stroke="#ffb300" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v3M2 12h3M4.9 4.9l2.1 2.1M19.1 4.9 17 7"/></g><path d="M10 27a5 5 0 0 1 .6-10A7 7 0 0 1 24 15.5a5.8 5.8 0 0 1 .5 11.5z" fill="#cfe6fd" stroke="#9fd0fb" stroke-width="1.2"/>', extra: 0 },
+  cold: { label: 'Хүйтэн', icon: '<g stroke="#369fff" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M16 3v26M4.7 9.5l22.6 13M4.7 22.5l22.6-13"/><path d="M12.5 5.5 16 8.5l3.5-3M12.5 26.5 16 23.5l3.5 3M4.5 14l4.4-1-1.3-4.4M27.5 18l-4.4 1 1.3 4.4M4.5 18l4.4 1-1.3 4.4M27.5 14l-4.4-1 1.3-4.4"/></g>', extra: 0 },
 };
 // The result in the unit picked on the last screen (kit 19).
 const UNITS = { ml: { label: 'мл', per: 1, digits: 0 }, l: { label: 'л', per: 1000, digits: 2 }, us: { label: 'US oz', per: 29.5735, digits: 0 }, uk: { label: 'UK oz', per: 28.4131, digits: 0 } } as const;
@@ -103,6 +104,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   const times = readSettings();
   let sex: Sex | null = null;
   let climate: Climate = 'mild';
+  let weather = ''; // the line under the climate cards: where the choice came from
   let hUnit: 'cm' | 'ft' = 'cm';
   let wUnit: 'kg' | 'lb' = 'kg';
   let unit: Unit = 'ml';
@@ -167,7 +169,9 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       case 7: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
         `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => `<button type="button" class="ob-card${p.activity === a ? ' on' : ''}" data-act="${a}" aria-pressed="${p.activity === a}"><span class="ob-card-icon">${mdIcon(ACT_ICONS[a])}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small></button>`).join('')}</div>`);
       case 8: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа уур амьсгалыг сонгоно уу.',
-        `<div class="ob-cards">${(Object.keys(CLIMATES) as Climate[]).map(c => `<button type="button" class="ob-card slim icon${climate === c ? ' on' : ''}" data-climate="${c}" aria-pressed="${climate === c}"><span aria-hidden="true">${CLIMATES[c].icon}</span><b>${CLIMATES[c].label}</b></button>`).join('')}</div>`);
+        `<div class="ob-cards">${(Object.keys(CLIMATES) as Climate[]).map(c => `<button type="button" class="ob-climate${climate === c ? ' on' : ''}" data-climate="${c}" aria-pressed="${climate === c}"><svg viewBox="0 0 32 32" aria-hidden="true">${CLIMATES[c].icon}</svg><b>${CLIMATES[c].label}</b>${CLIMATES[c].extra ? `<small>+${CLIMATES[c].extra} мл</small>` : ''}</button>`).join('')}</div>
+        ${'geolocation' in navigator ? `<button type="button" class="ob-locate" data-locate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Миний байршлын цаг агаараар</button>` : ''}
+        <p class="ob-weather" role="status">${weather}</p>`);
       default: {
         const list = sex === 'female' ? [FOR_ALL[0], ...FOR_WOMEN, ...FOR_ALL.slice(1)] : FOR_ALL;
         const limit = p.condition === 'kidney' || p.condition === 'heart';
@@ -248,6 +252,20 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     requestAnimationFrame(tick);
   }
 
+  async function locate(): Promise<void> {
+    weather = 'Цаг агаарыг шалгаж байна…';
+    const line = box.querySelector('.ob-weather');
+    if (line) line.textContent = weather;
+    try {
+      const got = await fetchWeather();
+      climate = climateOf(got.feels);
+      weather = `Өнөөдөр таны байршилд ${got.feels}°C мэт мэдрэгдэнэ → «${CLIMATES[climate].label}». Цаашид нүүр хуудас өдөр бүр шалгана.`;
+    } catch (err) {
+      weather = (err as GeolocationPositionError)?.code === 1 ? 'Байршлын зөвшөөрөл өгөөгүй. Гараар сонгоно уу.' : 'Цаг агаарыг авч чадсангүй. Гараар сонгоно уу.';
+    }
+    if (screen === 'step' && step === 8) draw();
+  }
+
   function draw(): void {
     box.innerHTML = `<div class="ob-screen">${view()}</div>`;
     bind();
@@ -325,14 +343,20 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     on('[data-sex]', el => { sex = el.dataset.sex as Sex; if (sex !== 'female' && FOR_WOMEN.includes(p.condition)) p.condition = 'none'; draw(); });
     on('[data-hunit]', el => { readStep(); hUnit = el.dataset.hunit as 'cm' | 'ft'; draw(); });
     on('[data-wunit]', el => { readStep(); wUnit = el.dataset.wunit as 'kg' | 'lb'; draw(); });
-    on('[data-climate]', el => { climate = el.dataset.climate as Climate; draw(); });
+    on('[data-climate]', el => { climate = el.dataset.climate as Climate; weather = ''; draw(); });
+    on('[data-locate]', () => void locate());
     on('[data-unit]', el => { unit = el.dataset.unit as Unit; draw(); });
     on('[data-adjust]', () => openAmountSheet('Өдрийн зорилт', '💧', result().ml, ml => { custom = Math.max(500, Math.min(5000, Math.round(ml / 50) * 50)); draw(); }));
     on('[data-act]', el => { p.activity = el.dataset.act as Activity; draw(); });
     on('[data-cond]', el => { readStep(); p.condition = el.dataset.cond as Condition; draw(); });
     on('[data-continue]', () => {
       readStep();
-      if (step < QUESTIONS) { step += 1; draw(); return; }
+      if (step < QUESTIONS) {
+        step += 1; draw();
+        // Already allowed once: fill the climate in without asking again.
+        if (step === 8 && !weather) void navigator.permissions?.query({ name: 'geolocation' }).then(r => { if (r.state === 'granted') void locate(); }).catch(() => {});
+        return;
+      }
       screen = 'making'; draw(); making();
     });
     on('[data-done]', () => finish(result()));

@@ -119,6 +119,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Onboarding climate step: a rough position for today's weather. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <!-- Android 13 and older: lets the app see the Health Connect app to check that it is installed. -->
     <queries>
