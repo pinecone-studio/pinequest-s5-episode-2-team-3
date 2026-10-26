@@ -31,7 +31,8 @@ export class ScaleLink {
   message = '';
   status: ScaleStatus | null = null;
   private bleId: string | null = null;
-  private deviceId = '';
+  // The base's own ID ("dusal-a1b2"), read on connect; it is also its family's ID (src/family.ts).
+  baseId = '';
   private ready?: Promise<void>;
   private retry?: ReturnType<typeof setTimeout>;
   private saving = Promise.resolve();
@@ -79,7 +80,7 @@ export class ScaleLink {
       await this.init();
       await BleClient.connect(bleId, () => this.lost(bleId));
       this.bleId = bleId;
-      this.deviceId = deviceIdFrom(await BleClient.read(bleId, SCALE_SERVICE, ID_CHAR));
+      this.baseId = deviceIdFrom(await BleClient.read(bleId, SCALE_SERVICE, ID_CHAR));
       await BleClient.startNotifications(bleId, SCALE_SERVICE, STATUS_CHAR, value => this.onStatus(value));
       await BleClient.startNotifications(bleId, SCALE_SERVICE, DRINK_CHAR, value => this.receive(value));
       this.phase = 'connected';
@@ -124,7 +125,7 @@ export class ScaleLink {
     const bleId = this.bleId;
     if (!drink || !bleId) return;
     // A drink the log can never accept is still confirmed, or it would block every later one.
-    const entry = ((): WaterEntry | null => { try { return drinkEntry(this.deviceId, drink); } catch { return null; } })();
+    const entry = ((): WaterEntry | null => { try { return drinkEntry(this.baseId, drink); } catch { return null; } })();
     if (entry) {
       const added = await store.update(record => {
         if (record.state.events.some(e => e.id === entry.id)) return false;

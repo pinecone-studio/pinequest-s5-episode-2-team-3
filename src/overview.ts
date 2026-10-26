@@ -9,6 +9,9 @@ import { pace } from './pace';
 import { startSync } from './sync';
 import { startDevices } from './devices';
 import { pushWidget } from './widget';
+import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
+import { familyCard, familyJoinCard } from './family-view';
+import { readMember, saveMember } from './member';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
@@ -369,6 +372,25 @@ async function undo() {
   render();
 }
 
+// The family board once this phone has a base; a name prompt first if onboarding's name step was skipped.
+function familySection(): string {
+  if (!readFamily()) return '';
+  if (!readMember()) return familyJoinCard();
+  const board = familyBoard();
+  return board ? familyCard(board) : '';
+}
+function bindFamily() {
+  document.querySelector('[data-family-leave]')?.addEventListener('click', () => {
+    if (confirm('Гэр бүлийн жагсаалтаас гарах уу? Суурьтай дахин холбогдоход буцаж нэгдэнэ.')) void leaveFamily();
+  });
+  document.querySelector<HTMLFormElement>('[data-family-join]')?.addEventListener('submit', event => {
+    event.preventDefault();
+    const input = (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>('#fam-name')!;
+    if (!saveMember(input.value)) { input.focus(); return; }
+    render();
+  });
+}
+
 function render() {
   const drink = drankOn(state.events, today);
   const streak = streakParts(state.events, state.goal, state.mode);
@@ -386,6 +408,7 @@ function render() {
         ${drinkTiles()}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${streak.week}
+        ${familySection()}
       </div>
       <footer class="home-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Холболт, нөөц ба тохиргоо</a></p></footer>
     </div>
@@ -394,6 +417,8 @@ function render() {
     </div>
   </main>`;
   pushWidget(state, drink);
+  void reportFamily(state, drink);
+  bindFamily();
   bindHydration(drink, addDrink, render);
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindSchedule(() => state, render);
@@ -440,6 +465,9 @@ void reload().then(() => {
   // Keep pulling while home is open so a sip on the base shows up here within seconds.
   startSync();
   startDevices();
+  // Connecting to a base joins its family; the board redraws when the server answers.
+  startFamily();
+  window.addEventListener('dusal-family', render);
   startReminders(() => state);
   startAppIcon(() => state);
   // First visit: ask a few questions and start with the computed daily amount.
