@@ -31,19 +31,46 @@ const CLIMATES: Record<Climate, { label: string; icon: string; extra: number }> 
 const UNITS = { ml: { label: 'мл', per: 1, digits: 0 }, l: { label: 'л', per: 1000, digits: 2 }, us: { label: 'US oz', per: 29.5735, digits: 0 }, uk: { label: 'UK oz', per: 28.4131, digits: 0 } } as const;
 type Unit = keyof typeof UNITS;
 
-// A plain figure for the height and weight steps; wider when heavier, a little rounder for women.
+// The figure on the height and weight steps (kit 10–12), drawn from the numbers so it changes as
+// the wheel turns: BMI widens the shoulders, chest, waist (a belly from about BMI 25), hips, arms
+// and legs; height scales the whole figure from the feet up. Women get narrower shoulders, wider
+// hips and a top. Height 175 cm and BMI 22 is the drawing's base size.
 function body(sex: Sex | null, weight: number, height: number): string {
-  const w = Math.max(0.8, Math.min(1.6, (weight / ((height / 100) ** 2)) / 22));
-  const hip = sex === 'female' ? 1.12 : 1;
-  const x = (dx: number) => (60 + dx * w).toFixed(1);
-  return `<svg class="ob-body" viewBox="0 0 120 260" aria-hidden="true">
-    <circle cx="60" cy="24" r="16" fill="#f2b48c"/><path d="M44 20c2-12 30-14 32 0-6-6-26-6-32 0z" fill="#3b2a20"/>
-    <rect x="54" y="38" width="12" height="10" fill="#f2b48c"/>
-    <path d="M${x(-30)} 52 Q60 44 ${x(30)} 52 L${x(26 * hip)} 128 H${x(-26 * hip)} Z" fill="#f2b48c"/>
-    <path d="M${x(-30)} 54 L${x(-40)} 128 L${x(-33)} 130 L${x(-22)} 72Z M${x(30)} 54 L${x(40)} 128 L${x(33)} 130 L${x(22)} 72Z" fill="#eaa57c"/>
-    ${sex === 'female' ? `<path d="M${x(-24)} 64 H${x(24)} V80 H${x(-24)} Z" fill="#212121"/>` : ''}
-    <path d="M${x(-26 * hip)} 126 H${x(26 * hip)} L${x(26 * hip)} 154 H62 L60 146 L58 154 H${x(-26 * hip)} Z" fill="#212121"/>
-    <path d="M${x(-25 * hip)} 154 H58 L56 248 H${x(-14)} Z M62 154 H${x(25 * hip)} L${x(14)} 248 H64 Z" fill="#f2b48c"/>
+  const bmi = weight / (height / 100) ** 2;
+  const w = Math.max(0.72, Math.min(1.9, bmi / 22));
+  const belly = Math.max(0, Math.min(1.3, (bmi - 24) / 9));
+  const f = sex === 'female';
+  const s = Math.max(0.78, Math.min(1.12, height / 175));
+  const S = (f ? 25 : 30) * (0.8 + 0.2 * w), C = (f ? 21 : 24) * w, W = (f ? 17 : 21) * w + belly * 9;
+  const H = (f ? 26 : 22) * w + belly * 3, limb = 0.85 + 0.5 * (w - 1);
+  const X = (dx: number) => (80 + dx).toFixed(1);
+  const torso = `M${X(-S)} 60 Q${X(-S - 3)} 66 ${X(-C)} 78 Q${X(-W - 4 * belly)} 112 ${X(-W)} 126 Q${X(-H)} 138 ${X(-H)} 150 L${X(H)} 150 Q${X(H)} 138 ${X(W)} 126 Q${X(W + 4 * belly)} 112 ${X(C)} 78 Q${X(S + 3)} 66 ${X(S)} 60 Q80 52 ${X(-S)} 60Z`;
+  const handX = Math.max(S + 6, W + 4 * belly + 9, H + 7);
+  const arm = (d: 1 | -1) => `M${X(d * (S - 3))} 64 Q${X(d * (S + 6 + 3 * belly))} 104 ${X(d * handX)} 168`;
+  const knee = H * 0.55, foot = 13 + 2 * w;
+  const leg = (d: 1 | -1) => `M${X(d * H * 0.5)} 158 Q${X(d * knee)} 222 ${X(d * foot)} 282`;
+  const skin = '#f2b48c', shade = '#e39f76';
+  return `<svg class="ob-body" viewBox="0 -36 160 336" role="img" aria-label="${height} см, ${weight} кг">
+    <ellipse cx="80" cy="292" rx="${(34 * w).toFixed(1)}" ry="5" fill="#e9e9e9"/>
+    <g transform="translate(80 292) scale(${s.toFixed(3)}) translate(-80 -292)">
+      <path d="${leg(-1)}" stroke="${skin}" stroke-width="${(17 * limb).toFixed(1)}" stroke-linecap="round" fill="none"/>
+      <path d="${leg(1)}" stroke="${skin}" stroke-width="${(17 * limb).toFixed(1)}" stroke-linecap="round" fill="none"/>
+      <ellipse cx="${X(-foot - 3)}" cy="287" rx="9" ry="4.5" fill="${shade}"/><ellipse cx="${X(foot + 3)}" cy="287" rx="9" ry="4.5" fill="${shade}"/>
+      <path d="${arm(-1)}" stroke="${shade}" stroke-width="${(11 * limb).toFixed(1)}" stroke-linecap="round" fill="none"/>
+      <path d="${arm(1)}" stroke="${shade}" stroke-width="${(11 * limb).toFixed(1)}" stroke-linecap="round" fill="none"/>
+      <circle cx="${X(-handX)}" cy="171" r="${(5.5 * limb).toFixed(1)}" fill="${skin}"/><circle cx="${X(handX)}" cy="171" r="${(5.5 * limb).toFixed(1)}" fill="${skin}"/>
+      <rect x="${(80 - 7 * limb).toFixed(1)}" y="40" width="${(14 * limb).toFixed(1)}" height="16" rx="4" fill="${shade}"/>
+      <path d="${torso}" fill="${skin}"/>
+      ${f ? `<path d="M${X(-C + 1)} 80 Q80 88 ${X(C - 1)} 80 L${X(C - 2)} 96 Q80 102 ${X(-C + 2)} 96Z" fill="#212121"/>`
+        : `<path d="M${X(-C * 0.75)} 90 q${(C * 0.35).toFixed(1)} 6 ${(C * 0.7).toFixed(1)} 0 M${X(C * 0.05)} 90 q${(C * 0.35).toFixed(1)} 6 ${(C * 0.7).toFixed(1)} 0" stroke="${shade}" stroke-width="1.6" fill="none"/>`}
+      ${belly > 0.05 ? `<ellipse cx="80" cy="${(120 + 4 * belly).toFixed(1)}" rx="${(W * 0.7).toFixed(1)}" ry="${(10 + 9 * belly).toFixed(1)}" fill="${shade}" opacity=".35"/>` : ''}
+      <circle cx="80" cy="${(126 + 3 * belly).toFixed(1)}" r="1.4" fill="${shade}"/>
+      <path d="M${X(-H - 1)} 146 L${X(H + 1)} 146 L${X(H + 2)} 182 L${X(4)} 182 L80 166 L${X(-4)} 182 L${X(-H - 2)} 182Z" fill="#212121"/>
+      <circle cx="80" cy="24" r="16" fill="${skin}"/>
+      <ellipse cx="64" cy="26" rx="3" ry="5" fill="${shade}"/><ellipse cx="96" cy="26" rx="3" ry="5" fill="${shade}"/>
+      ${f ? '<path d="M62 26c-4-24 40-24 36 0 3 10 2 22-2 30l-4-16c-3-8-6-12-12-14-6 2-10 7-13 14l-4 16c-4-8-4-20-1-30z" fill="#3b2a20"/>'
+        : '<path d="M63 22c0-16 34-18 34 0-4-6-10-8-17-8s-13 2-17 8z" fill="#3b2a20"/>'}
+    </g>
   </svg>`;
 }
 const FOR_ALL: Condition[] = ['none', 'stones', 'kidney', 'heart', 'other'];
@@ -241,11 +268,24 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         const idx = Math.max(0, Math.min(items.length - 1, Math.round(w.scrollTop / ITEM)));
         items.forEach((it, i) => { it.classList.toggle('on', i === idx); it.setAttribute('aria-selected', String(i === idx)); });
       }, 80);
+      // The figure follows the value under the band while the wheel is still moving.
+      if (w.id === 'ob-height' || w.id === 'ob-weight') {
+        const v = items[Math.max(0, Math.min(items.length - 1, Math.round(w.scrollTop / ITEM)))].dataset.v!;
+        redrawBody(w.id === 'ob-height' ? { height: hUnit === 'cm' ? Number(v) : Math.round(Number(v) * 2.54) } : { weight: wUnit === 'kg' ? Number(v) : Math.round(Number(v) * 0.4536) });
+      }
     }, { passive: true });
     w.addEventListener('keydown', e => {
       if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
       e.preventDefault();
       w.scrollBy({ top: e.key === 'ArrowUp' ? -ITEM : ITEM });
+    });
+  }
+  let bodyFrame = 0;
+  function redrawBody(change: { height?: number; weight?: number }): void {
+    cancelAnimationFrame(bodyFrame);
+    bodyFrame = requestAnimationFrame(() => {
+      const fig = box.querySelector('.ob-body');
+      if (fig) fig.outerHTML = body(sex, change.weight ?? p.weight, change.height ?? p.height);
     });
   }
   const picked = (id: string) => box.querySelector<HTMLElement>(`#${id} .ob-wheel-item.on`)?.dataset.v;
