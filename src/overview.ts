@@ -11,6 +11,8 @@ import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
 import { needsOnboarding, showOnboarding } from './onboarding';
+import { reportToday } from './family';
+import { readAvatar } from './avatars';
 import { bindSchedule, scheduleChip, startReminders } from './schedule';
 import { startAppIcon } from './app-icon';
 import { dateLabel, escape, number } from './format';
@@ -326,6 +328,8 @@ function render() {
     </div>
   </main>`;
   bindHydration(drink, addDrink, render);
+  // A family member sends today's total so the family board stays current (only when it changed).
+  reportToday(state, readAvatar());
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindSchedule(() => state, render);
   document.querySelector('#undo')?.addEventListener('click', undo);

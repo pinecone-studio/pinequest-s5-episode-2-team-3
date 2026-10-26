@@ -38,6 +38,8 @@ export class ScaleLink {
   private started = false;
 
   get saved(): boolean { return readSaved() !== null; }
+  // The connected base's device ID, which is also its family's ID (shared/family.ts); '' when not connected.
+  get baseId(): string { return this.phase === 'connected' ? this.deviceId : ''; }
   private changed(): void { window.dispatchEvent(new Event('dusal-scale')); }
   private init(): Promise<void> {
     return this.ready ??= BleClient.initialize().catch(error => { this.ready = undefined; throw error; });
