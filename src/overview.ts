@@ -4,8 +4,8 @@ import './overview.css';
 import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
-import { hxWeekCard, bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
-import { hxGauge, hxHeader, hxHistory, openCupSheet, readCup, readCupKind } from './hydrify';
+import { bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
+import { hxGauge, hxHeader, openCupSheet, readCup, readCupKind } from './hydrify';
 import { setKind } from './drinks';
 import { cachedWeather, weatherChip, weatherIfAllowed } from './weather';
 import { bindWatchCard, loadInsight, watchCard } from './watch-card';
@@ -447,8 +447,6 @@ function render() {
         ${weatherChip(weather, state.mode)}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${watchCard()}
-        ${hxHistory(state.events)}
-        ${hxWeekCard(state.events, state.goal, state.mode)}
         ${familySection()}
       </div>
       <footer class="home-footer hx-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/history.html">Бүх бүртгэл</a> · <a href="/settings.html#linked">Холболт, нөөц ба тохиргоо</a></p></footer>

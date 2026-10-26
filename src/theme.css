@@ -835,3 +835,37 @@ html .hx-tip-tag { display: block; margin-bottom: 4px; font-size: 12px; font-wei
 html .hx-tip-extra { display: inline-block; margin-top: 10px; padding: 6px 12px; border-radius: 999px; background: var(--sky); font-size: 13px; color: #fff; }
 html .hx-watch-empty { margin: 12px 0; font-size: 14px; color: var(--muted); }
 html[data-theme="dark"] .hx-watch-tile, html[data-theme="dark"] .hx-badge { background: #2a2d36; }
+
+/* "Өнөөдрийн дадал": bento tiles under the gauge (calories, heart, weight, steps, wellness score) */
+html .hx-habit { display: grid; gap: 12px; width: 100%; }
+html .hb-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 2px 0; }
+html .hb-head h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--ink); }
+html .hb-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "kcal heart" "weight heart" "weight steps"; gap: 12px; }
+html .hb-kcal { grid-area: kcal; } html .hb-heart { grid-area: heart; } html .hb-weight { grid-area: weight; } html .hb-steps { grid-area: steps; }
+html .hb-tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 16px; border-radius: 20px; box-shadow: 0 6px 18px rgba(30, 60, 90, .06); }
+html .hb-tile.green { background: #e8fbe9; } html .hb-tile.cyan { background: #defcff; }
+html .hb-top, html .hb-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+html .hb-row { align-items: center; }
+html .hb-tile h3 { margin: 4px 0 0; font-size: 17px; font-weight: 600; color: #4a4a4a; }
+html .hb-tile p { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: #6b7280; }
+html .hb-tile b { margin-top: auto; padding-top: 14px; font-size: 32px; font-weight: 600; line-height: 1.1; color: #111; font-variant-numeric: tabular-nums; }
+html .hb-row b { padding-top: 0; }
+html .hb-row > div { display: grid; }
+html .hb-tile small { font-size: 15px; color: #6b7280; }
+html .hb-icon { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; background: #fff; }
+html .hb-icon svg { width: 24px; height: 24px; fill: currentColor; }
+html .green .hb-icon { color: #7fd6a8; } html .cyan .hb-icon { color: #5ec4c4; }
+html .hb-score { flex-direction: row; align-items: center; gap: 12px; }
+html .hb-score-text { flex: 1; min-width: 0; }
+html .hb-score-text small { font-size: 13px; }
+html .hb-score-text strong { color: #1f9e6a; }
+html .hb-score-text p { margin-top: 6px; font-size: 14px; line-height: 1.5; color: var(--ink); }
+html .hb-score .hx-tip-extra { margin-top: 8px; padding-top: 6px; font-size: 13px; font-weight: 700; color: #fff; }
+html .hb-ring { position: relative; flex-shrink: 0; width: 92px; height: 92px; }
+html .hb-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+html .hb-ring .bg { fill: none; stroke: #fff; stroke-width: 11; }
+html .hb-ring .fg { fill: none; stroke: #b9f2c6; stroke-width: 11; stroke-linecap: round; }
+html .hb-ring b { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0; font-size: 16px; font-weight: 700; }
+html[data-theme="dark"] .hb-tile.green { background: #1d2f24; } html[data-theme="dark"] .hb-tile.cyan { background: #18303a; }
+html[data-theme="dark"] .hb-tile b, html[data-theme="dark"] .hb-tile h3 { color: #fff; }
+html[data-theme="dark"] .hb-icon, html[data-theme="dark"] .hb-ring .bg { background: #1f222a; stroke: #1f222a; }
