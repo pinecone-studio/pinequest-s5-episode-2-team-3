@@ -62,3 +62,8 @@
 .onb-field input { min-height: 52px; padding: 0 16px; border: 2px solid #e3e8ef; border-radius: 16px; font: inherit; font-size: 16px; font-weight: 400; color: #1f2733; background: #fff; }
 .onb-field input:focus { border-color: #00bedc; outline: none; }
 .onb-warn { padding: 10px 14px; border-radius: 14px; background: #fff4e5; color: #8a4b00 !important; font-size: 14px !important; }
+.onb-avatars { width: 100%; }
+.onb-avatars .avatar-opt svg { width: 56px; }
+.onb-later { min-height: 44px; border: 0; background: none; color: #5f6877; font-size: 15px; font-weight: 600; }
+.onb-later:hover { color: #1f2733; }
+.onb-error { margin: 0; color: #b42318 !important; font-size: 14px !important; font-weight: 600; }
