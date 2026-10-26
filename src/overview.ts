@@ -90,7 +90,8 @@ function versusGoal(d: { ml: number; mode: 'goal' | 'limit' }): { text: string; 
 // One card per source; AI stays unselectable until it has answered.
 function optionCard(s: Source, p: Profile): string {
   const d = suggestion(p, s);
-  const empty = aiAsking ? 'Бодож байна…' : aiReady === false ? 'Идэвхгүй' : 'Асуугаагүй';
+  const empty = aiAsking ? 'Бодож байна…' : aiReady === false ? 'Идэвхгүй' : aiError ? 'Хариу ирсэнгүй'
+    : p.condition === 'other' && p.conditionNote.trim().length < 3 ? 'Оношоо бичнэ үү' : 'Асуугаагүй';
   return `<button type="button" class="plan-option" role="radio" aria-checked="${s === source}" data-source="${s}" ${d ? '' : 'disabled'} ${s === 'doctor' && p.condition === 'none' ? 'hidden' : ''}>
     <span class="opt-name">${SOURCES[s]}</span>
     ${d ? `<span class="opt-amount" data-opt-amount="${s}">${liters(d.ml)} л</span><span class="opt-kind" data-opt-kind="${s}">${kindLabel(d.mode)}</span>` : `<span class="opt-empty">${empty}</span>`}
@@ -129,7 +130,8 @@ function planSection(p: Profile): string {
         <label>Жин, кг<input id="plan-weight" name="weight" type="number" inputmode="numeric" min="10" max="250" value="${p.weight}"/></label>
         <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
         <label class="wide">Онош<select id="plan-condition" name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${p.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
-        ${p.condition === 'other' ? `<label class="wide">Ямар онош вэ?<input id="plan-condition-note" name="conditionNote" type="text" maxlength="60" placeholder="Жишээ: чихрийн шижин" value="${escape(p.conditionNote)}"/></label>` : ''}
+        ${p.condition === 'other' ? `<label class="wide">Ямар онош вэ?<input id="plan-condition-note" name="conditionNote" type="text" maxlength="60" placeholder="Оношоо энд бичнэ үү" aria-describedby="plan-condition-hint" value="${escape(p.conditionNote)}"/>
+          <small id="plan-condition-hint">${aiReady === false ? 'AI идэвхгүй байна. Энэ оношид тохирох хэмжээг эмчээсээ асуугаарай.' : 'Бичээд түр хүлээхэд AI таны оношийг харгалзан тооцно. «Тооцоолсон» хэмжээ өөрчлөгдөхгүй.'}</small></label>` : ''}
       </div>
       <div class="plan-doctor" ${noDoctor ? 'hidden' : ''}>
       <p class="plan-step">Эмчийн заавар <small>байвал</small></p>
@@ -166,6 +168,61 @@ function readForm(form: HTMLFormElement): Partial<Profile> {
   return { age: n('age'), weight: n('weight'), height: n('height'), activity: saved.activity, condition: String(d.get('condition')) as Profile['condition'], doctorLimit: n('doctorLimit'), doctorMode: d.get('doctorMode') === 'goal' ? 'goal' : 'limit', conditionNote: d.has('conditionNote') ? String(d.get('conditionNote')) : saved.conditionNote };
 }
 
+// Each question gets a number, so an answer that comes back after a newer question (or a diagnosis change) is ignored.
+let aiRequest = 0;
+let autoAskTimer: ReturnType<typeof setTimeout> | undefined;
+
+// Redraw without taking the cursor out of the field the user is typing in, scrolling the sheet
+// or playing its opening animation again.
+function renderKeepingFocus() {
+  const field = document.activeElement as HTMLInputElement | null;
+  const id = field?.id;
+  const at = field?.type === 'text' ? [field.selectionStart, field.selectionEnd] : null;
+  const scroll = document.querySelector('#plan-wrap')?.scrollTop ?? 0;
+  render();
+  const wrap = document.querySelector<HTMLElement>('#plan-wrap')!;
+  wrap.classList.add('still');
+  wrap.scrollTop = scroll;
+  const again = id ? document.getElementById(id) as HTMLInputElement | null : null;
+  again?.focus();
+  if (again && at) again.setSelectionRange(at[0], at[1]);
+}
+
+async function askAiFor(p: Profile) {
+  clearTimeout(autoAskTimer);
+  const id = ++aiRequest;
+  const picked = source;
+  aiAsking = true;
+  aiError = '';
+  renderKeepingFocus();
+  try {
+    // Check the answer again: an older Worker may still pass the AI's number through for kidney/heart failure
+    // or one far from the formula.
+    const ai = guardPlan(p, await askAi({ age: p.age, weight: p.weight, height: p.height, activity: p.activity, condition: p.condition, doctorLimit: p.doctorLimit, conditionNote: p.conditionNote.trim(), note: aiNote }));
+    if (id !== aiRequest) return;
+    aiPlan = { ml: ai.ml, mode: ai.mode, how: ai.reason, warning: ai.warning };
+    // If the user picked another card while the AI was thinking, keep their pick; the AI card still fills in.
+    if (source === picked) { source = 'ai'; draft = aiPlan; }
+  } catch (err) {
+    if (id !== aiRequest) return;
+    aiError = (err as Error).message;
+  }
+  aiAsking = false;
+  renderKeepingFocus();
+}
+
+// Typing an unlisted diagnosis, or editing the profile while the AI's answer is picked, asks the AI again
+// once typing pauses, so the amount below follows without pressing «Асуух».
+function scheduleAsk(p: Profile) {
+  clearTimeout(autoAskTimer);
+  if (!aiReady || (p.condition === 'other' && p.conditionNote.trim().length < 3)) return;
+  autoAskTimer = setTimeout(() => {
+    const form = document.querySelector<HTMLFormElement>('#plan-form');
+    const latest = form && readForm(form);
+    if (latest && validProfile(latest)) void askAiFor(latest);
+  }, 1200);
+}
+
 function bindPlan() {
   const form = document.querySelector<HTMLFormElement>('#plan-form')!;
   const error = form.querySelector<HTMLElement>('#plan-error')!;
@@ -196,12 +253,13 @@ function bindPlan() {
     });
   };
   form.querySelectorAll<HTMLButtonElement>('[data-source]').forEach(b => b.addEventListener('click', () => {
+    clearTimeout(autoAskTimer);
     source = b.dataset.source as Source;
     draft = suggestion(readProfile(), source);
     aiError = '';
     render();
   }));
-  // Profile edits recompute the suggestions (AI waits for its button).
+  // Profile edits recompute the suggestions; the AI is asked again after a pause (see scheduleAsk).
   form.addEventListener('input', event => {
     const target = event.target as HTMLElement;
     if (target === amount) return;
@@ -213,6 +271,9 @@ function bindPlan() {
     // Picking or clearing a diagnosis shows or hides the doctor's part, so redraw the form. The amount below
     // follows the new diagnosis, and an AI answer given for the old one is dropped (it may be unsafe now).
     if (target.id === 'plan-condition') {
+      clearTimeout(autoAskTimer);
+      aiRequest++;
+      aiAsking = false;
       aiPlan = null;
       if (source === 'ai') source = 'calc';
       draft = suggestion(p, source);
@@ -222,6 +283,7 @@ function bindPlan() {
     }
     refreshCards(p);
     if (source !== 'ai') { draft = suggestion(p, source); show(); }
+    if (source === 'ai' || target.id === 'plan-condition-note') scheduleAsk(p);
   });
   const nudge = (delta: number) => {
     const ml = Math.round(Math.min(4000, Math.max(500, draft!.ml + delta)) / 50) * 50;
@@ -240,21 +302,7 @@ function bindPlan() {
   form.querySelector('#ask-ai')?.addEventListener('click', async () => {
     const p = readForm(form);
     if (!validProfile(p)) { showError('Нас 4–110, жин 10–250 кг, өндөр 90–230 см байна.'); return; }
-    aiAsking = true;
-    aiError = '';
-    render();
-    try {
-      // Check the answer again: an older Worker may still pass the AI's number through for kidney/heart failure
-      // or one far from the formula.
-      const ai = guardPlan(p, await askAi({ age: p.age, weight: p.weight, height: p.height, activity: p.activity, condition: p.condition, doctorLimit: p.doctorLimit, conditionNote: p.conditionNote.trim(), note: aiNote }));
-      aiPlan = { ml: ai.ml, mode: ai.mode, how: ai.reason, warning: ai.warning };
-      source = 'ai';
-      draft = aiPlan;
-    } catch (err) {
-      aiError = (err as Error).message;
-    }
-    aiAsking = false;
-    render();
+    await askAiFor(p);
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -354,6 +402,7 @@ function render() {
     planOpen = open;
     pill.setAttribute('aria-expanded', String(open));
     sheet.hidden = !open;
+    if (open) sheet.classList.remove('still');
     if (open) sheet.querySelector<HTMLElement>('.plan-close')!.focus(); else pill.focus();
   };
   document.querySelector('#plan-close')!.addEventListener('click', () => setOpen(false));
