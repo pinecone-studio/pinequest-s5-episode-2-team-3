@@ -39,7 +39,12 @@ export class ScaleLink {
   private started = false;
 
   get saved(): boolean { return readSaved() !== null; }
-  private changed(): void { window.dispatchEvent(new Event('dusal-scale')); }
+  // Tells this page and, in the tab host, every tab's frame (they all show the one shared link).
+  private changed(): void {
+    const pages: Window[] = [window];
+    for (let i = 0; i < window.frames.length; i++) pages.push(window.frames[i]);
+    for (const page of pages) { try { page.dispatchEvent(new (page as typeof window).Event('dusal-scale')); } catch { /* not our page */ } }
+  }
   private init(): Promise<void> {
     return this.ready ??= BleClient.initialize().catch(error => { this.ready = undefined; throw error; });
   }
@@ -140,4 +145,11 @@ export class ScaleLink {
   }
 }
 
-export const scale = new ScaleLink();
+// One link per app. In the phone app's tab host (tabs.ts) the three tabs are frames of one page, and two
+// connections to the same base would fight; each tab uses the host's link instead of making its own.
+type ScaleHost = Window & { dusalScale?: ScaleLink };
+function hostLink(): ScaleLink | undefined {
+  try { return window.parent !== window ? (window.parent as ScaleHost).dusalScale : undefined; } catch { return undefined; }
+}
+export const scale: ScaleLink = hostLink() ?? new ScaleLink();
+(window as ScaleHost).dusalScale = scale;

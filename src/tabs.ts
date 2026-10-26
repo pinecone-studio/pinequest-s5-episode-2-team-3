@@ -1,5 +1,7 @@
 import './tabs.css';
 import { NAV_ICONS, TABS } from './nav';
+// Created here first, so every tab frame shares this one Bluetooth link to the base (src/scale.ts).
+import './scale';
 
 // Phone app start page (capacitor.config.ts → server.appStartPath). Home, history and settings each
 // load once in their own frame, side by side; switching tabs slides the strip instead of loading a
