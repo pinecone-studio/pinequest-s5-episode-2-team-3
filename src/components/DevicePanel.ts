@@ -4,6 +4,11 @@ import type { ScaleStatus } from '../scale-protocol';
 import { escape, number } from '../format';
 import './device-panel.css';
 
+// Just the Bluetooth base (its bottles, tare and resets) for the home, next to what it counts.
+export function ScalePanel(): string {
+  return '<section class="device-panel" aria-labelledby="scale-title" data-scale-panel></section>';
+}
+
 export function DevicePanel(): string {
   return `<section class="device-panel" aria-labelledby="scale-title" data-scale-panel></section>
     <section class="device-panel" aria-labelledby="device-title" data-device-panel></section>`;

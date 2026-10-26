@@ -15,6 +15,7 @@ import { startDevices } from './devices';
 import { loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
 import { pushWidget } from './widget';
 import { scale } from './scale';
+import { ScalePanel, bindDevicePanel } from './components/DevicePanel';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
 import { readMember, saveMember } from './member';
@@ -449,6 +450,7 @@ function render() {
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${watchCard()}
         ${familySection()}
+        ${ScalePanel()}
       </div>
       <footer class="home-footer hx-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/history.html">Бүх бүртгэл</a> · <a href="/settings.html#linked">Холболт, нөөц ба тохиргоо</a></p></footer>
     </div>
@@ -464,6 +466,7 @@ function render() {
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
   scale.shareToday(drink);  // the base's screen shows the same total
+  bindDevicePanel(() => {});  // the base panel redraws itself on each reading
   bindSchedule(() => state, render);
   // The tab bar's middle button ("/#reminders") opens today's schedule here.
   if (location.hash === '#reminders') { history.replaceState(null, '', '/'); document.querySelector<HTMLButtonElement>('#sched-open')?.click(); }
