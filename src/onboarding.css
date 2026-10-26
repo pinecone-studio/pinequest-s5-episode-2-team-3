@@ -58,3 +58,7 @@
 .onb-body > p.onb-fact { font-size: 14px; line-height: 1.45; color: #3a4250; }
 .onb-body > p.onb-cheer { font-size: 15px; font-weight: 700; color: #0096b4; }
 @media (prefers-reduced-motion: reduce) { .onb-body, .onb-choice, .onb-dots li, .onb-effects li { animation: none; transition: none; } }
+.onb-field { display: grid; gap: 6px; width: 100%; text-align: left; font-size: 14px; font-weight: 600; color: #3d4757; }
+.onb-field input { min-height: 52px; padding: 0 16px; border: 2px solid #e3e8ef; border-radius: 16px; font: inherit; font-size: 16px; font-weight: 400; color: #1f2733; background: #fff; }
+.onb-field input:focus { border-color: #00bedc; outline: none; }
+.onb-warn { padding: 10px 14px; border-radius: 14px; background: #fff4e5; color: #8a4b00 !important; font-size: 14px !important; }

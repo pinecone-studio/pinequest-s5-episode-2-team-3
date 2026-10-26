@@ -1,5 +1,5 @@
 import './onboarding.css';
-import { number } from './format';
+import { escape, number } from './format';
 import { mdIcon } from './components/Icon';
 import { AVATARS, avatarSvg, readAvatar } from './avatars';
 import { ACTIVITIES, CONDITIONS, PROFILE_KEY, calcPlan, readProfile, writeProfile, type Activity, type Condition, type Plan, type Profile } from './plan';
@@ -15,7 +15,8 @@ export function needsOnboarding(): boolean {
 const markSeen = () => { try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* private mode: ask again next time */ } };
 
 type Sex = 'male' | 'female';
-const FOR_ALL: Condition[] = ['none', 'stones', 'kidney', 'heart'];
+// «Бусад» last: anything not listed, named in a short text the AI then takes into account.
+const FOR_ALL: Condition[] = ['none', 'stones', 'kidney', 'heart', 'other'];
 const FOR_WOMEN: Condition[] = ['pregnant', 'breastfeeding'];
 const STEPS = 8;
 // What a little too little water does, kept short and calm: a nudge, not a scare.
@@ -77,6 +78,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         return `<h2 id="onb-title">Биеийн онцлог?</h2><p>Эмчийн хяналтад байгаа бол заавал сонгоорой.</p>
           <div class="onb-list">${list.map(c => `<button type="button" class="onb-choice wide${p.condition === c ? ' on' : ''}" data-cond="${c}" aria-pressed="${p.condition === c}">${CONDITIONS[c]}</button>`).join('')}</div>
           ${limit ? `<p class="onb-note">Эмчийн заасан өдрийн <b>дээд хязгаар</b>:</p>${stepper('onb-limit', p.doctorLimit, 'мл', 500, 4000)}` : ''}
+          ${p.condition === 'other' ? `<label class="onb-field">Ямар онош вэ?<input id="onb-condition-note" type="text" maxlength="60" placeholder="Жишээ нь: чихрийн шижин" value="${escape(p.conditionNote)}"/></label>` : ''}
           <button type="button" class="onb-next" data-go="7">Тооцоолох</button>`;
       }
       default: {
@@ -84,6 +86,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         return `<p class="onb-big" aria-hidden="true">${mdIcon(plan.mode === 'limit' ? 'stethoscope' : 'target')}</p>
           <h2 id="onb-title">${plan.mode === 'limit' ? 'Таны өдрийн хязгаар' : 'Таны өдрийн зорилт'}</h2>
           <p class="onb-result">${number(plan.ml)} <span>мл</span></p><p class="onb-how">${plan.how}</p>
+          ${p.condition === 'other' ? `<p class="onb-warn">${p.conditionNote ? `«${escape(p.conditionNote)}»-д` : 'Таны оношид'} тохирох хэмжээг эмчээсээ асуугаарай. Нүүр хуудсанд AI зөвлөгөө авч болно.</p>` : ''}
           <p class="onb-note">Ерөнхий зөвлөмж. Эмчийн заавар байвал түүнийг дагана. Хүссэн үедээ өөрчилж болно.</p>
           <button type="button" class="onb-next" data-done>Эхэлье</button>`;
       }
@@ -109,6 +112,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     if (get('onb-age')) p.age = val('onb-age', 4, 110, p.age);
     if (get('onb-weight')) p.weight = val('onb-weight', 10, 250, p.weight);
     if (get('onb-height')) p.height = val('onb-height', 90, 230, p.height);
+    if (get('onb-condition-note')) p.conditionNote = get('onb-condition-note')!.value.trim().slice(0, 60);
     if (get('onb-limit')) p.doctorLimit = Math.round(val('onb-limit', 500, 4000, p.doctorLimit) / 50) * 50;
   };
 
