@@ -4,7 +4,8 @@ import './overview.css';
 import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
-import { buddySection, drinkTiles, streakParts, bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
+import { buddySection, drinkTiles, streakParts, bindStreakCalendar, bindHydration, deviceDrop, thirstSection } from './hydration';
+import { pace } from './pace';
 import { startSync } from './sync';
 import { startDevices } from './devices';
 import { siteNav } from './nav';
@@ -306,13 +307,15 @@ async function undo() {
 function render() {
   const drink = drankOn(state.events, today);
   const streak = streakParts(state.events, state.goal, state.mode);
+  const dayPace = pace(drink, state.goal, state.mode, new Date());
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home home-app" tabindex="-1">
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       <div class="hydro">
         <div class="hydro-head"><h1 class="hydro-title">Өнөөдөр</h1>${streak.chip}</div>
-        ${buddySection(drink, state.goal, state.mode)}
+        ${buddySection(drink, state.goal, state.mode, dayPace.kind === 'behind' ? dayPace.face : null)}
+        ${thirstSection(state.events, drink, dayPace)}
         <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Эмчийн хязгаар' : 'Зорилт'} <b>${number(state.goal)} мл</b></button>
         ${scheduleChip(state)}
         ${drinkTiles()}
