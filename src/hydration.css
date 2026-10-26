@@ -67,6 +67,9 @@
 .buddy.over .buddy-sub { color: #ad4239; font-weight: 600; }
 
 .goal-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; margin-top: -6px; padding: 0 12px; border: 1px solid rgba(20, 32, 52, .08); border-radius: 999px; background: rgba(255, 255, 255, .7); color: var(--muted-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.weather-chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+.weather-chip b { color: var(--ink-2); font-weight: 600; }
+.weather-reason { max-width: 32ch; margin: 2px auto 0; font-size: 13px; line-height: 1.35; color: var(--muted-2); text-align: center; }
 .goal-pill b { color: var(--ink-2); font-weight: 600; }
 .goal-pill::after { content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
 .goal-pill[aria-expanded="true"]::after { transform: translateY(1px) rotate(-135deg); }

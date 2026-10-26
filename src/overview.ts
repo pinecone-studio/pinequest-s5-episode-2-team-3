@@ -8,6 +8,7 @@ import { buddySection, drinkTiles, streakParts, bindStreakCalendar, bindHydratio
 import { pace } from './pace';
 import { startSync } from './sync';
 import { startDevices } from './devices';
+import { loadWeather, todayGoal, weatherChip } from './weather';
 import { pushWidget } from './widget';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
@@ -393,17 +394,20 @@ function bindFamily() {
 
 function render() {
   const drink = drankOn(state.events, today);
+  // Today's weather may raise today's target; the saved goal (and so past days) stays as it is.
+  const goal = todayGoal(state.goal, state.mode);
   const streak = streakParts(state.events, state.goal, state.mode);
-  const dayPace = pace(drink, state.goal, state.mode, new Date());
+  const dayPace = pace(drink, goal, state.mode, new Date());
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home home-app" tabindex="-1">
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       <div class="hydro">
         <div class="hydro-head"><h1 class="hydro-title">Өнөөдөр</h1>${streak.chip}</div>
-        ${buddySection(drink, state.goal, state.mode, dayPace.kind === 'behind' ? dayPace.face : null)}
+        ${buddySection(drink, goal, state.mode, dayPace.kind === 'behind' ? dayPace.face : null)}
         ${thirstSection(state.events, drink, dayPace)}
-        <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Эмчийн хязгаар' : 'Зорилт'} <b>${number(state.goal)} мл</b></button>
+        <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Эмчийн хязгаар' : 'Зорилт'} <b>${number(goal)} мл</b></button>
+        ${weatherChip(state.mode)}
         ${scheduleChip(state)}
         ${drinkTiles()}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
@@ -465,6 +469,7 @@ void reload().then(() => {
   // Keep pulling while home is open so a sip on the base shows up here within seconds.
   startSync();
   startDevices();
+  void loadWeather(state.goal, render);
   // Connecting to a base joins its family; the board redraws when the server answers.
   startFamily();
   window.addEventListener('dusal-family', render);
