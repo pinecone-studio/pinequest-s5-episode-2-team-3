@@ -60,6 +60,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
 .tabs-bar a[aria-current] { color: #369fff; font-weight: 600; }
 .tabs-bar .nav-icon { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s; }
 .tabs-bar a[aria-current] .nav-icon { transform: translateY(-1px) scale(1.06); }
+.tabs-bar { transition: transform .3s cubic-bezier(.22, .9, .28, 1), opacity .3s; }
+.tabs-bar.away { transform: translate(-50%, 150%); opacity: 0; pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .breaker { display: none; }

@@ -71,7 +71,13 @@ function place(dx = 0, animate = false): void {
   track.style.transform = `translateX(${-index * width() + dx}px)`;
 }
 
+// The tab bar steps aside while the shown tab has a full-screen dialog open, so its buttons can be tapped.
+function showBar(): void {
+  bar.classList.toggle('away', frames[index]?.hasAttribute('data-dialog') ?? false);
+}
+
 function mark(): void {
+  showBar();
   bar.style.setProperty('--i', String(index));
   bar.querySelectorAll('a').forEach((a, i) => a.toggleAttribute('aria-current', i === index));
   frames.forEach((frame, i) => frame.toggleAttribute('inert', i !== index));
@@ -109,8 +115,14 @@ bar.addEventListener('click', event => {
 
 // Messages from the pages: follow the finger while dragging, then settle on a tab.
 window.addEventListener('message', event => {
-  const data = event.data as { dusal?: boolean; type?: string; dx?: number; speed?: number; tab?: number } | null;
+  const data = event.data as { dusal?: boolean; type?: string; dx?: number; speed?: number; tab?: number; open?: boolean } | null;
   if (event.origin !== location.origin || !data?.dusal) return;
+  if (data.type === 'dialog') {
+    const from = frames.findIndex(frame => frame.contentWindow === event.source);
+    if (from >= 0) frames[from].toggleAttribute('data-dialog', !!data.open);
+    showBar();
+    return;
+  }
   const dx = data.dx ?? 0;
   const atEdge = (dx > 0 && index === 0) || (dx < 0 && index === TABS.length - 1);
   if (data.type === 'drag') {
