@@ -73,6 +73,26 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Health Connect opens these to explain why the app reads health data (Galaxy Watch heart rate,
+             steps, calories). Without them its permission sheet never opens. Both show privacypolicy.html. -->
+        <activity
+            android:name=".HealthRationaleActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+        <activity-alias
+            android:name=".ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".HealthRationaleActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- Home screen widget (DrinkWidget.java): today's water, the drop's mood and "+250 мл". -->
         <receiver
             android:name=".DrinkWidget"
@@ -99,4 +119,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Android 13 and older: lets the app see the Health Connect app to check that it is installed. -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
 </manifest>
