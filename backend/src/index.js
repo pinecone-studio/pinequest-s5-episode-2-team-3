@@ -1,5 +1,6 @@
 import { readJson, BodyError } from './body.js';
 import { ingestDeviceEvent, ingestReading, listDevices } from './devices.js';
+import { deleteMember, getLeaderboard, putMember } from './family.js';
 import { EVENT_COLUMNS, insertEvent, toEvent } from './events.js';
 import { readSnapshot, applySnapshot } from './sync.js';
 import { PlanError, suggestPlan } from './plan.js';
@@ -43,6 +44,15 @@ async function route(request, env) {
   if (readingPath && method === 'POST') return respond(await ingestReading(request, env, readingPath[1]));
   const deviceEventPath = pathname.match(/^\/api\/devices\/([a-zA-Z0-9-]{1,64})\/events$/);
   if (deviceEventPath && method === 'POST') return respond(await ingestDeviceEvent(request, env, deviceEventPath[1]));
+
+  // Family leaderboard: everyone using one base (see shared/family.ts).
+  const boardPath = pathname.match(/^\/api\/bases\/([^/]+)\/leaderboard$/);
+  if (boardPath && method === 'GET') return json(await getLeaderboard(db, boardPath[1], searchParams));
+  const memberPath = pathname.match(/^\/api\/bases\/([^/]+)\/members\/([^/]+)$/);
+  if (memberPath && method === 'PUT') return json(await putMember(request, db, memberPath[1], memberPath[2]));
+  if (memberPath && method === 'DELETE') {
+    return (await deleteMember(db, memberPath[1], memberPath[2])) ? new Response(null, { status: 204, headers: cors }) : fail(404, 'Гишүүн олдсонгүй.');
+  }
 
   if (pathname === '/api/sync') {
     if (method === 'GET') return json(await readSnapshot(db));
