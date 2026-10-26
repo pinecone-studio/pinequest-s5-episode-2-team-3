@@ -11,6 +11,7 @@ export default defineConfig({
         history: resolve(import.meta.dirname, 'history.html'),
         overview: resolve(import.meta.dirname, 'overview.html'),
         settings: resolve(import.meta.dirname, 'settings.html'),
+        tabs: resolve(import.meta.dirname, 'tabs.html'),
       },
     },
   },

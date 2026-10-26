@@ -6,6 +6,8 @@ const config: CapacitorConfig = {
   appName: 'Дусал',
   webDir: 'dist',
   backgroundColor: '#faf9f6',
+  // The app opens on the tab host, which keeps all three tabs loaded (src/tabs.ts).
+  server: { appStartPath: '/tabs.html' },
 };
 
 export default config;

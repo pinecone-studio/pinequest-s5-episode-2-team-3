@@ -1,4 +1,4 @@
-import { defaults, type AppState } from './data';
+import { defaults, validateState, type AppState } from './data';
 import { LocalStore } from './local-store';
 
 export type SaveResult = 'saved' | 'conflict' | 'corrupt' | 'failed';
@@ -21,11 +21,38 @@ channel?.addEventListener('message', event => {
   if (event.data !== 'status') callbacks.forEach(fn => fn());
 });
 
+// A copy of the last state read, kept in localStorage so a freshly opened page can draw real
+// content in its very first frame instead of waiting ~150 ms for IndexedDB (page switches felt stuck).
+// The first load() answers from it and checks IndexedDB right after; if that differs, pages refresh.
+const SNAPSHOT_KEY = 'dusal-snapshot-v1';
+let firstLoad = true;
+function remember(state: AppState, seq: number): void {
+  try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify({ sequence: seq, state })); } catch { /* only a speed-up */ }
+}
+function snapshotCopy(): { state: AppState; sequence: number } | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SNAPSHOT_KEY) ?? 'null') as { state: unknown; sequence: unknown } | null;
+    if (!raw || !Number.isSafeInteger(raw.sequence)) return null;
+    return { state: validateState(raw.state), sequence: raw.sequence as number };
+  } catch { return null; }
+}
+
 export async function load(): Promise<Loaded> {
+  const copy = firstLoad ? snapshotCopy() : null;
+  firstLoad = false;
+  if (copy) {
+    sequence = copy.sequence;
+    void store.read().then(record => {
+      remember(record.state, record.sequence);
+      if (record.sequence !== copy.sequence) { sequence = record.sequence; callbacks.forEach(fn => fn()); }
+    }, () => { corrupt = true; callbacks.forEach(fn => fn()); });
+    return { state: copy.state, error: '', corrupt };
+  }
   try {
     const record = await store.read();
     sequence = record.sequence;
     corrupt = false;
+    remember(record.state, record.sequence);
     return { state: record.state, error: '', corrupt };
   } catch {
     corrupt = true;
