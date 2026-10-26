@@ -7,25 +7,67 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.view.View;
 import android.widget.RemoteViews;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
-import java.util.UUID;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-// Home screen widget, Duolingo style: the water drop's face (the same mood as the launcher icon),
-// the streak, a short nudge, today's water against the goal (or the doctor's limit) and a "+250 мл"
-// button. The app writes all of it through WidgetPlugin. A tap on the button is kept here as a pending
-// drink with its own ID until the app opens and moves it into the log, so it is never lost or doubled.
+// Home screen widget, Duolingo style: a square with the streak, a few words and the water drop.
+// As the day goes on without enough water the colour moves from teal through blue and purple to
+// red and the drop gets sadder. The widget works this out itself from the clock and what the app
+// last reported (WidgetPlugin), every 30 minutes, so it changes even while the app stays closed.
+// Tapping it opens the app.
 public class DrinkWidget extends AppWidgetProvider {
 
     static final String PREFS = "dusal_widget";
-    static final String ACTION_ADD = "mn.pinecone.dusal.WIDGET_ADD";
-    static final int CUP_ML = 250;
+
+    // One look per moment of the day: background, the drop's face, the words, and the "!" on the streak.
+    enum Stage {
+        MORNING(R.drawable.widget_bg_morning, R.drawable.notif_face_happy, "Ус уух цаг уу?", false),
+        ON_TRACK(R.drawable.widget_bg_ontrack, R.drawable.notif_face_happy, "Нэг аяга уух уу?", false),
+        THIRSTY(R.drawable.widget_bg_thirsty, R.drawable.notif_face_worried, "Цангаж байна…", false),
+        LATE(R.drawable.widget_bg_late, R.drawable.notif_face_worried, "Ус уух цаг боллоо!", false),
+        DRY(R.drawable.widget_bg_dry, R.drawable.notif_face_sad, "Ширгэж байна…", false),
+        SAVE(R.drawable.widget_bg_save, R.drawable.notif_face_sad, "Streak-ээ авраарай!", true),
+        LAST(R.drawable.widget_bg_last, R.drawable.notif_face_crying, "Сүүлийн боломж!", true),
+        DONE(R.drawable.widget_bg_done, R.drawable.notif_face_happy, "Гайхалтай! Биеллээ", false),
+        RESET(R.drawable.widget_bg_reset, R.drawable.notif_face_crying, "Дахин эхэлье", false),
+        LIMIT(R.drawable.widget_bg_limit, R.drawable.notif_face_happy, "", false);
+
+        final int background;
+        final int face;
+        final String say;
+        final boolean alert;
+
+        Stage(int background, int face, String say, boolean alert) {
+            this.background = background;
+            this.face = face;
+            this.say = say;
+            this.alert = alert;
+        }
+    }
+
+    // The waking day the goal is spread over, as in the app's reminders: 08:00 to 22:00.
+    static final int DAY_START = 8;
+    static final int DAY_END = 22;
+
+    // Under a doctor's limit there is nothing to chase: always calm. Otherwise: goal met → done;
+    // a streak that broke yesterday → start again; late evening → save the streak; then by how far
+    // behind the even pace through the waking day the person is.
+    static Stage stage(int drunk, int goal, boolean limit, int streak, boolean broke, int hour) {
+        if (limit) return Stage.LIMIT;
+        if (drunk >= goal) return Stage.DONE;
+        if (streak == 0 && broke) return Stage.RESET;
+        if (hour >= DAY_END) return Stage.LAST;
+        if (hour >= 20) return Stage.SAVE;
+        if (hour >= 18 && drunk < goal * 3 / 4) return Stage.DRY;
+        double passed = Math.max(0, Math.min(1, (hour - DAY_START) / (double) (DAY_END - DAY_START)));
+        boolean behind = goal * passed - drunk > goal / 4.0;
+        if (behind) return hour >= 15 ? Stage.LATE : Stage.THIRSTY;
+        return hour < 11 ? Stage.MORNING : Stage.ON_TRACK;
+    }
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
@@ -33,51 +75,9 @@ public class DrinkWidget extends AppWidgetProvider {
         for (int id : ids) manager.updateAppWidget(id, views);
     }
 
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        super.onReceive(context, intent);
-        if (ACTION_ADD.equals(intent.getAction())) {
-            addCup(context);
-            refreshAll(context);
-        }
-    }
-
     // The same "YYYY-MM-DD" in local time that the app uses (dayKey in src/data.ts).
     static String today() {
         return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
-    }
-
-    // What the app last reported for today; after midnight the widget starts again from zero.
-    static int drunkToday(SharedPreferences prefs) {
-        return today().equals(prefs.getString("day", "")) ? prefs.getInt("drunk", 0) : 0;
-    }
-
-    private static void addCup(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        JSONArray pending;
-        try {
-            pending = new JSONArray(prefs.getString("pending", "[]"));
-        } catch (JSONException e) {
-            pending = new JSONArray();
-        }
-        try {
-            JSONObject drink = new JSONObject();
-            drink.put("id", UUID.randomUUID().toString());
-            drink.put("ml", CUP_ML);
-            drink.put("at", System.currentTimeMillis());
-            pending.put(drink);
-        } catch (JSONException e) {
-            return;
-        }
-        // Shown straight away, with a cheer and a happy drop; the app's next report replaces it with the
-        // real total, mood and nudge from the log. Yesterday's mood never carries into a new day.
-        prefs.edit()
-            .putString("pending", pending.toString())
-            .putString("day", today())
-            .putInt("drunk", drunkToday(prefs) + CUP_ML)
-            .putString("mood", "Default")
-            .putString("message", "+" + CUP_ML + " мл нэмлээ! 💧")
-            .apply();
     }
 
     static void refreshAll(Context context) {
@@ -88,39 +88,23 @@ public class DrinkWidget extends AppWidgetProvider {
         for (int id : ids) manager.updateAppWidget(id, views);
     }
 
-    // The drop faces the reminders already use (res/drawable-nodpi/notif_face_*.png).
-    private static int face(String mood) {
-        switch (mood) {
-            case "Worried": return R.drawable.notif_face_worried;
-            case "Sad": return R.drawable.notif_face_sad;
-            case "Crying": return R.drawable.notif_face_crying;
-            default: return R.drawable.notif_face_happy;
-        }
-    }
-
     private static RemoteViews views(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        int drunk = drunkToday(prefs);
+        // A day the app has not reported yet starts from zero water.
+        boolean sameDay = today().equals(prefs.getString("day", ""));
+        int drunk = sameDay ? prefs.getInt("drunk", 0) : 0;
         int goal = Math.max(1, prefs.getInt("goal", 2000));
         boolean limit = "limit".equals(prefs.getString("mode", "goal"));
-        NumberFormat n = NumberFormat.getIntegerInstance(Locale.US);
-
-        // A new day the app has not reported yet starts fresh and cheerful.
-        boolean fresh = !today().equals(prefs.getString("day", ""));
-        String mood = fresh ? "Default" : prefs.getString("mood", "Default");
         int streak = prefs.getInt("streak", 0);
-        String message = fresh ? "Шинэ өдөр! Эхний аягаа уугаарай" : prefs.getString("message", "Ус уухаа бүү мартаарай");
+        boolean broke = sameDay && prefs.getBoolean("broke", false);
+        Stage s = stage(drunk, goal, limit, streak, broke, Calendar.getInstance().get(Calendar.HOUR_OF_DAY));
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_drink);
-        views.setImageViewResource(R.id.widget_face, face(mood));
-        views.setTextViewText(R.id.widget_streak, streak > 0 ? "🔥 " + streak : "");
-        views.setTextViewText(R.id.widget_message, message);
-        views.setTextViewText(R.id.widget_amount, n.format(drunk) + " / " + n.format(goal) + (limit ? " мл хязгаар" : " мл"));
-        views.setProgressBar(R.id.widget_progress, 100, Math.min(100, drunk * 100 / goal), false);
-
-        Intent add = new Intent(context, DrinkWidget.class).setAction(ACTION_ADD);
-        views.setOnClickPendingIntent(R.id.widget_add, PendingIntent.getBroadcast(
-            context, 0, add, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        views.setInt(R.id.widget_root, "setBackgroundResource", s.background);
+        views.setImageViewResource(R.id.widget_face, s.face);
+        views.setTextViewText(R.id.widget_streak, limit ? "✓" : String.valueOf(streak));
+        views.setViewVisibility(R.id.widget_alert, s.alert && streak > 0 ? View.VISIBLE : View.GONE);
+        views.setTextViewText(R.id.widget_say, limit ? String.format(Locale.US, "%,d / %,d мл", drunk, goal) : s.say);
 
         Intent open = new Intent(context, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getActivity(
