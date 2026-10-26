@@ -4,4 +4,8 @@
     <string name="title_activity_main">Дусал</string>
     <string name="package_name">mn.pinecone.dusal</string>
     <string name="custom_url_scheme">mn.pinecone.dusal</string>
+    <string name="widget_title">Дусал · Өнөөдөр</string>
+    <string name="widget_add">+250 мл</string>
+    <string name="widget_face">Усны дусал</string>
+    <string name="widget_description">Өнөөдөр хэр ус уусан, streak болон нэг товшилтоор +250 мл</string>
 </resources>

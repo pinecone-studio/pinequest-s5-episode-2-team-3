@@ -93,6 +93,18 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Home screen widget (DrinkWidget.java): today's water, the drop's mood and "+250 мл". -->
+        <receiver
+            android:name=".DrinkWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_drink_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
