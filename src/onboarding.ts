@@ -1,10 +1,11 @@
 import './onboarding.css';
 import { number } from './format';
 import { mdIcon } from './components/Icon';
+import { AVATARS, avatarSvg, readAvatar } from './avatars';
 import { ACTIVITIES, CONDITIONS, PROFILE_KEY, calcPlan, readProfile, writeProfile, type Activity, type Condition, type Plan, type Profile } from './plan';
 
-// First visit: a few one-question screens (sex, age, weight and height, activity, condition),
-// then the daily amount from calcPlan. Sex only decides whether pregnancy options show.
+// First visit: why water matters (the buddy dry next to the buddy full), then a few one-question
+// screens (sex, age, weight and height, activity, condition), then the daily amount from calcPlan. Sex only decides whether pregnancy options show.
 const SEEN_KEY = 'dusal-onboarded-v1';
 
 export function needsOnboarding(): boolean {
@@ -16,7 +17,9 @@ const markSeen = () => { try { localStorage.setItem(SEEN_KEY, '1'); } catch { /*
 type Sex = 'male' | 'female';
 const FOR_ALL: Condition[] = ['none', 'stones', 'kidney', 'heart'];
 const FOR_WOMEN: Condition[] = ['pregnant', 'breastfeeding'];
-const STEPS = 7;
+const STEPS = 8;
+// What a little too little water does, kept short and calm: a nudge, not a scare.
+const DRY_EFFECTS = ['Толгой өвдөх, ядрах', 'Анхаарал суларах', 'Арьс хуурайших, өтгөн хатах', 'Удаан хугацаанд бөөрний чулууны эрсдэл'];
 const ACTIVITY_ICONS: Record<Activity, string> = { low: mdIcon('weekend'), medium: mdIcon('directions_walk'), high: mdIcon('directions_run') };
 
 export function showOnboarding(onDone: (plan: Plan) => void): void {
@@ -46,22 +49,35 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       case 0: return `<p class="onb-big" aria-hidden="true">${mdIcon('water_drop')}</p><h2 id="onb-title">Сайн байна уу!</h2>
         <p>Танд өдөрт хэдэн мл ус хэрэгтэйг <b>5 асуултаар</b> тооцоолъё.</p>
         <button type="button" class="onb-next" data-go="1">Эхлэх</button>`;
-      case 1: return `<h2 id="onb-title">Таны хүйс?</h2><div class="onb-choices">
+      case 1: {
+        const id = readAvatar(), h = AVATARS[id].waterH;
+        return `<h2 id="onb-title">Ус уухгүй бол юу болох вэ?</h2>
+        <div class="onb-why">
+          <figure class="onb-dry">${avatarSvg(id, 'sad', h * 0.92, false, 'onb-dry')}<figcaption>Ус дутвал</figcaption></figure>
+          <figure class="onb-full">${avatarSvg(id, 'beam', h * 0.08, true, 'onb-full')}<figcaption>Хангалттай бол</figcaption></figure>
+        </div>
+        <ul class="onb-effects" aria-label="Ус дутахад">${DRY_EFFECTS.map((t, i) => `<li style="--i: ${i}">${t}</li>`).join('')}</ul>
+        <p class="onb-fact">Биеийн жингийн 1–2%-ийн ус алдахад л ядаргаа, толгой өвдөлт мэдрэгдэж эхэлдэг. Цангах мэдрэмж хоцорч ирдэг.</p>
+        <p class="onb-cheer">Өдөрт хэдэн аяга ус л хангалттай. Хамтдаа зуршил болгоё!</p>
+        <p class="onb-note">Эмч хязгаар тогтоосон бол тэр хязгаарыг дагана.</p>
+        <button type="button" class="onb-next" data-go="2">Үргэлжлүүлэх</button>`;
+      }
+      case 2: return `<h2 id="onb-title">Таны хүйс?</h2><div class="onb-choices">
         <button type="button" class="onb-choice" data-sex="male"><span aria-hidden="true">${mdIcon('man')}</span>Эрэгтэй</button>
         <button type="button" class="onb-choice" data-sex="female"><span aria-hidden="true">${mdIcon('woman')}</span>Эмэгтэй</button></div>`;
-      case 2: return `<h2 id="onb-title">Хэдэн настай вэ?</h2>${stepper('onb-age', p.age, 'нас', 4, 110)}
-        <button type="button" class="onb-next" data-go="3">Үргэлжлүүлэх</button>`;
-      case 3: return `<h2 id="onb-title">Жин, өндөр?</h2>${stepper('onb-weight', p.weight, 'кг', 10, 250)}${stepper('onb-height', p.height, 'см', 90, 230)}
+      case 3: return `<h2 id="onb-title">Хэдэн настай вэ?</h2>${stepper('onb-age', p.age, 'нас', 4, 110)}
         <button type="button" class="onb-next" data-go="4">Үргэлжлүүлэх</button>`;
-      case 4: return `<h2 id="onb-title">Биеийн хөдөлгөөн хийдэг үү?</h2><div class="onb-list">${(Object.keys(ACTIVITIES) as Activity[]).map(a =>
+      case 4: return `<h2 id="onb-title">Жин, өндөр?</h2>${stepper('onb-weight', p.weight, 'кг', 10, 250)}${stepper('onb-height', p.height, 'см', 90, 230)}
+        <button type="button" class="onb-next" data-go="5">Үргэлжлүүлэх</button>`;
+      case 5: return `<h2 id="onb-title">Биеийн хөдөлгөөн хийдэг үү?</h2><div class="onb-list">${(Object.keys(ACTIVITIES) as Activity[]).map(a =>
         `<button type="button" class="onb-choice wide act" data-act="${a}"><span aria-hidden="true">${ACTIVITY_ICONS[a]}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small></button>`).join('')}</div>`;
-      case 5: {
+      case 6: {
         const list = sex === 'female' ? [...FOR_ALL.slice(0, 1), ...FOR_WOMEN, ...FOR_ALL.slice(1)] : FOR_ALL;
         const limit = p.condition === 'kidney' || p.condition === 'heart';
         return `<h2 id="onb-title">Биеийн онцлог?</h2><p>Эмчийн хяналтад байгаа бол заавал сонгоорой.</p>
           <div class="onb-list">${list.map(c => `<button type="button" class="onb-choice wide${p.condition === c ? ' on' : ''}" data-cond="${c}" aria-pressed="${p.condition === c}">${CONDITIONS[c]}</button>`).join('')}</div>
           ${limit ? `<p class="onb-note">Эмчийн заасан өдрийн <b>дээд хязгаар</b>:</p>${stepper('onb-limit', p.doctorLimit, 'мл', 500, 4000)}` : ''}
-          <button type="button" class="onb-next" data-go="6">Тооцоолох</button>`;
+          <button type="button" class="onb-next" data-go="7">Тооцоолох</button>`;
       }
       default: {
         const plan = calcPlan(p);
@@ -103,9 +119,9 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     box.querySelectorAll<HTMLButtonElement>('[data-sex]').forEach(b => b.addEventListener('click', () => {
       sex = b.dataset.sex as Sex;
       if (sex === 'male' && FOR_WOMEN.includes(p.condition)) p.condition = 'none';
-      step = 2; draw();
+      step = 3; draw();
     }));
-    box.querySelectorAll<HTMLButtonElement>('[data-act]').forEach(b => b.addEventListener('click', () => { p.activity = b.dataset.act as Activity; step = 5; draw(); }));
+    box.querySelectorAll<HTMLButtonElement>('[data-act]').forEach(b => b.addEventListener('click', () => { p.activity = b.dataset.act as Activity; step = 6; draw(); }));
     box.querySelectorAll<HTMLButtonElement>('[data-cond]').forEach(b => b.addEventListener('click', () => { readInputs(); p.condition = b.dataset.cond as Condition; draw(); }));
     box.querySelectorAll<HTMLButtonElement>('[data-step]').forEach(b => b.addEventListener('click', () => {
       const input = box.querySelector<HTMLInputElement>(`#${b.dataset.step}`)!;
