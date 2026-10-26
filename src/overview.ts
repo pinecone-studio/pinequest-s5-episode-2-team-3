@@ -508,8 +508,11 @@ void reload().then(() => {
   startReminders(() => state);
   startAppIcon(() => state);
   // First visit: ask a few questions and start with the computed daily amount.
-  if (!needsOnboarding()) showYesterday(state);
-  if (needsOnboarding()) showOnboarding(async plan => {
+  // "/?onboard" shows it again from the start (for demos); the water log is kept.
+  const again = new URLSearchParams(location.search).has('onboard');
+  if (again) history.replaceState(null, '', location.pathname + location.hash);
+  if (!again && !needsOnboarding()) showYesterday(state);
+  if (again || needsOnboarding()) showOnboarding(async plan => {
     const result = await save({ ...state, goal: plan.ml, mode: plan.mode });
     await reload();
     if (result !== 'saved') storageError = saveMessage[result];
