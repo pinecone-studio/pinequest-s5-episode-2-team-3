@@ -3,11 +3,11 @@ import { NAV_ICONS, TABS } from './nav';
 // Created here first, so every tab frame shares this one Bluetooth link to the base (src/scale.ts).
 import './scale';
 
-// Phone app start page (capacitor.config.ts → server.appStartPath). Home, history and settings each
+// Phone app start page (capacitor.config.ts → server.appStartPath). Home, history, report, achievements and the account each
 // load once in their own frame, side by side; switching tabs slides the strip instead of loading a
 // page, so it never stalls. Pages hand swipes and tab links over with postMessage (nav.ts).
-const KEYS = ['home', 'history', 'settings'] as const;
-const LABELS = ['Нүүр', 'Түүх', 'Тохиргоо'];
+const KEYS = ['home', 'history', 'report', 'achievements', 'settings'] as const;
+const LABELS = ['Нүүр', 'Түүх', 'Тайлан', 'Амжилт', 'Профайл'];
 const LAST_TAB = 'dusal-tab';
 
 // A row of small cartoon waves along the bottom: one after another they rise, curl over, crash

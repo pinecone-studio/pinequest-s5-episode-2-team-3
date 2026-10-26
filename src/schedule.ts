@@ -13,7 +13,7 @@ import { streakNow } from './hydration';
 // are scheduled with the system for the next week (see native-reminders.ts), skipping ones already met.
 const KEY = 'dusal-reminders-v1';
 const SENT_KEY = 'dusal-reminders-sent-v1';
-interface Settings { wake: string; sleep: string; every: number; on: boolean }
+export interface Settings { wake: string; sleep: string; every: number; on: boolean }
 const DEFAULTS: Settings = { wake: '07:00', sleep: '22:00', every: 2, on: false };
 const EVERY = [1, 1.5, 2, 3] as const;
 const FACTS = [
@@ -36,7 +36,7 @@ export function readSettings(): Settings {
     };
   } catch { return { ...DEFAULTS }; }
 }
-function writeSettings(s: Settings): void { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* keeps defaults */ } }
+export function writeSettings(s: Settings): void { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* keeps defaults */ } }
 
 const minutes = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
 const clock = (mins: number) => `${String(Math.floor(mins / 60) % 24).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;

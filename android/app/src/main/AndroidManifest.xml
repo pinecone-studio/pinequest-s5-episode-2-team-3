@@ -120,6 +120,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Onboarding climate step: a rough position for today's weather. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- The smart base is found over Bluetooth only to connect to it, never to work out where the phone is,
          so Android 12+ does not ask for location (src/scale.ts initialises with androidNeverForLocation). -->
     <uses-permission

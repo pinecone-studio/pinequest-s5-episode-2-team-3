@@ -2,6 +2,7 @@ import { AVATARS, avatarSvg, readAvatar, writeAvatar, type AvatarId } from '../a
 import { leaveFamily, readFamily } from '../family';
 import { escape } from '../format';
 import { readMember, saveMember } from '../member';
+import { readProfile, validProfile, writeProfile } from '../plan';
 import '../hydration.css';
 import './device-panel.css';
 
@@ -19,16 +20,20 @@ export function bindProfilePanel(): void {
   const family = readFamily();
 
   const draw = (message = '') => {
+    const age = readProfile().age;
     host.innerHTML = `<div class="device-heading"><h2 id="profile-title">Миний профайл</h2></div>
+      <div class="profile-photo" aria-hidden="true">${avatarSvg(avatar, 'happy', AVATARS[avatar].waterH * 0.45, false, 'profile-big')}</div>
       <p>${member ? 'Гэр бүлийн жагсаалтад ингэж харагдана.' : 'Нэр, дүрээ сонговол гэр бүлийн жагсаалтад нэгдэнэ.'}</p>
       <form data-profile-form data-transient>
         <label for="profile-name">Нэр</label>
         <input id="profile-name" name="name" maxlength="24" autocomplete="nickname" placeholder="Жишээ нь: Сараа" value="${escape(member?.name ?? '')}" required/>
+        <label for="profile-age">Нас</label>
+        <input id="profile-age" name="age" type="number" inputmode="numeric" min="4" max="110" value="${age}"/>
         <p class="profile-label" id="profile-avatar-label">Дүр</p>
         <div class="avatar-grid profile-avatars" role="radiogroup" aria-labelledby="profile-avatar-label">${(Object.keys(AVATARS) as AvatarId[]).map(id =>
           `<button type="button" class="avatar-opt${id === avatar ? ' on' : ''}" role="radio" aria-checked="${id === avatar}" data-avatar="${id}">
             ${avatarSvg(id, 'happy', AVATARS[id].waterH * 0.45, false, `profile-av-${id}`)}<span>${AVATARS[id].name}</span></button>`).join('')}</div>
-        <div class="scale-actions"><button type="submit">${member ? 'Хадгалах' : 'Бүртгүүлэх'}</button></div>
+        <div class="scale-actions"><button type="submit" class="profile-save">${member ? 'Шинэчлэх' : 'Бүртгүүлэх'}</button></div>
       </form>
       <p role="status">${escape(message)}</p>
       ${family ? `<p class="device-time">Гэр бүл: суурь <b>${escape(family)}</b></p><div class="scale-actions"><button type="button" data-profile-leave>Гэр бүлээс гарах</button></div>`
@@ -44,6 +49,9 @@ export function bindProfilePanel(): void {
       const input = host.querySelector<HTMLInputElement>('#profile-name')!;
       if (!saveMember(input.value)) { input.focus(); return; }
       writeAvatar(avatar);
+      // Age feeds the daily amount (plan.ts); an age out of range is left as it was.
+      const profile = { ...readProfile(), age: Number(host.querySelector<HTMLInputElement>('#profile-age')!.value) };
+      if (validProfile(profile)) writeProfile(profile);
       // The home screen's next report carries the new name and buddy to the family board.
       bindProfilePanel();
       host.querySelector('[role="status"]')!.textContent = 'Хадгаллаа.';

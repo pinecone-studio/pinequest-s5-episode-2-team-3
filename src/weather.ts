@@ -67,3 +67,21 @@ export function weatherChip(mode: 'goal' | 'limit'): string {
     <span>${w.min}…${w.max}°${delta}${advice.source === 'ai' ? ' · AI' : ''}</span></p>
     <p class="weather-reason">${escape(advice.reason)}</p>`;
 }
+
+// Today's "feels like" for the next 24 hours, as it would be felt, straight from Open-Meteo with a
+// rough position (one decimal, about 10 km). Used once by onboarding's climate step; not cached.
+export type Climate = 'hot' | 'mild' | 'cold';
+export const climateOf = (feels: number): Climate => (feels >= 28 ? 'hot' : feels <= 5 ? 'cold' : 'mild');
+export async function fetchWeather(): Promise<{ feels: number }> {
+  const pos = await new Promise<GeolocationPosition>((ok, fail) =>
+    navigator.geolocation.getCurrentPosition(ok, fail, { enableHighAccuracy: false, timeout: 10_000, maximumAge: 3_600_000 }));
+  const lat = pos.coords.latitude.toFixed(1), lon = pos.coords.longitude.toFixed(1);
+  const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=apparent_temperature_max&timezone=auto&forecast_days=1`);
+  if (!res.ok) throw new Error('weather');
+  const feels = Number((await res.json())?.daily?.apparent_temperature_max?.[0]);
+  if (!Number.isFinite(feels)) throw new Error('weather');
+  return { feels: Math.round(feels) };
+}
+
+// The highest "feels like" today from the loaded advice, for the watch card's tip.
+export const todayFeels = (): number | null => advice?.weather.feelsMax ?? null;
