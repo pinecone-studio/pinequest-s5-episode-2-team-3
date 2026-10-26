@@ -7,6 +7,8 @@ export const CONDITIONS = {
   breastfeeding: 'Хөхүүл',
   kidney: 'Бөөрний дутагдал',
   heart: 'Зүрхний дутагдал',
+  // Anything not listed; the user names it in conditionNote (up to 60 characters).
+  other: 'Бусад',
 } as const;
 export type Condition = keyof typeof CONDITIONS;
 
@@ -19,7 +21,8 @@ export const ACTIVITIES = {
 export type Activity = keyof typeof ACTIVITIES;
 
 export const DOCTOR_DEFAULT = 1500;
-export interface PlanInput { age: number; weight: number; height: number; activity: Activity; condition: Condition; doctorLimit?: number }
+export const ASK_DOCTOR = 'Эмчээсээ асуугаарай.';
+export interface PlanInput { age: number; weight: number; height: number; activity: Activity; condition: Condition; doctorLimit?: number; conditionNote?: string }
 export interface Plan { ml: number; mode: 'goal' | 'limit'; how: string }
 export interface AiPlan { ml: number; mode: 'goal' | 'limit'; reason: string; warning: string }
 
@@ -56,9 +59,15 @@ export function calcPlan(p: PlanInput): Plan {
 export const formula = (calc: Plan) => `Тооцоо: ${calc.how} = ${calc.ml} мл.`;
 
 // Never trust the model's number: doctor-only conditions get the doctor's limit, and an amount more than
-// 40% away from calcPlan falls back to calcPlan. Running it twice gives the same answer, so the app can
-// check again what the Worker already checked.
+// 40% away from calcPlan falls back to calcPlan. An unlisted condition always tells the user to ask a doctor.
+// Running it twice gives the same answer, so the app can check again what the Worker already checked.
 export function guardPlan(p: PlanInput, ai: AiPlan): AiPlan {
+  const plan = checkAmount(p, ai);
+  if (p.condition === 'other' && !plan.warning.toLowerCase().includes('эмчээсээ асуугаарай')) plan.warning = `${plan.warning} ${ASK_DOCTOR}`.trim();
+  return plan;
+}
+
+function checkAmount(p: PlanInput, ai: AiPlan): AiPlan {
   if (doctorOnly(p.condition)) {
     return {
       ml: p.doctorLimit ?? DOCTOR_DEFAULT,
