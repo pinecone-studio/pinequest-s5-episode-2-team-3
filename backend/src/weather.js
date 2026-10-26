@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PlanError } from './plan.js';
 
 // GET /api/weather?lat=&lon=&goal=: today's weather (Open-Meteo, no key) and how much more or less
-// water it calls for on top of the saved goal. Claude decides the amount; a simple rule covers for it.
+// water it calls for on top of the saved goal. The AI decides the amount; a simple rule covers for it.
 
 const MAX_UP = 1000;
 const MAX_DOWN = 300;
