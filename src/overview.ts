@@ -8,6 +8,8 @@ import { hxWeekCard, bindStreakCalendar, bindHydration, deviceDrop } from './hyd
 import { hxGauge, hxHeader, hxHistory, openCupSheet, readCup, readCupKind } from './hydrify';
 import { setKind } from './drinks';
 import { cachedWeather, weatherChip, weatherIfAllowed } from './weather';
+import { bindWatchCard, loadInsight, watchCard } from './watch-card';
+import { health } from './health';
 import { celebrateIfReached, showYesterday } from './day-result';
 import { startSync } from './sync';
 import { startDevices } from './devices';
@@ -433,6 +435,7 @@ function greeting(): string {
 }
 
 function render() {
+  loadInsight({ drink: drankOn(state.events, today), goal: state.goal, mode: state.mode, feels: weather?.feels ?? null }, aiReady, render);
   const drink = drankOn(state.events, today);
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home home-app" tabindex="-1">
     <div class="app-shell">
@@ -443,6 +446,7 @@ function render() {
         ${hxGauge(drink, state.goal, state.mode, readCup(), drinking)}
         ${weatherChip(weather, state.mode)}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
+        ${watchCard()}
         ${hxHistory(state.events)}
         ${hxWeekCard(state.events, state.goal, state.mode)}
         ${familySection()}
@@ -459,6 +463,7 @@ function render() {
   bindHydration(drink, addDrink, render);
   document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
   bindStreakCalendar(state.events, state.goal, state.mode);
+  bindWatchCard();
   bindSchedule(() => state, render);
   // The tab bar's middle button ("/#reminders") opens today's schedule here.
   if (location.hash === '#reminders') { history.replaceState(null, '', '/'); document.querySelector<HTMLButtonElement>('#sched-open')?.click(); }
@@ -507,6 +512,8 @@ void reload().then(() => {
   startDevices();
   // Connecting to a base joins its family; the board redraws when the server answers.
   startFamily();
+  window.addEventListener('dusal-health', render);
+  void health.start();
   void weatherIfAllowed().then(w => { if (w && w.feels !== weather?.feels) { weather = w; render(); } });
   window.addEventListener('dusal-family', render);
   startReminders(() => state);
