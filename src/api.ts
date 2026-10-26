@@ -3,7 +3,7 @@ import type { AiPlan } from '../shared/plan';
 // Backend Worker; override with VITE_API_URL for local `wrangler dev`.
 export const API_URL: string = import.meta.env.VITE_API_URL ?? 'https://dusal-api.bbek3201.workers.dev';
 
-export async function askAi(body: { age: number; weight: number; height: number; condition: string; doctorLimit: number; note: string }): Promise<AiPlan> {
+export async function askAi(body: { age: number; weight: number; height: number; activity: string; condition: string; doctorLimit: number; note: string }): Promise<AiPlan> {
   let response: Response;
   try {
     response = await fetch(`${API_URL}/api/plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });

@@ -231,8 +231,9 @@ function bindPlan() {
     aiError = '';
     render();
     try {
-      // Check the answer again: an older Worker may still pass the AI's number through for kidney/heart failure.
-      const ai = guardPlan(p, await askAi({ age: p.age, weight: p.weight, height: p.height, condition: p.condition, doctorLimit: p.doctorLimit, note: aiNote }));
+      // Check the answer again: an older Worker may still pass the AI's number through for kidney/heart failure
+      // or one far from the formula.
+      const ai = guardPlan(p, await askAi({ age: p.age, weight: p.weight, height: p.height, activity: p.activity, condition: p.condition, doctorLimit: p.doctorLimit, note: aiNote }));
       aiPlan = { ml: ai.ml, mode: ai.mode, how: ai.reason, warning: ai.warning };
       source = 'ai';
       draft = aiPlan;
