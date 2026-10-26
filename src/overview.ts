@@ -7,7 +7,7 @@ import { load, save, saveMessage, onExternalChange } from './storage';
 import { buddySection, drinkTiles, streakParts, bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
 import { startSync } from './sync';
 import { startDevices } from './devices';
-import { pushWidget, takeWidgetDrinks } from './widget';
+import { pushWidget } from './widget';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
@@ -350,23 +350,9 @@ function render() {
   });
 }
 
-// Cups added on the Android home screen widget join the log (and sync) when the app opens.
-async function absorbWidget() {
-  await takeWidgetDrinks(async fresh => {
-    const known = new Set(state.events.map(e => e.id));
-    const add = fresh.filter(e => !known.has(e.id));
-    if (!add.length) return true;
-    const result = await save({ ...state, events: [...state.events, ...add] });
-    await reload();
-    if (result !== 'saved') storageError = saveMessage[result];
-    render();
-    return result === 'saved';
-  }).catch(() => {});
-}
+// The streak and today's total may change while the app is away; send them as it leaves.
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) { void absorbWidget(); return; }
-  // The drop's mood drifts with the clock, so the widget gets a fresh one as the app leaves.
-  pushWidget(state, drankOn(state.events, dayKey()));
+  if (document.hidden) pushWidget(state, drankOn(state.events, dayKey()));
 });
 
 onExternalChange(async () => {
@@ -383,7 +369,6 @@ setInterval(() => { if (dayKey() !== today) { today = dayKey(); render(); } }, 6
 void reload().then(() => {
   newDeviceSips();
   render();
-  void absorbWidget();
   // Keep pulling while home is open so a sip on the base shows up here within seconds.
   startSync();
   startDevices();
