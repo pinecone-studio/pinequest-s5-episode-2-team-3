@@ -12,6 +12,7 @@ import { pushWidget, takeWidgetDrinks } from './widget';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
+import { guardPlan } from '../shared/plan';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, scheduleChip, startReminders } from './schedule';
 import { startAppIcon } from './app-icon';
@@ -206,8 +207,15 @@ function bindPlan() {
     if (!validProfile(p)) { showError('Нас 4–110, жин 10–250 кг, өндөр 90–230 см, эмчийн хэмжээ 500–4,000 мл байна.'); return; }
     showError('');
     writeProfile(p);
-    // Picking or clearing a diagnosis shows or hides the doctor's part, so redraw the form.
-    if (target.id === 'plan-condition') { render(); return; }
+    // Picking or clearing a diagnosis shows or hides the doctor's part, so redraw the form. The amount below
+    // follows the new diagnosis, and an AI answer given for the old one is dropped (it may be unsafe now).
+    if (target.id === 'plan-condition') {
+      aiPlan = null;
+      if (source === 'ai') source = 'calc';
+      draft = suggestion(p, source);
+      render();
+      return;
+    }
     refreshCards(p);
     if (source !== 'ai') { draft = suggestion(p, source); show(); }
   });
@@ -232,7 +240,8 @@ function bindPlan() {
     aiError = '';
     render();
     try {
-      const ai = await askAi({ age: p.age, weight: p.weight, height: p.height, condition: p.condition, note: aiNote });
+      // Check the answer again: an older Worker may still pass the AI's number through for kidney/heart failure.
+      const ai = guardPlan(p, await askAi({ age: p.age, weight: p.weight, height: p.height, condition: p.condition, doctorLimit: p.doctorLimit, note: aiNote }));
       aiPlan = { ml: ai.ml, mode: ai.mode, how: ai.reason, warning: ai.warning };
       source = 'ai';
       draft = aiPlan;

@@ -1,5 +1,7 @@
 // Daily water amount from age, weight, height, activity and condition.
 // General guidance only; kidney and heart failure always use the doctor's limit.
+import { doctorOnly } from '../shared/plan';
+
 export const PROFILE_KEY = 'dusal-profile-v1';
 
 export const CONDITIONS = {
@@ -51,7 +53,7 @@ export function writeProfile(p: Profile): boolean {
 }
 
 export function calcPlan(p: Profile): Plan {
-  if (p.condition === 'kidney' || p.condition === 'heart') {
+  if (doctorOnly(p.condition)) {
     return { ml: p.doctorLimit, mode: 'limit', how: 'Эмчийн заасан хязгаараас хэтрүүлэхгүй' };
   }
   let ml: number, how: string;
