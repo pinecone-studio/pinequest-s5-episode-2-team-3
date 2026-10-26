@@ -10,6 +10,7 @@ import { startDevices } from './devices';
 import { siteNav } from './nav';
 import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProfile, type Profile } from './plan';
 import { askAi, checkAi } from './api';
+import { guardPlan } from '../shared/plan';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, scheduleChip, startReminders } from './schedule';
 import { startAppIcon } from './app-icon';
@@ -230,7 +231,8 @@ function bindPlan() {
     aiError = '';
     render();
     try {
-      const ai = await askAi({ age: p.age, weight: p.weight, height: p.height, condition: p.condition, note: aiNote });
+      // Check the answer again: an older Worker may still pass the AI's number through for kidney/heart failure.
+      const ai = guardPlan(p, await askAi({ age: p.age, weight: p.weight, height: p.height, condition: p.condition, doctorLimit: p.doctorLimit, note: aiNote }));
       aiPlan = { ml: ai.ml, mode: ai.mode, how: ai.reason, warning: ai.warning };
       source = 'ai';
       draft = aiPlan;
