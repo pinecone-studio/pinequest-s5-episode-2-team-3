@@ -14,3 +14,6 @@
 .device-panel .watch-day dt { color: #5d6870; font-size: 12px; }
 .device-panel .watch-day dd { margin: 2px 0 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .device-panel .watch-day small { display: block; font-size: 11px; font-weight: 400; color: #5d6870; }
+.profile-panel input { width: 100%; min-height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #b5ceca; border-radius: 8px; font: inherit; font-size: 15px; }
+.profile-panel .profile-label { margin: 12px 0 4px; }
+.profile-panel .profile-avatars .avatar-opt svg { width: 52px; }

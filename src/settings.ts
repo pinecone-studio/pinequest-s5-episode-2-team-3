@@ -1,6 +1,7 @@
 import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import { DevicePanel, bindDevicePanel } from './components/DevicePanel';
 import { WatchPanel, bindWatchPanel } from './components/WatchPanel';
+import { ProfilePanel, bindProfilePanel } from './components/ProfilePanel';
 import './style.css';
 import './shell.css';
 import './settings.css';
@@ -94,6 +95,7 @@ function render(): void {
         <div class="settings-body">
           <div class="settings-head"><p class="panel-label">Тохиргоо</p><h1>Тохиргоо ба нөөц</h1></div>
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
+          ${ProfilePanel()}
           ${SyncStatus()}
           ${DevicePanel()}
           ${WatchPanel()}
@@ -108,6 +110,7 @@ function render(): void {
   bindSyncStatus();
   bindDevicePanel(render);
   bindWatchPanel();
+  bindProfilePanel();
 }
 
 async function reload(): Promise<void> {
