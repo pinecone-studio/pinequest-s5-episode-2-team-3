@@ -12,6 +12,10 @@ import { scale } from './scale';
 import { AVATARS, avatarSvg, readAvatar, type AvatarId, type Face } from './avatars';
 import { FamilyError, family, readMembership, todayReport, writeMembership } from './family';
 import type { Leaderboard, LeaderboardRow } from '../shared/family';
+import { Capacitor } from '@capacitor/core';
+import { fromParams, parseBaseQr, type BaseLink } from './base-qr';
+import { ScanError, scanQr } from './qr-scan';
+import { openBaseQr } from './components/BaseQr';
 
 // Family: everyone on the same base, ranked by how much of their own goal they have drunk today.
 // Joining needs a name and the base (the connected one, or its code typed in); after that the board
@@ -23,6 +27,8 @@ let error = '';
 let busy = false;
 let renaming = false;
 const REFRESH_MS = 30_000;
+// A base read from its QR (or from the link a phone camera opened), waiting for a name to join.
+let scanned: BaseLink | null = fromParams(new URLSearchParams(location.search));
 
 const MEDALS = ['#f5b400', '#a8b2bf', '#d08a4a'];
 const isAvatar = (id: string): id is AvatarId => Object.hasOwn(AVATARS, id);
@@ -54,8 +60,9 @@ function joinCard(): string {
     <form id="fam-join" novalidate>
       <label>Таны нэр<input id="fam-name" name="name" maxlength="24" autocomplete="nickname" placeholder="Жишээ: Ээж" value="${escape(m.name)}" required/></label>
       ${connected ? `<p class="fam-base">${mdIcon('check_circle')}<span><b>${escape(scale.name || 'Суурь')}</b> холбогдсон · ${escape(connected)}</span></p>`
-        : `<label>Суурийн код<input id="fam-base" name="base" maxlength="64" autocomplete="off" placeholder="Жишээ: bottle-01" value="${escape(m.baseId ?? '')}"/></label>
-        <p class="fam-hint">Суурийг <a href="/settings.html">Тохиргоо</a>-оос Bluetooth-ээр холбовол код автоматаар орно.</p>`}
+        : `<button type="button" class="fam-scan" id="fam-scan">${mdIcon('target')}Суурийн QR уншуулах</button>
+        <label>Суурийн код<input id="fam-base" name="base" maxlength="64" autocomplete="off" placeholder="Жишээ: bottle-01" value="${escape(scanned?.baseId ?? m.baseId ?? '')}"/></label>
+        <p class="fam-hint">${scanned ? `<b>${escape(scanned.name || scanned.baseId)}</b> суурийг уншлаа.` : `QR байхгүй бол суурийг <a href="/settings.html">Тохиргоо</a>-оос Bluetooth-ээр холбоно.`}</p>`}
       <p class="form-error" role="alert" ${error ? '' : 'hidden'}>${escape(error)}</p>
       <button type="submit" class="dark-button fam-go" ${busy ? 'disabled' : ''}>${busy ? 'Түр хүлээнэ үү…' : 'Гэр бүл үүсгэх / нэгдэх'}</button>
     </form>
@@ -75,6 +82,7 @@ function boardCard(): string {
     <form id="fam-rename" class="fam-rename" ${renaming ? '' : 'hidden'} novalidate>
       <label>Шинэ нэр<input id="fam-new-name" maxlength="24" value="${escape(m.name)}"/></label><button type="submit" class="dark-button">Хадгалах</button>
     </form>
+    <button type="button" class="fam-scan" id="fam-invite">${mdIcon('target')}Урих QR харуулах</button>
     <div class="fam-actions"><span>Суурь: ${escape(m.baseId!)}</span>
       <button type="button" class="text-button" id="fam-rename-toggle">Нэр солих</button>
       <button type="button" class="text-button danger" id="fam-leave">Гарах</button></div>
@@ -140,7 +148,32 @@ async function leave(): Promise<void> {
   render();
 }
 
+// Reads a base QR: fills in the code, and the Android app connects to the base right away.
+async function scan(): Promise<void> {
+  error = '';
+  try {
+    const text = await scanQr();
+    if (!text) return;
+    const link = parseBaseQr(text);
+    if (!link) { error = 'Энэ нь Дусал суурийн QR биш байна.'; return; }
+    scanned = link;
+    if (link.bleId && Capacitor.isNativePlatform()) void scale.connectTo(link.bleId, link.name || 'Дусал');
+  } catch (e) {
+    error = e instanceof ScanError ? e.message : 'QR уншиж чадсангүй.';
+  } finally { render(); }
+}
+
+function invite(): void {
+  const m = readMembership();
+  if (!m.baseId) return;
+  // The Bluetooth address only goes in when this phone is on that very base.
+  const here = scale.baseId === m.baseId;
+  openBaseQr({ baseId: m.baseId, bleId: here ? scale.address : null, name: here ? scale.name || null : null });
+}
+
 function bind(): void {
+  document.querySelector('#fam-scan')?.addEventListener('click', () => void scan());
+  document.querySelector('#fam-invite')?.addEventListener('click', invite);
   const joinForm = document.querySelector<HTMLFormElement>('#fam-join');
   if (joinForm) joinForm.onsubmit = event => { event.preventDefault(); void join(joinForm); };
   document.querySelector('#fam-leave')?.addEventListener('click', () => void leave());
