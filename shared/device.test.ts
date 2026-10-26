@@ -26,14 +26,14 @@ test('lifted bottle is unstable and keeps the anchor; old or equal timestamps ar
   expect(classify(start, reading('old', 100, 0))).toMatchObject({ outcome: 'stale', next: start });
 });
 
-test('drops under 100 ml are not a drink yet, but small sips accumulate against one anchor', () => {
+test('drops under 5 ml are not a drink yet, but they accumulate against one anchor', () => {
   let current = anchored(reading('a', 750, 0));
-  for (const [i, ml] of [745, 700, 660].entries()) {
+  for (const [i, ml] of [748, 747, 746].entries()) {
     const step = classify(current, reading(`s${i}`, ml, i + 1));
     expect(step.outcome).toBe('noise');
     current = step.next;
   }
-  expect(classify(current, reading('s3', 640, 4))).toMatchObject({ outcome: 'drink', amount: 110 });
+  expect(classify(current, reading('s3', 744, 4))).toMatchObject({ outcome: 'drink', amount: 6 });
   expect(classify(anchored(reading('b', 500, 0)), reading('up', 540, 1))).toMatchObject({ outcome: 'refill', amount: 0 });
 });
 

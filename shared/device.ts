@@ -1,8 +1,9 @@
 import { CONTRACT_VERSION, ContractError, validateDeviceReading, validateEntry, validateId, type DeviceReading, type WaterEntry } from './contracts';
 
-export const MIN_CHANGE_ML = 10;
-// A drop counts as drunk only from 100 ml; smaller sips add up against the anchor until they get there.
-export const MIN_DRINK_ML = 100;
+export const MIN_CHANGE_ML = 5;
+// A drop counts as drunk from 5 ml, so a single sip shows up; smaller changes are scale noise and add up
+// against the anchor until they get there.
+export const MIN_DRINK_ML = 5;
 export const MAX_STABLE_GAP_MS = 5 * 60_000;
 export const DEVICE_FRESH_MS = 60_000;
 export const OUTCOMES = ['baseline', 'resync', 'drink', 'refill', 'noise', 'unstable', 'stale'] as const;
