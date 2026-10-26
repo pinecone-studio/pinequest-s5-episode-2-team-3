@@ -2,7 +2,8 @@ import './hydration.css';
 import { number, time } from './format';
 import { mdIcon } from './components/Icon';
 import { dayKey, TYPES, type WaterEntry } from './data';
-import { AVATARS, avatarSvg, openAvatarPicker, readAvatar } from './avatars';
+import { AVATARS, avatarSvg, openAvatarPicker, readAvatar, type Face } from './avatars';
+import { lastDrink, minutesSince, paceText, sinceText, sinceTone, type Pace } from './pace';
 import { icon } from './components/Icon';
 
 // Home: a bottle buddy that fills toward the daily goal, a row of cups that add on a tap, and «Өөр» to swipe any amount.
@@ -40,7 +41,8 @@ let cup = (() => { try { const v = Number(localStorage.getItem(LAST_KEY)); retur
 const remember = (ml: number) => { cup = ml; try { localStorage.setItem(LAST_KEY, String(ml)); } catch { /* default next time */ } };
 const POUR_MIN = 10, POUR_MAX = 3000, POUR_STEP_PX = 6, POUR_CANCEL_PX = 70;
 
-export function buddySection(drink: number, goal: number, mode: 'goal' | 'limit'): string {
+// `behind` is the face for a day running behind the clock (pace.ts); otherwise the buddy is content.
+export function buddySection(drink: number, goal: number, mode: 'goal' | 'limit', behind: Face | null = null): string {
   const frac = Math.min(1, drink / goal);
   // Under a doctor's limit the bottle never cheers for more: it warns as the limit gets close.
   const over = mode === 'limit' && drink > goal;
@@ -48,7 +50,7 @@ export function buddySection(drink: number, goal: number, mode: 'goal' | 'limit'
   const done = mode === 'goal' && drink >= goal;
   const diff = goal - drink;
   const sub = over ? `Эмчийн хязгаараас ${number(-diff)} мл хэтэрсэн` : near ? `Хязгаарт ойртож байна · ${number(diff)} мл үлдсэн` : done ? `Зорилт биеллээ ${mdIcon('celebration')}` : mode === 'limit' ? `Хязгаар хүртэл ${number(diff)} мл` : `Дахиад ${number(diff)} мл`;
-  const face = done ? 'beam' : over || near ? 'worried' : mode === 'goal' && frac < 0.25 ? 'sad' : 'happy';
+  const face = done ? 'beam' : over || near ? 'worried' : behind ?? 'happy';
   return `<div class="buddy${over ? ' over' : ''}${near ? ' near' : ''}${done ? ' done' : ''}" data-frac="${frac}" data-goal="${goal}" role="img" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл, ${Math.round((drink / goal) * 100)}%">
     <p class="buddy-pct">${Math.round((drink / goal) * 100)}<span>%</span></p>
     <div class="buddy-stage">${avatarSvg(readAvatar(), face, levelY(shownFrac), done)}
@@ -239,6 +241,31 @@ function openCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): 
   draw();
 }
 
+// Under the bottle: how today is going against the clock, how long since the last drink, and one
+// big button for a cup. Only a goal day running in waking hours gets the tinted "since" line and
+// the button; under a doctor's limit it never urges more water.
+const NOW_CUP = 250;
+export function thirstSection(events: readonly WaterEntry[], drink: number, p: Pace, now = new Date()): string {
+  const urge = p.kind === 'behind' || p.kind === 'ahead';
+  const last = lastDrink(events, now);
+  const tone = urge && last ? sinceTone(minutesSince(last, now)) : 'ok';
+  return `<div class="thirst ${p.kind}">
+    <p class="thirst-pace">${paceText(p, drink)}</p>
+    <p class="thirst-since ${tone}" id="thirst-since" data-last="${last?.toISOString() ?? ''}" data-urge="${urge}">${mdIcon('schedule')}<span>${sinceText(last, now)}</span></p>
+    ${urge ? `<button type="button" class="thirst-cta" data-drink="${NOW_CUP}">${mdIcon('water_drop')}Одоо 1 аяга уух · ${NOW_CUP} мл</button>` : ''}
+  </div>`;
+}
+
+// Keeps "Сүүлд … өмнө уусан" current while the page stays open; each render replaces the timer.
+let sinceTimer: ReturnType<typeof setInterval> | undefined;
+function tickSince(): void {
+  const line = document.querySelector<HTMLElement>('#thirst-since');
+  if (!line) return;
+  const last = line.dataset.last ? new Date(line.dataset.last) : null, now = new Date();
+  line.querySelector('span')!.textContent = sinceText(last, now);
+  if (line.dataset.urge === 'true' && last) line.className = `thirst-since ${sinceTone(minutesSince(last, now))}`;
+}
+
 export function drinkTiles(): string {
   return `<div class="adder">
     <div class="cups" id="cups" role="group" aria-label="Ус нэмэх (хажуу тийш гүйлгэнэ)">${CUPS.map(c =>
@@ -277,6 +304,9 @@ export function bindHydration(drink: number, add: (ml: number) => unknown, redra
   }
   if (shownDrink !== null) countUp(document.querySelector('#today-drink'), shownDrink, drink);
   shownDrink = drink;
+
+  clearInterval(sinceTimer);
+  sinceTimer = setInterval(tickSince, 30_000);
 
   bindCups();
   bindPourHandle(buddy, drink);

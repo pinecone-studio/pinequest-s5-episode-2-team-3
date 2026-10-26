@@ -71,6 +71,26 @@
 .goal-pill::after { content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
 .goal-pill[aria-expanded="true"]::after { transform: translateY(1px) rotate(-135deg); }
 
+/* Pace under the bottle: where the day should be by now, time since the last drink, one big cup button. */
+.thirst { display: grid; justify-items: center; gap: 6px; width: 100%; margin-top: -4px; text-align: center; }
+.thirst-pace { margin: 0; font-size: 15px; color: #3a4250; font-variant-numeric: tabular-nums; }
+.thirst-pace b { color: var(--ink-2); }
+.thirst.behind .thirst-pace b:last-child { color: #c2410c; }
+.thirst.ahead .thirst-pace, .thirst.done .thirst-pace { color: #0096b4; font-weight: 600; }
+.thirst.limit-ok .thirst-pace { color: #1f7a4f; font-weight: 600; }
+.thirst.limit-near .thirst-pace { color: #9a6a00; font-weight: 600; }
+.thirst.limit-over .thirst-pace { color: #ad4239; font-weight: 600; }
+.thirst-since { display: inline-flex; align-items: center; gap: 5px; margin: 0; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, .7); font-size: 13px; color: #6a7586; font-variant-numeric: tabular-nums; }
+.thirst-since.warn { background: #fff3e6; color: #b45309; font-weight: 600; }
+.thirst-since.alert { background: #fdecec; color: #b4232a; font-weight: 600; }
+.thirst-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 4px; border: 0; border-radius: 999px; background: linear-gradient(180deg, #33cfe6, #00bedc); color: #fff; font-size: 17px; font-weight: 700; box-shadow: 0 8px 20px rgba(0, 190, 220, .3); }
+.thirst-cta .md-icon { font-size: 20px; }
+.thirst-cta:active { transform: scale(.97); }
+.thirst-cta:focus-visible { outline: 3px solid #0096b4; outline-offset: 3px; }
+.thirst.behind .thirst-cta { animation: thirst-nudge 2.4s ease-in-out 1s 2; }
+@keyframes thirst-nudge { 0%, 100% { transform: none; } 8% { transform: scale(1.04); } 16% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .thirst.behind .thirst-cta { animation: none; } }
+
 /* Adding: tap a cup to add it; «Өөр» at the end opens an amount you swipe up or down. */
 /* Runs edge to edge of the card (margin cancels .hydro's padding) so both ends fade the same way
    and the cups' shadows are never cut off. */

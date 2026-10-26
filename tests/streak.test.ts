@@ -27,6 +27,8 @@ test("under a doctor's limit, days within it count and a day over it breaks the 
   expect(streak(streakParts([at(0, 300), at(1, 1400), at(2, 1600), at(3, 1200)], 1500, 'limit').chip)).toBe(2);
 });
 
-test('the week strip always shows seven days', () => {
-  expect(streakParts([], 2000, 'goal').week.match(/<li/g)!.length).toBe(7);
+test('the strip shows a week back, today and a week ahead', () => {
+  const week = streakParts([], 2000, 'goal').week;
+  expect(week.match(/<li/g)!.length).toBe(15);
+  expect(week.match(/<li class="future"/g)!.length).toBe(7);
 });
