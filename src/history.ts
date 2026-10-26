@@ -1,26 +1,23 @@
 import { load as readState, save, saveMessage, onExternalChange } from './storage';
-import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import './style.css';
 import './shell.css';
 import './history.css';
 import './pwa';
-import { TYPES, defaults, dayKey, isEntryType, sortedEvents, type AppState, type EntryType, type WaterEntry } from './data';
-import { dateLabel, escape, number, time } from './format';
-import { brandMark } from './components/Icon';
-import { openEntryDialog } from './components/EntryDialog';
+import { TYPES, defaults, dayKey, sortedEvents, type AppState, type WaterEntry } from './data';
+import { escape, number, time } from './format';
 import { Toast, notify } from './components/Toast';
-import { closeTypeMenu, openTypeMenu, typeTrigger } from './components/TypeMenu';
 import { siteNav } from './nav';
-import { downloadCsv, entriesCsv } from './csv';
-import { bindChart } from './history-chart';
+import { cupIcon, hxHeader } from './hydrify';
+import { openEditSheet, openRowMenu } from './hx-edit';
+import { entryIcon, entryName } from './drinks';
+import './theme.css';
 
-interface Filter { from: string; to: string; type: EntryType | 'all' }
-
+// "Түүх" page, Hydrify layout (kit screens 38–46): a week of goal rings that opens into a month,
+// then the entries by day, each with a ⋮ menu to edit (amount, date, time) or delete (with undo).
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let state: AppState = defaults();
 let storageError = '';
 let committing = false;
-let filter: Filter = { from: '', to: '', type: 'all' };
 
 async function load() {
   const loaded = await readState();
@@ -45,46 +42,33 @@ async function commit(change: (next: AppState) => void): Promise<boolean> {
 
 function changed(message: string, undo?: () => void) { renderResults(); notify(message, undo); }
 
-// Drink and spill are the only final types; a pending entry gets resolved here too.
-async function setType(id: string | undefined, type: unknown) {
-  const previous = state.events.find(event => event.id === id)?.type;
-  if (!previous || type === previous || (type !== 'drink' && type !== 'spill')) return;
-  if (!await commit(next => { next.events.find(event => event.id === id)!.type = type; })) return;
-  changed(`${TYPES[type]} болгож өөрчиллөө.`, async () => {
-    if (await commit(next => { const event = next.events.find(item => item.id === id); if (event) event.type = previous; })) changed('Өөрчлөлтийг буцаалаа.');
-  });
-  app.querySelector<HTMLButtonElement>(`[data-type-menu="${id}"]`)?.focus();
-}
-
+// The ⋮ menu's "edit": the Hydrify sheet (amount, date, time); undo puts the old entry back.
 function openEdit(id: string | undefined) {
   const entry = state.events.find(item => item.id === id);
   if (!entry) return;
   const previous = structuredClone(entry);
-  openEntryDialog({
-    entry,
-    async onSave(item) {
-      if (!await commit(next => { next.events[next.events.findIndex(row => row.id === item.id)] = item; })) return false;
-      changed('Бүртгэлийг шинэчиллээ.', async () => {
-        if (await commit(next => { next.events = next.events.filter(row => row.id !== item.id).concat(previous); })) changed('Үйлдлийг буцаалаа.');
-      });
-      return true;
-    },
-    async onDelete() {
-      if (!await commit(next => { next.events = next.events.filter(row => row.id !== entry.id); })) return false;
-      changed('Бүртгэлийг устгалаа.', async () => {
-        if (await commit(next => next.events.push(previous))) changed('Бүртгэлийг сэргээв.');
-      });
-      return true;
-    },
+  openEditSheet(entry, async item => {
+    if (!await commit(next => { next.events[next.events.findIndex(row => row.id === item.id)] = item; })) return false;
+    changed('Бүртгэлийг шинэчиллээ.', async () => {
+      if (await commit(next => { next.events = next.events.filter(row => row.id !== item.id).concat(previous); })) changed('Үйлдлийг буцаалаа.');
+    });
+    return true;
   });
 }
 
-// Dates compare as YYYY-MM-DD strings; an empty bound means no limit.
-function matches(event: WaterEntry): boolean {
-  const key = dayKey(new Date(event.at));
-  return (filter.type === 'all' || event.type === filter.type) &&
-    (!filter.from || key >= filter.from) && (!filter.to || key <= filter.to);
+async function remove(id: string | undefined) {
+  const entry = state.events.find(item => item.id === id);
+  if (!entry) return;
+  const previous = structuredClone(entry);
+  if (!await commit(next => { next.events = next.events.filter(row => row.id !== entry.id); })) return;
+  changed('Түүх устгагдлаа!', async () => {
+    if (await commit(next => next.events.push(previous))) changed('Бүртгэлийг сэргээв.');
+  });
 }
+
+// A picked calendar day shows only that day; otherwise every day.
+let picked = '';
+const matches = (event: WaterEntry) => !picked || dayKey(new Date(event.at)) === picked;
 
 // Newest day first; entries inside a day stay newest first.
 function groupByDay(events: readonly WaterEntry[]): [string, WaterEntry[]][] {
@@ -98,96 +82,77 @@ function groupByDay(events: readonly WaterEntry[]): [string, WaterEntry[]][] {
   return [...groups];
 }
 
+// "Өнөөдөр, 10-р сарын 26" / "Өчигдөр, …" / "10-р сарын 24, 2026".
+function dayTitle(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  const date = `${m}-р сарын ${d}`;
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  if (key === dayKey()) return `Өнөөдөр, ${date}`;
+  if (key === dayKey(yesterday)) return `Өчигдөр, ${date}`;
+  return `${date}, ${y}`;
+}
+
 function row(event: WaterEntry): string {
-  return `<li class="history-row ${event.type}">
-    <time datetime="${event.at}">${time(event.at)}</time>
-    <div class="type-cell">${typeTrigger(event.id, event.type, `${time(event.at)} цагийн ${event.amount} мл`)}</div>
-    <strong>${number(event.amount)} <small>мл</small></strong>
-    <button class="text-button subdued" data-edit="${event.id}"
-      aria-label="${dateLabel(dayKey(new Date(event.at)))} ${time(event.at)} цагийн ${event.amount} мл бүртгэл засах">Засах</button>
+  const label = `${time(event.at)} цагийн ${number(event.amount)} мл`;
+  return `<li class="${event.type}">
+    <span class="hx-icon">${entryIcon(event)}</span>
+    <span class="hx-what"><b>${escape(entryName(event))}${event.type === 'drink' ? '' : ` · ${TYPES[event.type]}`}</b><small>${time(event.at)}</small></span>
+    <span class="hx-ml">${number(event.amount)} мл</span>
+    <button type="button" class="hx-row-more" data-menu="${event.id}" aria-haspopup="menu" aria-label="${label}: цэс"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
   </li>`;
 }
 
 function results(events: readonly WaterEntry[]): string {
-  if (!state.events.length) {
-    return `<div class="empty-state">
-      <p>Бүртгэл алга.</p>
-      <span>«Ус бүртгэх» хуудсаас бүртгэл нэмнэ.</span>
-    </div>`;
-  }
   if (!events.length) {
-    return `<div class="empty-state">
-      <p>Шүүлтэд тохирох бүртгэл алга.</p>
-      <span>Огноо эсвэл төрлөө өөрчилж үзнэ үү.</span>
-    </div>`;
+    return `<section class="hx-card hx-empty-card">
+      <span aria-hidden="true">${cupIcon(300)}</span>
+      <p>${picked ? 'Энэ өдөр бүртгэл алга.' : 'Одоогоор усны түүх алга.'}</p>
+    </section>`;
   }
   return groupByDay(events).map(([key, items]) => `
-    <section class="day-group" aria-labelledby="day-${key}">
-      <h2 id="day-${key}">${dateLabel(key)}</h2>
-      <ul>${items.map(row).join('')}</ul>
+    <section class="hx-card hx-day-card" aria-labelledby="day-${key}">
+      <div class="hx-card-head"><h2 id="day-${key}">${dayTitle(key)}</h2></div>
+      <ul class="hx-list">${items.map(row).join('')}</ul>
     </section>
   `).join('');
 }
 
-// Only "drink" counts toward the total, same as the daily overview.
-function summary(events: readonly WaterEntry[]): string {
-  const drink = events.reduce((sum, event) => event.type === 'drink' ? sum + event.amount : sum, 0);
-  return `<span><strong>${number(events.length)}</strong> бүртгэл</span>
-    <span>Уусан нийт <strong>${number(drink)}</strong> мл</span>`;
-}
-
 function renderResults() {
-  const events = state.events.filter(matches);
-  app.querySelector<HTMLParagraphElement>('#summary')!.innerHTML = summary(events);
-  app.querySelector<HTMLDivElement>('#results')!.innerHTML = results(events);
-  app.querySelector<HTMLButtonElement>('#export-csv')!.disabled = !events.length;
+  app.querySelector<HTMLDivElement>('#results')!.innerHTML = results(state.events.filter(matches));
+  app.querySelector<HTMLDivElement>('#hx-cal')!.innerHTML = calendar();
 }
 
-// Exports exactly what the filters show.
-function exportCsv() {
-  const events = state.events.filter(matches);
-  if (events.length) downloadCsv(`dusal-history-${dayKey()}.csv`, entriesCsv(events));
+// Hydrify's week strip (screen 38) that opens into a month (screen 46): each day a ring filled to
+// that day's share of the goal. Tapping a day shows only its entries; tapping it again shows all.
+const WEEK = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
+const MONTHS = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
+let expanded = false;
+let monthOffset = 0;
+
+function dayRing(d: Date, totals: Map<string, number>): string {
+  const C = 2 * Math.PI * 17;
+  const key = dayKey(d);
+  const frac = Math.min(1, (totals.get(key) ?? 0) / state.goal);
+  return `<button type="button" class="hx-day${key === dayKey() ? ' today' : ''}${key === picked ? ' on' : ''}" data-day="${key}" ${key > dayKey() ? 'disabled' : ''} aria-pressed="${key === picked}" aria-label="${d.getMonth() + 1}/${d.getDate()}: ${Math.round(frac * 100)}%">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" class="bg"/>${frac > 0 ? `<circle cx="20" cy="20" r="17" class="fg" stroke-dasharray="${(frac * C).toFixed(1)} ${C.toFixed(1)}"/>` : ''}</svg><b>${d.getDate()}</b></button>`;
 }
 
-// Pending entries only come from the smart bottle; offer that filter once one exists (or it's selected).
-const hasPending = () => filter.type === 'pending' || state.events.some(event => event.type === 'pending');
-
-function filters(): string {
-  const today = dayKey();
-  return `<form class="history-filters" id="filters" aria-label="Шүүлтүүр" data-transient>
-    <div>
-      <label for="filter-from">Эхлэх огноо</label>
-      <input id="filter-from" name="from" type="date" max="${filter.to || today}" value="${filter.from}"/>
-    </div>
-    <div>
-      <label for="filter-to">Дуусах огноо</label>
-      <input id="filter-to" name="to" type="date" min="${filter.from}" max="${today}" value="${filter.to}"/>
-    </div>
-    <div>
-      <label for="filter-type">Төрөл</label>
-      <select id="filter-type" name="type">
-        <option value="all">Бүгд</option>
-        ${Object.entries(TYPES).filter(([type]) => type !== 'pending' || hasPending()).map(([type, label]) => `<option value="${type}" ${filter.type === type ? 'selected' : ''}>${label}</option>`).join('')}
-      </select>
-    </div>
-    <button type="button" class="text-button" id="clear-filters">Цэвэрлэх</button>
-  </form>`;
-}
-
-function bindFilters() {
-  const form = app.querySelector<HTMLFormElement>('#filters')!;
-  const from = form.querySelector<HTMLInputElement>('#filter-from')!;
-  const to = form.querySelector<HTMLInputElement>('#filter-to')!;
-  const apply = () => {
-    const type = form.querySelector<HTMLSelectElement>('#filter-type')!.value;
-    filter = { from: from.value, to: to.value, type: isEntryType(type) ? type : 'all' };
-    from.max = filter.to || dayKey();
-    to.min = filter.from;
-    renderResults();
-  };
-  form.oninput = apply;
-  form.onsubmit = event => event.preventDefault();
-  form.querySelector<HTMLButtonElement>('#clear-filters')!.onclick = () => { form.reset(); apply(); };
+function calendar(): string {
+  const totals = new Map<string, number>();
+  for (const e of state.events) if (e.type === 'drink') { const k = dayKey(new Date(e.at)); totals.set(k, (totals.get(k) ?? 0) + e.amount); }
+  const toggle = `<button type="button" class="hx-cal-toggle" data-expand aria-expanded="${expanded}" aria-label="${expanded ? 'Хураах' : 'Сарын хуанли'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+  const head = `<div class="hx-cal-week" aria-hidden="true">${WEEK.map(w => `<small>${w}</small>`).join('')}</div>`;
+  if (!expanded) {
+    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - d.getDay() + i); return d; });
+    return `<section class="hx-card hx-cal" aria-label="Энэ долоо хоног">${head}<div class="hx-cal-grid">${days.map(d => dayRing(d, totals)).join('')}</div>${toggle}</section>`;
+  }
+  const first = new Date(); first.setHours(12, 0, 0, 0); first.setDate(1); first.setMonth(first.getMonth() + monthOffset);
+  const count = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const cells = Array.from({ length: first.getDay() }, () => '<span></span>')
+    .concat(Array.from({ length: count }, (_, i) => { const d = new Date(first); d.setDate(i + 1); return dayRing(d, totals); }));
+  return `<section class="hx-card hx-cal" aria-label="Сарын хуанли">
+    <div class="hx-cal-month"><button type="button" data-month="-1" aria-label="Өмнөх сар">‹</button><b>${first.getFullYear()} оны ${MONTHS[first.getMonth()]}</b><button type="button" data-month="1" aria-label="Дараах сар" ${monthOffset >= 0 ? 'disabled' : ''}>›</button></div>
+    ${head}<div class="hx-cal-grid">${cells.join('')}</div>${toggle}</section>`;
 }
 
 function render() {
@@ -195,52 +160,28 @@ function render() {
     <a class="skip-link" href="#main">Агуулга руу очих</a>
     <main id="main" class="home home-app" tabindex="-1">
       <div class="app-shell">
-        <header class="app-top">
-          <a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>
-          ${siteNav('history')}
-          <span class="app-date">${dateLabel(dayKey())}</span>
-        </header>
-        <div class="history-body">
-          <div class="history-head">
-            <div><p class="panel-label">Хэрэглээний түүх</p><h1>Бүх бүртгэл</h1></div>
-            <button type="button" class="dark-button" id="export-csv">CSV татах</button>
-          </div>
+        <header class="app-top">${siteNav('history')}</header>
+        <div class="hydro hx-page">
+          ${hxHeader('Түүх')}
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-          <div id="history-chart"></div>
-          ${SyncStatus()}
-          ${filters()}
-          <p class="history-summary" id="summary" aria-live="polite"></p>
-          <div id="results"></div>
+          <div id="hx-cal"></div>
+          <div id="results" class="hx-results"></div>
         </div>
-        <footer class="history-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
       </div>
     </main>
-    <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
     ${Toast()}
   `;
-  bindFilters();
-  app.querySelector<HTMLButtonElement>('#export-csv')!.onclick = exportCsv;
-  app.querySelector<HTMLDivElement>('#results')!.onclick = event => {
+  app.querySelector<HTMLDivElement>('.hx-page')!.onclick = event => {
     const target = event.target as Element;
-    const trigger = target.closest<HTMLButtonElement>('[data-type-menu]');
-    if (trigger) toggleTypeMenu(trigger);
-    const edit = target.closest<HTMLButtonElement>('[data-edit]');
-    if (edit) openEdit(edit.dataset.edit);
-  };
-  app.querySelector<HTMLDivElement>('#results')!.onkeydown = event => {
-    const trigger = (event.target as Element).closest<HTMLButtonElement>('[data-type-menu]');
-    if (trigger && event.key === 'ArrowDown') { event.preventDefault(); toggleTypeMenu(trigger); }
+    const menu = target.closest<HTMLButtonElement>('[data-menu]');
+    if (menu) openRowMenu(menu, () => openEdit(menu.dataset.menu), () => void remove(menu.dataset.menu));
+    if (target.closest('[data-expand]')) { expanded = !expanded; monthOffset = 0; renderResults(); app.querySelector<HTMLButtonElement>('[data-expand]')!.focus(); }
+    const month = target.closest<HTMLButtonElement>('[data-month]');
+    if (month) { monthOffset = Math.min(0, monthOffset + Number(month.dataset.month)); renderResults(); }
+    const day = target.closest<HTMLButtonElement>('[data-day]');
+    if (day) { picked = picked === day.dataset.day ? '' : day.dataset.day!; renderResults(); }
   };
   renderResults();
-  bindChart(app.querySelector<HTMLElement>('#history-chart')!, () => state);
-  bindSyncStatus();
-}
-
-function toggleTypeMenu(trigger: HTMLButtonElement) {
-  if (trigger.getAttribute('aria-expanded') === 'true') { closeTypeMenu(true); return; }
-  const id = trigger.dataset.typeMenu;
-  const entry = state.events.find(item => item.id === id);
-  if (entry) openTypeMenu(trigger, entry.type, type => setType(id, type));
 }
 
 onExternalChange(async () => { await load(); render(); });

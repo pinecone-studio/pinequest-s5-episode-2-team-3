@@ -3,3 +3,4 @@ import './shell.css';
 import './entries.css';
 import './app';
 import './pwa';
+import './theme.css';

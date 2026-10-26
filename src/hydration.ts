@@ -266,6 +266,19 @@ function tickSince(): void {
   if (line.dataset.urge === 'true' && last) line.className = `thirst-since ${sinceTone(minutesSince(last, now))}`;
 }
 
+// The Hydrify home's «Өөр» button and the same swipe panel as under the cup row.
+export function pourButton(): string {
+  return `<button type="button" class="hx-cup hx-pour${pourOpen ? ' on' : ''}" id="pour-toggle" aria-expanded="${pourOpen}" aria-controls="pour-panel" aria-label="Өөр хэмжээ шударч оруулах"><span aria-hidden="true">↕</span></button>`;
+}
+export function pourPanel(): string {
+  return `<div class="pour-panel" id="pour-panel" role="dialog" aria-label="Өөр хэмжээ нэмэх" ${pourOpen ? '' : 'hidden'}>
+      <button type="button" class="pour-close" id="pour-close" aria-label="Хаах">${icon('close')}</button><div class="big-add" id="big-add" data-drink="${cup}" role="slider" tabindex="0" aria-valuemin="${POUR_MIN}" aria-valuemax="${POUR_MAX}" aria-valuenow="${cup}" aria-valuetext="${number(cup)} мл" aria-label="Нэмэх хэмжээ. Дээш доош шударч өөрчилнө, тавихад нэмэгдэнэ (Enter)">
+      <span class="pour-arrow up" aria-hidden="true">▲</span>
+      <span class="swipe-amount">+<b id="big-add-ml">${number(cup)}</b> мл</span>
+      <span class="pour-arrow down" aria-hidden="true">▼</span>
+      <span class="swipe-text">Дээш доош шудар · тавихад нэмэгдэнэ</span></div></div>`;
+}
+
 export function drinkTiles(): string {
   return `<div class="adder">
     <div class="cups" id="cups" role="group" aria-label="Ус нэмэх (хажуу тийш гүйлгэнэ)">${CUPS.map(c =>
@@ -363,13 +376,22 @@ function bindPourHandle(buddy: HTMLElement | null, drink: number): void {
   if (!add) return;
   const label = add.querySelector('#big-add-ml')!, text = add.querySelector('.swipe-text')!;
   const water = buddy?.querySelector<SVGGElement>('.buddy-water');
-  const goal = Number(buddy?.dataset.goal) || 1;
+  const gauge = document.querySelector<HTMLElement>('.hx-gauge');
+  const goal = Number(buddy?.dataset.goal ?? gauge?.dataset.goal) || 1;
   const show = (ml: number) => {
     add.dataset.drink = String(ml);
     label.textContent = number(ml);
     add.setAttribute('aria-valuenow', String(ml)); add.setAttribute('aria-valuetext', `${number(ml)} мл`);
   };
   const preview = (ml: number | null) => {
+    // Hydrify gauge: the water in the drop and the arc rise with the amount (same numbers as hxGauge).
+    if (!water && gauge) {
+      const f = Math.min(1, (drink + (ml ?? 0)) / goal);
+      gauge.querySelector<SVGGElement>('.hx-water')!.style.transform = `translateY(${(196 - f * 92).toFixed(1)}px)`;
+      gauge.querySelector('.hx-progress')!.setAttribute('stroke-dasharray', `${(f * 100).toFixed(1)} 100`);
+      gauge.classList.toggle('pouring', ml !== null);
+      return;
+    }
     if (!water) return;
     water.style.transform = `translateY(${levelY(Math.min(1, (drink + (ml ?? 0)) / goal))}px)`;
     buddy!.classList.toggle('pouring', ml !== null);
@@ -418,7 +440,7 @@ function center(element: Element): { x: number; y: number } {
 // A drop arcs from the add button into the bottle; "+250 мл" rises from it as it lands.
 // Both live on <body> so they survive the re-render that follows the save.
 async function flyDrop(from: Element, ml: number): Promise<void> {
-  const buddy = document.querySelector('.buddy svg');
+  const buddy = document.querySelector('.buddy svg') ?? document.querySelector('.hx-gauge svg');
   if (!buddy) return;
   await dropInto(center(from), center(buddy), ml);
 }
@@ -426,7 +448,7 @@ async function flyDrop(from: Element, ml: number): Promise<void> {
 // The base counted a sip on its own: a drop falls into the bottle from above with "+120 мл",
 // and a small "Суурь: 120 мл ус уулаа" chip says where it came from (the page has already re-rendered).
 export async function deviceDrop(ml: number): Promise<void> {
-  const buddy = document.querySelector('.buddy svg');
+  const buddy = document.querySelector('.buddy svg') ?? document.querySelector('.hx-gauge svg');
   if (!buddy) return;
   const chip = document.createElement('span');
   chip.className = 'fx-device';

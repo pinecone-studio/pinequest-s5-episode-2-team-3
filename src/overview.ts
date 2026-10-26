@@ -4,8 +4,10 @@ import './overview.css';
 import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
-import { buddySection, drinkTiles, streakParts, bindStreakCalendar, bindHydration, deviceDrop, thirstSection } from './hydration';
-import { pace } from './pace';
+import { streakParts, bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
+import { hxGauge, hxHeader, hxHistory, openCupSheet, readCup, readCupKind } from './hydrify';
+import { setKind } from './drinks';
+import { celebrateIfReached, showYesterday } from './day-result';
 import { startSync } from './sync';
 import { startDevices } from './devices';
 import { pushWidget } from './widget';
@@ -17,10 +19,11 @@ import { CONDITIONS, PROFILE_KEY, calcPlan, readProfile, validProfile, writeProf
 import { askAi, checkAi } from './api';
 import { guardPlan } from '../shared/plan';
 import { needsOnboarding, showOnboarding } from './onboarding';
-import { bindSchedule, scheduleChip, startReminders } from './schedule';
+import { bindSchedule, startReminders } from './schedule';
 import { startAppIcon } from './app-icon';
 import { dateLabel, escape, number } from './format';
 import { brandMark, mdIcon } from './components/Icon';
+import './theme.css';
 
 // 2000 → "2", 2150 → "2.15", 2500 → "2.5" (the old regex left "2.", which a number input rejects).
 const liters = (ml: number) => String(Number((ml / 1000).toFixed(2)));
@@ -103,6 +106,14 @@ function optionCard(s: Source, p: Profile): string {
   </button>`;
 }
 
+const GLASS_ML = 250;
+const GOAL_TEMPLATES = [
+  { name: 'Халуун өдөр', ml: 2500, icon: 'local_fire_department' },
+  { name: 'Спорттой өдөр', ml: 1750, icon: 'directions_run' },
+  { name: 'Хүйтэн өдөр', ml: 1250, icon: 'water_drop' },
+  { name: 'Хүүхэд', ml: 1000, icon: 'woman' },
+] as const;
+
 function planSection(p: Profile): string {
   // With no diagnosis there is no doctor's amount to pick, so its fields and card are hidden.
   const noDoctor = p.condition === 'none';
@@ -126,9 +137,16 @@ function planSection(p: Profile): string {
         <p class="plan-how" id="plan-how">${escape(d.how)}</p>
         <p class="plan-warning" id="plan-warning" ${d.warning ? '' : 'hidden'}>${escape(d.warning)}</p>
       </div>` : '';
+  // "Set your goal": the amount in 250 ml glasses, and ready-made days. Only without a diagnosis:
+  // with one, the amount comes from the doctor or the calculator, never a template.
+  const templates = p.condition === 'none' && d?.mode === 'goal';
   return `<section class="plan-card" aria-labelledby="plan-title">
-    <h2 id="plan-title">Миний өдрийн хэмжээ</h2>
+    <h2 id="plan-title">Зорилтоо тохируулах</h2>
+    <div class="goal-hero" aria-live="polite"><p class="goal-count" id="plan-glasses">${d ? Math.round(d.ml / GLASS_ML) : '—'}</p><p class="goal-unit">аяга · ${GLASS_ML} мл</p></div>
     <form id="plan-form" novalidate>
+      ${templates ? `<p class="plan-step">Бэлэн загварууд</p>
+      <div class="goal-templates">${GOAL_TEMPLATES.map(t => `<button type="button" class="goal-template" data-template="${t.ml}" data-name="${t.name}">
+        <small>${t.name}</small><b>${t.ml / GLASS_ML} аяга</b><span aria-hidden="true">${mdIcon(t.icon)}</span></button>`).join('')}</div>` : ''}
       <p class="plan-step">Таны мэдээлэл</p>
       <div class="plan-fields">
         <label>Нас<input id="plan-age" name="age" type="number" inputmode="numeric" min="4" max="110" value="${p.age}"/></label>
@@ -241,6 +259,7 @@ function bindPlan() {
     warning.textContent = draft!.warning;
     warning.hidden = !draft!.warning;
     amount.value = liters(draft!.ml);
+    form.ownerDocument.querySelector('#plan-glasses')!.textContent = String(Math.round(draft!.ml / GLASS_ML));
     const vs = versusGoal(draft!);
     const line = form.querySelector<HTMLElement>('#plan-vs')!;
     line.innerHTML = vs.text;
@@ -295,6 +314,11 @@ function bindPlan() {
     draft = { ...draft!, ml, how: draft!.how.includes('Өөрчилсөн') ? draft!.how : `${draft!.how} · Өөрчилсөн` };
     show();
   };
+  form.querySelectorAll<HTMLButtonElement>('[data-template]').forEach(b => b.addEventListener('click', () => {
+    if (!draft) return;
+    draft = { ...draft, ml: Number(b.dataset.template), how: `Бэлэн загвар: ${b.dataset.name}` };
+    show();
+  }));
   form.querySelector('#plan-minus')?.addEventListener('click', () => nudge(-50));
   form.querySelector('#plan-plus')?.addEventListener('click', () => nudge(50));
   amount?.addEventListener('change', () => {
@@ -320,9 +344,14 @@ function bindPlan() {
   });
 }
 
+let drinking = false;
 async function addDrink(ml: number) {
+  const before = drankOn(state.events, today);
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
+  setKind(entry.id, readCupKind());
+  drinking = true; render(); // "Ууж байна..." while it saves and the gauge fills (kit screen 30)
   const result = await save({ ...state, events: [...state.events, entry] });
+  setTimeout(() => { drinking = false; render(); }, 900);
   await reload();
   if (result !== 'saved') { storageError = saveMessage[result]; render(); return; }
   undoId = entry.id;
@@ -330,6 +359,7 @@ async function addDrink(ml: number) {
   undoReset = null;
   offerUndo();
   render();
+  celebrateIfReached(state, before, before + ml);
 }
 
 // Demo helper: empty today's ring by removing today's drinks, so the fill can be shown again.
@@ -391,23 +421,27 @@ function bindFamily() {
   });
 }
 
+// "Good morning, Сараа": the time of day and the name from the profile (src/member.ts), or just today.
+function greeting(): string {
+  const hour = new Date().getHours();
+  const hello = hour < 12 ? 'Өглөөний мэнд' : hour < 18 ? 'Өдрийн мэнд' : 'Оройн мэнд';
+  const name = readMember()?.name;
+  return `<div class="greet"><p>${hello}${name ? ',' : ''}</p><h1 class="hydro-title">${name ? escape(name) : 'Өнөөдөр'}</h1></div>`;
+}
+
 function render() {
   const drink = drankOn(state.events, today);
   const streak = streakParts(state.events, state.goal, state.mode);
-  const dayPace = pace(drink, state.goal, state.mode, new Date());
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home home-app" tabindex="-1">
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       <div class="hydro">
-        <div class="hydro-head"><h1 class="hydro-title">Өнөөдөр</h1>${streak.chip}</div>
-        ${buddySection(drink, state.goal, state.mode, dayPace.kind === 'behind' ? dayPace.face : null)}
-        ${thirstSection(state.events, drink, dayPace)}
-        <button type="button" class="goal-pill" id="plan-toggle" aria-expanded="${planOpen}" aria-controls="plan-wrap">${state.mode === 'limit' ? 'Эмчийн хязгаар' : 'Зорилт'} <b>${number(state.goal)} мл</b></button>
-        ${scheduleChip(state)}
-        ${drinkTiles()}
+        ${hxHeader('Нүүр')}
+        ${hxGauge(drink, state.goal, state.mode, readCup(), drinking)}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
-        ${streak.week}
+        ${hxHistory(state.events)}
+        <div class="hx-streak">${streak.week}</div>
         ${familySection()}
       </div>
       <footer class="home-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Холболт, нөөц ба тохиргоо</a></p></footer>
@@ -420,8 +454,11 @@ function render() {
   void reportFamily(state, drink);
   bindFamily();
   bindHydration(drink, addDrink, render);
+  document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindSchedule(() => state, render);
+  // The tab bar's middle button ("/#reminders") opens today's schedule here.
+  if (location.hash === '#reminders') { history.replaceState(null, '', '/'); document.querySelector<HTMLButtonElement>('#sched-open')?.click(); }
   document.querySelector('#undo')?.addEventListener('click', undo);
   document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
   bindPlan();
@@ -471,6 +508,7 @@ void reload().then(() => {
   startReminders(() => state);
   startAppIcon(() => state);
   // First visit: ask a few questions and start with the computed daily amount.
+  if (!needsOnboarding()) showYesterday(state);
   if (needsOnboarding()) showOnboarding(async plan => {
     const result = await save({ ...state, goal: plan.ml, mode: plan.mode });
     await reload();

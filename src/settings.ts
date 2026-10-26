@@ -2,6 +2,10 @@ import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
 import { DevicePanel, bindDevicePanel } from './components/DevicePanel';
 import { WatchPanel, bindWatchPanel } from './components/WatchPanel';
 import { ProfilePanel, bindProfilePanel } from './components/ProfilePanel';
+import { hxHeader } from './hydrify';
+import { accountViews } from './account';
+import { confirmSheet } from './hx-edit';
+import { plan } from './prefs';
 import './style.css';
 import './shell.css';
 import './settings.css';
@@ -13,6 +17,7 @@ import { siteNav } from './nav';
 import { Toast, notify } from './components/Toast';
 import { load, save, saveMessage, onExternalChange, requestPersistence } from './storage';
 import { downloadBackup, readBackup, summarize, type BackupSummary } from './backup';
+import './theme.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let state = defaults();
@@ -83,35 +88,83 @@ function backupSection(): string {
   </section>`;
 }
 
+// Account screen, Hydrify layout (demo): a menu; each row opens its own screen (#hash) that holds
+// the existing settings sections. Payment, billing, security and appearance are demo screens only.
+const ICON = (d: string) => `<svg class="ac-icon" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const ICONS = {
+  personal: '<circle cx="12" cy="8" r="4"/><path d="M4 20.5c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',
+  reminders: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  cups: '<path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h2a2.5 2.5 0 0 1 0 5h-2M7 3.5c0 1.5 1 1.5 1 3M11 3.5c0 1.5 1 1.5 1 3"/>',
+  preferences: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 7.5l2.1 1.2M17.7 15.3l2.1 1.2M4.2 16.5l2.1-1.2M17.7 8.7l2.1-1.2"/><circle cx="12" cy="12" r="6.5"/>',
+  payment: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
+  billing: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/>',
+  security: '<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  linked: '<path d="M7 4v16M7 4l-3 3M7 4l3 3M17 20V4M17 20l-3-3M17 20l3-3"/>',
+  appearance: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  data: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M7 15l3.5-3.5 2.5 2.5L17 10"/>',
+  help: '<path d="M7 3.5h7l4.5 4.5v11a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M9 12h6M9 16h4"/>',
+  logout: '<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10"/>',
+};
+
+const PLAN_LABEL = { free: '', month: 'Сарын Premium', year: 'Жилийн Premium' } as const;
+function menu(): string {
+  const row = (key: keyof typeof ICONS, label: string, href = `#${key}`) => `<li><a href="${href}">${ICON(ICONS[key])}<span>${label}</span><i aria-hidden="true">›</i></a></li>`;
+  const premium = plan.read().plan;
+  return `<a class="ac-upgrade" href="${premium === 'free' ? '#upgrade' : '#billing'}"><span class="ac-crown" aria-hidden="true">♛</span><span><b>${premium === 'free' ? 'Premium-д шилжих!' : PLAN_LABEL[premium]}</b><small>${premium === 'free' ? 'Бүх боломжийг нээж, илүү ихийг хийгээрэй' : 'Бүх боломж нээлттэй. Баярлалаа!'}</small></span></a>
+    <section class="hx-card ac-menu"><ul>
+      ${row('personal', 'Хувийн мэдээлэл')}${row('reminders', 'Уух сануулга', '#reminder')}${row('cups', 'Миний аяганууд')}${row('preferences', 'Тохиргоо')}
+    </ul></section>
+    <section class="hx-card ac-menu"><ul>
+      ${row('payment', 'Төлбөрийн хэрэгсэл')}${row('billing', 'Төлбөр ба захиалга')}${row('security', 'Бүртгэл ба аюулгүй байдал')}${row('linked', 'Холбосон бүртгэл')}
+      ${row('appearance', 'Харагдах байдал')}${row('data', 'Өгөгдөл ба шинжилгээ')}${row('help', 'Тусламж')}
+      <li><button type="button" class="ac-logout" data-logout>${ICON(ICONS.logout)}<span>Гарах</span></button></li>
+    </ul></section>`;
+}
+
+// Logout clears this phone's profile and name, then onboarding starts again. The water log stays.
+function logout(): void {
+  for (const key of ['dusal-onboarded-v1', 'dusal-profile-v1', 'dusal-member-v1']) { try { localStorage.removeItem(key); } catch { /* nothing kept */ } }
+  location.href = '/';
+}
+
+// "Restart all tracking": empties the water log, with undo.
+async function restart(): Promise<void> {
+  const previous = state;
+  if (!await commit({ ...state, events: [] })) return;
+  render();
+  notify('Бүх бүртгэл устгагдлаа.', async () => { if (await commit({ ...state, events: previous.events })) { render(); notify('Бүртгэлийг сэргээв.'); } });
+}
+
+const viewFor = accountViews({
+  state: () => state, goalSection, backupSection: () => backupSection(),
+  devices: () => DevicePanel() + WatchPanel() + SyncStatus(),
+  profilePanel: () => ProfilePanel(),
+  restart: () => void restart(), logout, redraw: () => render(),
+});
+
 function render(): void {
+  const view = viewFor(location.hash.slice(1));
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a>
-    <main id="main" class="home home-app settings-page" tabindex="-1">
+    <main id="main" class="home home-app settings-page${view ? ' ac-subview' : ''}" tabindex="-1">
       <div class="app-shell">
-        <header class="app-top">
-          <a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>
-          ${siteNav('settings')}
-          <span class="app-date">${dateLabel(dayKey())}</span>
-        </header>
-        <div class="settings-body">
-          <div class="settings-head"><p class="panel-label">Тохиргоо</p><h1>Тохиргоо ба нөөц</h1></div>
+        <header class="app-top">${siteNav('settings')}</header>
+        <div class="hydro hx-page">
+          ${view ? `<div class="hx-header"><a class="hx-back" href="#${view.back}" aria-label="Буцах">‹</a><h1>${view.title}</h1>${view.right ?? '<span></span>'}</div>` : hxHeader('Профайл')}
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-          ${ProfilePanel()}
-          ${SyncStatus()}
-          ${DevicePanel()}
-          ${WatchPanel()}
-          ${goalSection()}
-          ${backupSection()}
+          ${view ? view.body() : menu()}
+          ${view?.foot ? `<div class="ac-foot">${view.foot}</div>` : ''}
         </div>
-        <footer class="home-footer"><span>Дусал</span><p>Мэдээлэл энэ браузерт хадгалагдана.</p></footer>
       </div>
     </main>
     ${Toast()}`;
   bind();
+  if (view?.bind) view.bind(app.querySelector<HTMLElement>('.hx-page')!);
   bindSyncStatus();
   bindDevicePanel(render);
   bindWatchPanel();
   bindProfilePanel();
 }
+window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
 
 async function reload(): Promise<void> {
   ({ state, error: storageError, corrupt } = await load());
@@ -182,14 +235,17 @@ async function confirmRestore(): Promise<void> {
 }
 
 function bind(): void {
-  const form = document.querySelector<HTMLFormElement>('#goal-form')!;
-  form.onsubmit = event => { event.preventDefault(); saveGoal(form); };
-  form.oninput = () => showError('goal-error', '');
-  document.querySelector<HTMLButtonElement>('#download-backup')!.onclick = () => {
-    downloadBackup(state);
-    notify('Нөөц файлыг татлаа.');
-  };
-  document.querySelector<HTMLInputElement>('#backup-file')!.onchange = event => chooseFile(event.target as HTMLInputElement);
+  // Each account screen shows only some sections, so every part is optional here.
+  const form = document.querySelector<HTMLFormElement>('#goal-form');
+  if (form) {
+    form.onsubmit = event => { event.preventDefault(); saveGoal(form); };
+    form.oninput = () => showError('goal-error', '');
+  }
+  const download = document.querySelector<HTMLButtonElement>('#download-backup');
+  if (download) download.onclick = () => { downloadBackup(state); notify('Нөөц файлыг татлаа.'); };
+  const file = document.querySelector<HTMLInputElement>('#backup-file');
+  if (file) file.onchange = event => chooseFile(event.target as HTMLInputElement);
+  document.querySelector('[data-logout]')?.addEventListener('click', () => confirmSheet('Гарах', 'Та гарахдаа итгэлтэй байна уу? Усны бүртгэл хадгалагдана.', 'Тийм, гарах', logout));
   document.querySelector<HTMLButtonElement>('#confirm-restore')?.addEventListener('click', confirmRestore);
   document.querySelector<HTMLButtonElement>('#cancel-restore')?.addEventListener('click', () => { pending = undefined; render(); });
 }
