@@ -1,5 +1,4 @@
 import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
-import { DevicePanel, bindDevicePanel } from './components/DevicePanel';
 import { WatchPanel, bindWatchPanel } from './components/WatchPanel';
 import { ProfilePanel, bindProfilePanel } from './components/ProfilePanel';
 import './style.css';
@@ -97,7 +96,6 @@ function render(): void {
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
           ${ProfilePanel()}
           ${SyncStatus()}
-          ${DevicePanel()}
           ${WatchPanel()}
           ${goalSection()}
           ${backupSection()}
@@ -108,7 +106,6 @@ function render(): void {
     ${Toast()}`;
   bind();
   bindSyncStatus();
-  bindDevicePanel(render);
   bindWatchPanel();
   bindProfilePanel();
 }

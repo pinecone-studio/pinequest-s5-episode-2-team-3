@@ -9,6 +9,7 @@ import { pace } from './pace';
 import { startSync } from './sync';
 import { startDevices } from './devices';
 import { pushWidget } from './widget';
+import { DevicePanel, bindDevicePanel } from './components/DevicePanel';
 import { scale } from './scale';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
@@ -411,6 +412,7 @@ function render() {
         ${streak.week}
         ${familySection()}
       </div>
+      ${DevicePanel()}
       <footer class="home-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/entries.html">Бүх бүртгэл</a> · <a href="/settings.html">Холболт, нөөц ба тохиргоо</a></p></footer>
     </div>
     <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>
@@ -423,6 +425,8 @@ function render() {
   bindHydration(drink, addDrink, render);
   bindStreakCalendar(state.events, state.goal, state.mode);
   scale.shareToday(drink);  // the base's screen shows the same total
+  // The base and its bottles live on home, next to what they count; the panels redraw themselves.
+  bindDevicePanel(() => {});
   bindSchedule(() => state, render);
   document.querySelector('#undo')?.addEventListener('click', undo);
   document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
