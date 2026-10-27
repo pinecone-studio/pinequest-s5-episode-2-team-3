@@ -58,14 +58,30 @@ export function todayGoal(goal: number, mode: 'goal' | 'limit'): number {
   return Math.max(500, goal + advice.deltaMl);
 }
 
+// A small chip in the home's top-left corner: icon, today's high and the change to the goal, with an
+// info mark. Tapping it opens a short note with the reason; tapping again or anywhere else closes it.
+let weatherOpen = false;
 export function weatherChip(mode: 'goal' | 'limit'): string {
   if (!advice) return '';
   const w = advice.weather;
   const icon = w.feelsMax >= 25 ? '☀️' : w.max <= -10 ? '❄️' : '⛅';
-  const delta = mode === 'limit' || !advice.deltaMl ? '' : ` · <b>${advice.deltaMl > 0 ? '+' : '−'}${number(Math.abs(advice.deltaMl))} мл</b>`;
-  return `<p class="weather-chip" title="${escape(advice.reason)}"><span aria-hidden="true">${icon}</span>
-    <span>${w.min}…${w.max}°${delta}${advice.source === 'ai' ? ' · AI' : ''}</span></p>
-    <p class="weather-reason">${escape(advice.reason)}</p>`;
+  const delta = mode === 'limit' || !advice.deltaMl ? '' : `<b>${advice.deltaMl > 0 ? '+' : '−'}${number(Math.abs(advice.deltaMl))} мл</b>`;
+  return `<div class="weather-box"><button type="button" class="weather-chip" data-weather aria-expanded="${weatherOpen}" aria-controls="weather-pop" aria-label="Цаг агаар ${w.max}°. Тайлбар харах">
+      <span aria-hidden="true">${icon}</span><span>${w.max}°</span>${delta}<span class="weather-info" aria-hidden="true">i</span></button>
+    <p class="weather-pop" id="weather-pop" role="status" ${weatherOpen ? '' : 'hidden'}>${escape(advice.reason)}</p></div>`;
+}
+let weatherBound = false;
+export function bindWeatherChip(): void {
+  if (weatherBound) return;
+  weatherBound = true;
+  document.addEventListener('click', event => {
+    const chip = (event.target as Element).closest('[data-weather]');
+    if (!chip && !weatherOpen) return;
+    if (!chip && (event.target as Element).closest('.weather-pop')) return;
+    weatherOpen = chip ? !weatherOpen : false;
+    document.querySelector('[data-weather]')?.setAttribute('aria-expanded', String(weatherOpen));
+    document.querySelector<HTMLElement>('#weather-pop')?.toggleAttribute('hidden', !weatherOpen);
+  });
 }
 
 // Today's "feels like" for the next 24 hours, as it would be felt, straight from Open-Meteo with a

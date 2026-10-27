@@ -1015,3 +1015,22 @@ html .hx-drag-add { position: absolute; left: 50%; top: 44%; transform: translat
 html .hx-drag-add[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { html .hx-knob { transition: none; } }
 @media (prefers-reduced-motion: reduce) { html .hx-wave { animation: none; } }
+
+/* Home, tidier: one weather card with a short reason, and the watch and base cards in one row style. */
+html .hydro { position: relative; }
+html .hydro > .weather-box { position: absolute; top: 62px; left: 0; z-index: 3; width: auto; }
+html .hydro .weather-box .weather-chip { display: inline-flex; align-items: center; width: auto; gap: 5px; margin: 0; padding: 6px 8px 6px 12px; border: 0; border-radius: 999px; background: #fff; box-shadow: 0 2px 10px rgba(30, 60, 100, .08); font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+html .hydro .weather-box .weather-chip b { font-weight: 700; color: var(--sky); }
+html .weather-info { display: grid; place-items: center; width: 18px; height: 18px; margin-left: 2px; border-radius: 50%; background: var(--sky-soft, #e3f1ff); color: var(--sky); font-size: 11px; font-weight: 800; font-style: italic; font-family: Georgia, serif; }
+html .weather-pop { position: absolute; top: calc(100% + 8px); left: 0; width: min(260px, 70vw); margin: 0; padding: 12px 14px; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(30, 60, 100, .16); font-size: 13px; line-height: 1.45; color: var(--ink); }
+html .weather-pop[hidden] { display: none; }
+html[data-theme="dark"] .hydro .weather-box .weather-chip, html[data-theme="dark"] .weather-pop { background: #1f222a; color: #fff; }
+html .hydro .hx-watch-link { padding: 14px 16px; gap: 12px; }
+html .hydro .hx-watch-link h2 { font-size: 16px; }
+html .hydro .hx-watch-icon { width: 42px; height: 42px; }
+html .hydro .device-panel { width: 100%; box-sizing: border-box; margin: 0; padding: 14px 16px; border: 0; border-radius: 16px; background: #fff; box-shadow: none; color: var(--ink); }
+html .hydro .device-panel .device-heading h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
+html .hydro .device-panel p { margin: 4px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+html .hydro .device-panel .scale-actions { margin-top: 10px; }
+html .hydro .device-panel .scale-actions button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--sky); color: #fff; font-size: 14px; font-weight: 700; }
+html[data-theme="dark"] .hydro .device-panel { background: #1f222a; }
