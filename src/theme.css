@@ -360,13 +360,8 @@ html #rp-today { margin-top: 14px; }
 /* "Амжилт" (src/achievements.ts). */
 html .ach-top { display: grid; justify-items: center; gap: 4px; padding: 0 16px 90px; background: linear-gradient(160deg, #369fff, #1f8bff); color: #fff; }
 html .ach-header h1, html .ach-header .hx-logo { color: #fff; }
-html .ach-badge { width: 92px; height: auto; }
 html .ach-sub { margin: 6px 0 0; font-size: 13px; opacity: .9; text-align: center; }
 html .ach-body { margin-top: -74px; }
-html .ach-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 6px; }
-html .ach-item { display: grid; justify-items: center; text-align: center; gap: 2px; }
-html .ach-item b { font-size: 16px; font-weight: 700; color: var(--ink); }
-html .ach-item small { font-size: 11px; color: var(--muted); }
 /* «Дусалхан» pet (src/pet.ts) on the achievements header. Colours come from custom properties so
    each mood only swaps a few values. Nothing here uses position, filter or opacity on the page: .app-top's
    view-transition-name makes it its own layer, so any such element would paint over the fixed tab bar. */
@@ -528,6 +523,10 @@ html .dr-actions .dr-share { background: var(--sky); color: #fff; }
 /* Onboarding, Hydrify layout (onboarding.ts). */
 html .onb.ob { display: block; padding: 0; background: #fff; overflow-y: auto; }
 @media (min-width: 561px) { html .onb.ob { left: 50%; right: auto; width: 430px; transform: translateX(-50%); box-shadow: 0 0 60px rgba(0, 0, 0, .12); } }
+/* On a computer the full-screen views take the same phone-sized frame as the pages. */
+@media (min-width: 561px) {
+  html .onb.ob, html .hx-sheet, html .day-result, html .drink-sheet { top: 20px; bottom: auto; height: min(932px, calc(100vh - 40px)); height: min(932px, calc(100dvh - 40px)); border-radius: 30px; }
+}
 html .ob-screen { min-height: 100%; display: flex; flex-direction: column; }
 html .ob-screen > div { flex: 1; display: flex; flex-direction: column; }
 html .ob h2 { margin: 0; font-size: 28px; font-weight: 800; line-height: 1.3; text-align: center; color: var(--ink); letter-spacing: -.3px; }
@@ -981,6 +980,12 @@ html .hx-tip p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink
 html .hx-tip-tag { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 800; color: var(--sky); }
 html .hx-tip-extra { display: inline-block; margin-top: 10px; padding: 6px 12px; border-radius: 999px; background: var(--sky); font-size: 13px; color: #fff; }
 html .hx-watch-empty { margin: 12px 0; font-size: 14px; color: var(--muted); }
+html .hx-watch-link { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; }
+html .hx-watch-link h2 { margin: 0 0 4px; font-size: 17px; font-weight: 700; color: var(--ink); }
+html .hx-watch-link p { margin: 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+html .hx-watch-link .hx-blue { min-height: 40px; padding: 0 16px; font-size: 14px; white-space: nowrap; }
+html .hx-watch-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: #e3f6f9; color: #26a69a; }
+html .hx-watch-icon svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 html[data-theme="dark"] .hx-watch-tile, html[data-theme="dark"] .hx-badge { background: #2a2d36; }
 
 /* "Өнөөдрийн дадал": bento tiles under the gauge (calories, heart, weight, steps, wellness score) */

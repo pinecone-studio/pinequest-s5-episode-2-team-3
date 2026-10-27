@@ -60,7 +60,7 @@ main.home > .app-shell { flex: 1 0 auto; display: flex; flex-direction: column; 
 /* Pages marked .home-app look on desktop the way they do on a phone: one narrow column and a floating tab bar. */
 @media (min-width: 561px) {
   /* A phone-sized frame: the card scrolls inside it, and the transform makes the fixed tab bar sit at the frame's bottom. */
-  main.home-app { max-width: 430px; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); min-height: 0; margin: 20px auto; padding: 0; transform: translateZ(0); }
+  main.home-app { max-width: 430px; height: min(932px, calc(100vh - 40px)); height: min(932px, calc(100dvh - 40px)); min-height: 0; margin: 20px auto; padding: 0; transform: translateZ(0); }
   main.home-app > .app-shell { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-bottom: 92px; backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255, 255, 255, .82); }
   main.home-app > .app-shell::-webkit-scrollbar { display: none; }
   main.home-app .app-date { display: none; }
