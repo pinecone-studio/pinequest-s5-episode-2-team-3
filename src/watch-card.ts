@@ -4,17 +4,16 @@ import { API_URL } from './api';
 import { readProfile } from './plan';
 
 // Home card with the watch's day (heart rate, steps, active calories through Health Connect) and
-// one AI tip built from those numbers and today's water. Without a watch (web, iOS) the card shows
-// clearly marked sample numbers so the demo still makes sense. The tip is asked at most once an
+// one AI tip built from those numbers and today's water. Without a linked watch the home shows a
+// card to link one instead. The tip is asked at most once an
 // hour for the same numbers; without AI a short rule-based tip stands in.
 export interface Insight { text: string; extraMl: number; ai: boolean }
 interface Ctx { drink: number; goal: number; mode: 'goal' | 'limit'; feels: number | null }
 
-const SAMPLE: HealthDay = { steps: 8432, activeKcal: 412, heart: { bpm: 78, at: new Date(Date.now() - 12 * 60_000).toISOString() } };
 const KEY = 'dusal-insight-v1';
 
-const sample = () => health.phase === 'unsupported';
-const today = (): HealthDay | null => (health.phase === 'on' ? health.day : sample() ? SAMPLE : null);
+// Only a linked watch fills the habit card; without one the home offers to link it.
+const today = (): HealthDay | null => (health.phase === 'on' ? health.day : null);
 
 // Without AI: sweat from steps or calories, heat, and a high resting pulse, in plain words.
 function localTip(day: HealthDay, c: Ctx): Insight {
@@ -81,14 +80,18 @@ let last: Ctx = { drink: 0, goal: 2000, mode: 'goal', feels: null };
 
 export function watchCard(): string {
   const day = today();
-  const badge = sample() ? '<span class="hx-badge">Жишээ</span>' : health.phase === 'on' ? '<span class="hx-badge on">⌚ Холбогдсон</span>' : '';
-  const head = `<div class="hb-head"><h2 id="hx-watch-title">Өнөөдрийн дадал</h2>${badge}</div>`;
   if (!day) {
-    const text = health.phase === 'missing' ? 'Health Connect суулгаж, Samsung Health-ээс синк асаагаарай.'
-      : health.phase === 'denied' ? 'Зөвшөөрөл өгөөгүй байна. Дахин оролдоно уу.' : 'Galaxy Watch-ийн зүрхний цохилт, алхмыг харж, AI зөвлөгөө аваарай.';
-    return `<section class="hx-habit" aria-labelledby="hx-watch-title">${head}<div class="hx-card"><p class="hx-watch-empty">${text}</p>
-      ${health.phase !== 'missing' ? '<button type="button" class="hx-blue ac-wide" data-watch-connect>Цаг холбох</button>' : ''}</div></section>`;
+    const text = health.phase === 'unsupported' ? 'Galaxy Watch-ийг Дусал Android апп-аар холбоно. Алхам, зүрхний цохилтыг харж, зөвлөгөө аваарай.'
+      : health.phase === 'missing' ? 'Health Connect суулгаж, Samsung Health-ээс синк асаагаарай.'
+      : health.phase === 'denied' ? 'Зөвшөөрөл өгөөгүй байна. Дахин оролдоно уу.'
+      : 'Galaxy Watch-ийн алхам, зүрхний цохилт, калорийг харж, зөвлөгөө аваарай.';
+    return `<section class="hx-card hx-watch-link" aria-labelledby="hx-watch-title">
+      <span class="hx-watch-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 9v3l2 1"/></svg></span>
+      <div><h2 id="hx-watch-title">Ухаалаг цаг холбох</h2><p>${text}</p></div>
+      ${health.phase !== 'missing' ? `<button type="button" class="hx-blue" data-watch-connect>${health.phase === 'unsupported' ? 'Заавар' : 'Холбох'}</button>` : ''}
+    </section>`;
   }
+  const head = `<div class="hb-head"><h2 id="hx-watch-title">Өнөөдрийн дадал</h2><span class="hx-badge on">⌚ Холбогдсон</span></div>`;
   const weight = (() => { try { return readProfile().weight; } catch { return null; } })();
   const score = wellness(day, last);
   const label = score >= 8 ? 'Маш сайн' : score >= 6 ? 'Сайн' : score >= 4 ? 'Дунд' : 'Сайжруулъя';
@@ -106,7 +109,6 @@ export function watchCard(): string {
       <span class="hb-ring" role="img" aria-label="Оноо ${score} / 10"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="40" class="bg"/><circle cx="50" cy="50" r="40" class="fg" stroke-dasharray="${((score / 10) * C).toFixed(1)} ${C.toFixed(1)}"/></svg><b>${score}/10</b></span>
     </div>
     ${health.message ? `<p class="hx-watch-empty">${escape(health.message)}</p>` : ''}
-    ${sample() ? '<p class="ac-small center">Жишээ тоо. Android апп-д Galaxy Watch-ийн жинхэнэ мэдээлэл гарна.</p>' : ''}
   </section>`;
 }
 

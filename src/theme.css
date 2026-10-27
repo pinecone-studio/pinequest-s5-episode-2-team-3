@@ -980,6 +980,12 @@ html .hx-tip p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink
 html .hx-tip-tag { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 800; color: var(--sky); }
 html .hx-tip-extra { display: inline-block; margin-top: 10px; padding: 6px 12px; border-radius: 999px; background: var(--sky); font-size: 13px; color: #fff; }
 html .hx-watch-empty { margin: 12px 0; font-size: 14px; color: var(--muted); }
+html .hx-watch-link { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; }
+html .hx-watch-link h2 { margin: 0 0 4px; font-size: 17px; font-weight: 700; color: var(--ink); }
+html .hx-watch-link p { margin: 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+html .hx-watch-link .hx-blue { min-height: 40px; padding: 0 16px; font-size: 14px; white-space: nowrap; }
+html .hx-watch-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: #e3f6f9; color: #26a69a; }
+html .hx-watch-icon svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 html[data-theme="dark"] .hx-watch-tile, html[data-theme="dark"] .hx-badge { background: #2a2d36; }
 
 /* "Өнөөдрийн дадал": bento tiles under the gauge (calories, heart, weight, steps, wellness score) */
