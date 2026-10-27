@@ -2,7 +2,10 @@ import { describe, expect, mock, test } from 'bun:test';
 
 // pet.ts uses hydration.ts, which pulls in its stylesheet; tests only need the logic.
 mock.module('../src/hydration.css', () => ({}));
-const { petState, petSvg } = await import('../src/pet');
+const { petState, petSvg, readPetKind, writePetKind, takeNewKinds, unlockedKinds } = await import('../src/pet');
+
+const store = new Map<string, string>();
+globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => void store.set(k, v), removeItem: k => void store.delete(k) } as Storage;
 
 const now = new Date(2026, 9, 27, 15, 0);  // a fixed afternoon, local time
 const GOAL = 2000;
@@ -77,4 +80,35 @@ describe('stages', () => {
 test('the picture is labelled for screen readers', () => {
   const p = pet(met(3, 2));
   expect(petSvg(p, 'Дусалхан', 't')).toContain('role="img" aria-label="Дусалхан, нялх шат, өвдсөн"');
+});
+
+describe('animals', () => {
+  test('they unlock by the longest streak ever, so a broken streak keeps them', () => {
+    const p = pet(met(12, 11, 10, 9, 8, 7, 6, 2));  // 7 in a row, then a break
+    expect(p).toMatchObject({ best: 7, streak: 0 });
+    expect(unlockedKinds(p.best)).toEqual(['drop', 'cat', 'bear']);
+    expect(pet(met(9, 8, 5, 4, 3, 1, 0)).best).toBe(3);
+  });
+  test('the pick sticks only while it is unlocked; otherwise the drop', () => {
+    store.clear();
+    expect(readPetKind(7)).toBe('drop');
+    writePetKind('bear');
+    expect(readPetKind(7)).toBe('bear');
+    expect(readPetKind(3)).toBe('drop');  // the log that unlocked it was deleted
+    writePetKind('drop');
+    expect(store.has('dusal-pet-kind-v1')).toBe(false);
+  });
+  test('«Шинэ!» once for each animal unlocked since the last visit', () => {
+    store.clear();
+    expect(takeNewKinds(3)).toEqual(['cat']);
+    expect(takeNewKinds(3)).toEqual([]);
+    expect(takeNewKinds(14)).toEqual(['bear', 'bunny']);
+  });
+  test('the picture shows the animal and names it', () => {
+    const p = pet(met(3, 2));
+    const svg = petSvg(p, 'Дусалхан', 't', 'cat');
+    expect(svg).toContain('kind-cat');
+    expect(svg).toContain('aria-label="Дусалхан, муур, нялх шат, өвдсөн"');
+    expect(petSvg(p, 'Муур', 't', 'cat', true)).toContain('aria-hidden="true"');
+  });
 });
