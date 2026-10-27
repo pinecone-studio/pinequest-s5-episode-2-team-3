@@ -86,7 +86,7 @@ describe('animals', () => {
   test('they unlock by the longest streak ever, so a broken streak keeps them', () => {
     const p = pet(met(12, 11, 10, 9, 8, 7, 6, 2));  // 7 in a row, then a break
     expect(p).toMatchObject({ best: 7, streak: 0 });
-    expect(unlockedKinds(p.best)).toEqual(['drop', 'cat', 'bear']);
+    expect(unlockedKinds(p.best)).toEqual(['drop', 'mouse', 'cat', 'rooster', 'frog', 'dog', 'bear']);
     expect(pet(met(9, 8, 5, 4, 3, 1, 0)).best).toBe(3);
   });
   test('the pick sticks only while it is unlocked; otherwise the drop', () => {
@@ -100,9 +100,9 @@ describe('animals', () => {
   });
   test('«Шинэ!» once for each animal unlocked since the last visit', () => {
     store.clear();
-    expect(takeNewKinds(3)).toEqual(['cat']);
+    expect(takeNewKinds(3)).toEqual(['mouse', 'cat']);
     expect(takeNewKinds(3)).toEqual([]);
-    expect(takeNewKinds(14)).toEqual(['bear', 'bunny']);
+    expect(takeNewKinds(14)).toEqual(['rooster', 'frog', 'dog', 'bear', 'pig', 'penguin', 'monkey', 'goat', 'bunny']);
   });
   test('the picture shows the animal and names it', () => {
     const p = pet(met(3, 2));
