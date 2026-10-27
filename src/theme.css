@@ -364,8 +364,8 @@ html .ach-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr))
 html .ach-item { display: grid; justify-items: center; text-align: center; gap: 2px; }
 html .ach-item b { font-size: 16px; font-weight: 700; color: var(--ink); }
 html .ach-item small { font-size: 11px; color: var(--muted); }
-/* «Дусалхан» pet (src/pet.ts): big on the achievements header, a small card on the home. Colours come
-   from custom properties so each mood (and the home card) only swaps a few values. */
+/* «Дусалхан» pet (src/pet.ts) on the achievements header. Colours come from custom properties so
+   each mood only swaps a few values. */
 html .pet { display: block; overflow: visible; --pet-top: #f2faff; --pet-bottom: #9cd5ff; --pet-line: #fff; --pet-ink: #17365d; }
 html .pet .pet-stop-top { stop-color: var(--pet-top); }
 html .pet .pet-stop-bottom { stop-color: var(--pet-bottom); }
@@ -426,22 +426,6 @@ html .pet-stage p { display: flex; justify-content: space-between; gap: 8px; mar
 html .pet-stage p span { opacity: .9; }
 html .pet-bar { height: 8px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, .25); }
 html .pet-bar span { display: block; height: 100%; border-radius: inherit; background: #fff; }
-/* Home card: quiet (no fill, a hairline) while all is well, warm when thirsty, grey when unwell. */
-html .pet-chip { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 8px 14px; border: 1px solid var(--hair); border-radius: 16px; background: transparent; color: var(--ink); text-decoration: none; }
-html .pet-chip .pet { flex: none; width: 52px; height: 52px; --pet-line: #7cc4ff; }
-html .pet-chip-text { display: grid; flex: 1; gap: 1px; min-width: 0; }
-html .pet-chip-text b { font-size: 14px; font-weight: 700; }
-html .pet-chip-text small { font-size: 12px; line-height: 1.35; color: var(--muted); }
-html .pet-chip-go { flex: none; width: 20px; height: 20px; color: var(--muted); }
-html .pet-chip.alert { border-color: transparent; background: #fff4e5; box-shadow: 0 6px 16px rgba(249, 115, 22, .15); }
-html .pet-chip.alert small { font-weight: 600; color: #b45309; }
-html .pet-chip.alert.mood-sick, html .pet-chip.alert.mood-weak { background: #eef2f6; box-shadow: 0 6px 16px rgba(60, 80, 100, .12); }
-html .pet-chip.alert.mood-sick small, html .pet-chip.alert.mood-weak small { color: #455a64; }
-html[data-theme="dark"] .pet-chip { border-color: #35383f; }
-html[data-theme="dark"] .pet-chip.alert { background: #3a2a17; box-shadow: none; }
-html[data-theme="dark"] .pet-chip.alert small { color: #ffb74d; }
-html[data-theme="dark"] .pet-chip.alert.mood-sick, html[data-theme="dark"] .pet-chip.alert.mood-weak { background: #2a2d36; }
-html[data-theme="dark"] .pet-chip.alert.mood-sick small, html[data-theme="dark"] .pet-chip.alert.mood-weak small { color: #cfd8dc; }
 @media (prefers-reduced-motion: reduce) {
   html .pet-breathe, html .pet-eyes, html .pet-spark path, html .pet-sweat, html .pet-zzz text, html .pet-tap.hop .pet { animation: none; }
   html .pet-heart { animation: pet-heart-still 1s forwards; }

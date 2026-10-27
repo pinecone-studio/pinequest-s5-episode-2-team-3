@@ -26,7 +26,6 @@ import { guardPlan } from '../shared/plan';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, startReminders } from './schedule';
 import { startAppIcon } from './app-icon';
-import { petChip } from './pet';
 import { dateLabel, escape, number } from './format';
 import { brandMark, mdIcon } from './components/Icon';
 import './theme.css';
@@ -448,7 +447,6 @@ function render() {
         ${hxHeader('Нүүр')}
         ${hxGauge(drink, goal, state.mode, readCup(), drinking)}
         ${weatherChip(state.mode)}
-        ${petChip(state.events, state.goal, state.mode)}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${watchCard()}
         ${familySection()}

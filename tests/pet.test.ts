@@ -77,5 +77,4 @@ describe('stages', () => {
 test('the picture is labelled for screen readers', () => {
   const p = pet(met(3, 2));
   expect(petSvg(p, 'Дусалхан', 't')).toContain('role="img" aria-label="Дусалхан, нялх шат, өвдсөн"');
-  expect(petSvg(p, 'Дусалхан', 't', true)).toContain('aria-hidden="true"');
 });

@@ -2,7 +2,7 @@ import { dayKey, type WaterEntry } from './data';
 import { escape, number } from './format';
 import { dayCounter } from './hydration';
 
-// «Дусалхан», a Tamagotchi-style pet tied to the streak (achievements page, a small card on the home).
+// «Дусалхан», a Tamagotchi-style pet tied to the streak, the centre of the achievements page.
 // Everything about it is worked out from the water log, so sync, deletes and undo can never leave it
 // out of step; only its name is stored. It grows with every day that counted and never shrinks, gets
 // thirsty while today is still open, sick the day after the streak breaks and falls asleep after days
@@ -89,8 +89,6 @@ export const petLabel = (p: PetState, name: string) =>
 // The pet as SVG (viewBox 200×200): a water drop like the home's «Дусал» buddy, bigger at each stage,
 // or an egg before the first day that counted. Moods change the face, colour and a few extras.
 // The wrapping groups carry no transform attribute, so the CSS breathing and blinking can animate them.
-// `mini` is the home card's face: always full size, without sparkles or Zzz, and hidden from screen
-// readers because the card's own text says the same.
 const BODY = 'M100 26 C100 26 46 100 46 136 A54 54 0 0 0 154 136 C154 100 100 26 100 26Z';
 const SCALE: Record<Stage, number> = { egg: 1, baby: 0.62, kid: 0.76, big: 0.9, giant: 1 };
 const EYES: Record<PetMood, string> = {
@@ -118,8 +116,8 @@ const SPARKS = '<g class="pet-spark"><path d="M34 70 l4 -10 l4 10 l10 4 l-10 4 l
 const ZZZ = '<g class="pet-zzz"><text x="128" y="70">Z</text><text x="146" y="52" font-size="15">z</text><text x="160" y="38" font-size="11">z</text></g>';
 const CROWN = '<path class="pet-crown" d="M86 34 l5 -17 l9 10 l9 -10 l5 17Z"/>';
 
-export function petSvg(p: PetState, name: string, id: string, mini = false): string {
-  const a11y = mini ? 'aria-hidden="true"' : `role="img" aria-label="${escape(petLabel(p, name))}"`;
+export function petSvg(p: PetState, name: string, id: string): string {
+  const a11y = `role="img" aria-label="${escape(petLabel(p, name))}"`;
   const grad = `<defs><linearGradient id="${id}-g" x1="0" y1="0" x2="0" y2="1"><stop class="pet-stop-top" offset="0"/><stop class="pet-stop-bottom" offset="1"/></linearGradient></defs>`;
   const shadow = '<ellipse class="pet-shadow" cx="100" cy="192" rx="56" ry="6"/>';
   if (p.stage === 'egg') {
@@ -129,11 +127,11 @@ export function petSvg(p: PetState, name: string, id: string, mini = false): str
         <path class="pet-crack" d="M60 128 l12 -8 l10 8 l12 -9 l12 9 l12 -8 l10 8 l12 -6"/>
         <g class="pet-eyes"><circle cx="88" cy="142" r="5"/><circle cx="112" cy="142" r="5"/></g><path class="pet-ln" d="M94 156 q6 5 12 0"/></g></svg>`;
   }
-  const s = mini ? 1 : SCALE[p.stage];
+  const s = SCALE[p.stage];
   // Asleep it lies on its side; the face stays upright on the round end.
   const lie = p.mood === 'weak';
   return `<svg class="pet pet-${p.stage} mood-${p.mood}" viewBox="0 0 200 200" ${a11y}>${grad}${shadow}
-    ${mini ? '' : `${p.mood === 'joyful' ? SPARKS : ''}${lie ? ZZZ : ''}`}
+    ${p.mood === 'joyful' ? SPARKS : ''}${lie ? ZZZ : ''}
     <g class="pet-breathe"><g transform="translate(100 190) scale(${s}) translate(-100 -190)">
       <g${lie ? ' transform="translate(-28 0) rotate(90 100 136)"' : ''}>
         <path class="pet-body" fill="url(#${id}-g)" d="${BODY}"/>
@@ -146,15 +144,4 @@ export function petSvg(p: PetState, name: string, id: string, mini = false): str
         ${MOUTH[p.mood]}${EXTRA[p.mood]}
       </g>
     </g></g></svg>`;
-}
-
-// Home card: the pet's face and its line. Quiet while all is well; it stands out only when the pet
-// is thirsty or unwell, so the home doesn't nag on good days.
-export function petChip(events: readonly WaterEntry[], goal: number, mode: Mode): string {
-  const name = readPetName();
-  const p = petState(events, goal, mode, new Date(), name);
-  const alert = p.mood === 'thirsty' || p.mood === 'sick' || p.mood === 'weak';
-  return `<a class="pet-chip${alert ? ' alert' : ''} mood-${p.mood}" href="/achievements.html" aria-label="${escape(`${petLabel(p, name)}. ${p.line}`)}">
-    ${petSvg(p, name, 'pet-mini', true)}<span class="pet-chip-text"><b>${escape(name)}</b><small>${escape(p.line)}</small></span>
-    <svg class="pet-chip-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`;
 }
