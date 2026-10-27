@@ -102,6 +102,25 @@ function row(event: WaterEntry): string {
   </li>`;
 }
 
+// Each day shows its newest few entries; «Бүгдийг харах» opens the rest. Opened days are kept here so
+// a re-render (edit, delete, undo, calendar) leaves them open. A picked calendar day always shows all.
+const PREVIEW = 4;
+const opened = new Set<string>();
+const CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+function dayCard(key: string, items: WaterEntry[]): string {
+  const drinks = items.filter(e => e.type === 'drink');
+  const total = drinks.reduce((sum, e) => sum + e.amount, 0);
+  const folds = !picked && items.length > PREVIEW;
+  const open = !folds || opened.has(key);
+  return `
+    <section class="hx-card hx-day-card" aria-labelledby="day-${key}">
+      <div class="hx-card-head"><h2 id="day-${key}">${dayTitle(key)}</h2><span class="hx-day-sum">${number(total)} мл · ${drinks.length} удаа</span></div>
+      <ul class="hx-list" id="list-${key}">${(open ? items : items.slice(0, PREVIEW)).map(row).join('')}</ul>
+      ${folds ? `<button type="button" class="hx-more-rows" data-more="${key}" aria-expanded="${open}" aria-controls="list-${key}">${open ? 'Хураах' : `Бүгдийг харах (+${items.length - PREVIEW})`}${CHEVRON}</button>` : ''}
+    </section>`;
+}
+
 function results(events: readonly WaterEntry[]): string {
   if (!events.length) {
     return `<section class="hx-card hx-empty-card">
@@ -109,12 +128,7 @@ function results(events: readonly WaterEntry[]): string {
       <p>${picked ? 'Энэ өдөр бүртгэл алга.' : 'Одоогоор усны түүх алга.'}</p>
     </section>`;
   }
-  return groupByDay(events).map(([key, items]) => `
-    <section class="hx-card hx-day-card" aria-labelledby="day-${key}">
-      <div class="hx-card-head"><h2 id="day-${key}">${dayTitle(key)}</h2></div>
-      <ul class="hx-list">${items.map(row).join('')}</ul>
-    </section>
-  `).join('');
+  return groupByDay(events).map(([key, items]) => dayCard(key, items)).join('');
 }
 
 function renderResults() {
@@ -178,6 +192,13 @@ function render() {
     if (target.closest('[data-expand]')) { expanded = !expanded; monthOffset = 0; renderResults(); app.querySelector<HTMLButtonElement>('[data-expand]')!.focus(); }
     const month = target.closest<HTMLButtonElement>('[data-month]');
     if (month) { monthOffset = Math.min(0, monthOffset + Number(month.dataset.month)); renderResults(); }
+    const more = target.closest<HTMLButtonElement>('[data-more]');
+    if (more) {
+      const key = more.dataset.more!;
+      if (!opened.delete(key)) opened.add(key);
+      renderResults();
+      app.querySelector<HTMLButtonElement>(`[data-more="${key}"]`)?.focus();
+    }
     const day = target.closest<HTMLButtonElement>('[data-day]');
     if (day) { picked = picked === day.dataset.day ? '' : day.dataset.day!; renderResults(); }
   };
