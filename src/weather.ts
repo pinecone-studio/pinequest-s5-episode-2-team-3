@@ -58,14 +58,14 @@ export function todayGoal(goal: number, mode: 'goal' | 'limit'): number {
   return Math.max(500, goal + advice.deltaMl);
 }
 
+// A small chip in the home's top-left corner: icon, today's high and the change to the goal. The reason
+// is kept for the tooltip and screen readers only.
 export function weatherChip(mode: 'goal' | 'limit'): string {
   if (!advice) return '';
   const w = advice.weather;
   const icon = w.feelsMax >= 25 ? '☀️' : w.max <= -10 ? '❄️' : '⛅';
-  const delta = mode === 'limit' || !advice.deltaMl ? '' : ` · <b>${advice.deltaMl > 0 ? '+' : '−'}${number(Math.abs(advice.deltaMl))} мл</b>`;
-  return `<p class="weather-chip" title="${escape(advice.reason)}"><span aria-hidden="true">${icon}</span>
-    <span>${w.min}…${w.max}°${delta}${advice.source === 'ai' ? ' · AI' : ''}</span></p>
-    <p class="weather-reason">${escape(advice.reason)}</p>`;
+  const delta = mode === 'limit' || !advice.deltaMl ? '' : `<b>${advice.deltaMl > 0 ? '+' : '−'}${number(Math.abs(advice.deltaMl))} мл</b>`;
+  return `<p class="weather-chip" title="${escape(advice.reason)}" aria-label="${escape(`Цаг агаар ${w.max}°. ${advice.reason}`)}"><span aria-hidden="true">${icon}</span><span>${w.max}°</span>${delta}</p>`;
 }
 
 // Today's "feels like" for the next 24 hours, as it would be felt, straight from Open-Meteo with a
