@@ -2,10 +2,11 @@ import { Capacitor } from '@capacitor/core';
 
 // "Google-ээр үргэлжлүүлэх" on the signup screen: Google Identity Services shows the account picker and
 // hands back an ID token, from which only the name and email are read to fill the profile. The token is
-// not sent anywhere; the app has no accounts on the server yet. Needs VITE_GOOGLE_CLIENT_ID (a Web
-// client ID from Google Cloud with this site's origin allowed). Google does not allow this sign-in
-// inside an app's WebView, so the Android app keeps the name field instead.
-export const GOOGLE_CLIENT_ID: string = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
+// not sent anywhere; the app has no accounts on the server yet. The Web client ID (Google Cloud project
+// "dusal", public by design) allows dusal.bbek3201.workers.dev and localhost:5173; override it with
+// VITE_GOOGLE_CLIENT_ID. Google does not allow this sign-in inside an app's WebView, so the Android
+// app keeps the name field instead.
+export const GOOGLE_CLIENT_ID: string = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '253911522297-p7ulev5jt6lo8qv674m50j6h5776gr3h.apps.googleusercontent.com';
 export const googleAvailable = () => Boolean(GOOGLE_CLIENT_ID) && !Capacitor.isNativePlatform();
 
 export interface GoogleUser { name: string; email: string }
