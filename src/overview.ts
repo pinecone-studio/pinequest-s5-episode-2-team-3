@@ -445,8 +445,8 @@ function render() {
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       <div class="hydro">
         ${hxHeader('Нүүр')}
-        ${hxGauge(drink, goal, state.mode, readCup(), drinking)}
         ${weatherChip(state.mode)}
+        ${hxGauge(drink, goal, state.mode, readCup(), drinking)}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${watchCard()}
         ${familySection()}
