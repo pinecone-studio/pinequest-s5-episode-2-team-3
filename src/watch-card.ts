@@ -81,10 +81,10 @@ let last: Ctx = { drink: 0, goal: 2000, mode: 'goal', feels: null };
 export function watchCard(): string {
   const day = today();
   if (!day) {
-    const text = health.phase === 'unsupported' ? 'Galaxy Watch-ийг Дусал Android апп-аар холбоно. Алхам, зүрхний цохилтыг харж, зөвлөгөө аваарай.'
-      : health.phase === 'missing' ? 'Health Connect суулгаж, Samsung Health-ээс синк асаагаарай.'
+    const text = health.phase === 'unsupported' ? 'Алхам, зүрхний цохилтоо Android апп-д харна.'
+      : health.phase === 'missing' ? 'Health Connect суулгаж, синк асаагаарай.'
       : health.phase === 'denied' ? 'Зөвшөөрөл өгөөгүй байна. Дахин оролдоно уу.'
-      : 'Galaxy Watch-ийн алхам, зүрхний цохилт, калорийг харж, зөвлөгөө аваарай.';
+      : 'Алхам, зүрхний цохилтоо харж, зөвлөгөө аваарай.';
     return `<section class="hx-card hx-watch-link" aria-labelledby="hx-watch-title">
       <span class="hx-watch-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 9v3l2 1"/></svg></span>
       <div><h2 id="hx-watch-title">Ухаалаг цаг холбох</h2><p>${text}</p></div>

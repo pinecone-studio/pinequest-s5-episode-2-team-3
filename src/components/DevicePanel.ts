@@ -39,10 +39,10 @@ function scaleLine(s: ScaleStatus | null): string {
 
 function scaleText(): string {
   const name = escape(scale.name || 'Суурь');
-  if (scale.phase === 'unsupported') return 'Энэ төхөөрөмж дээр Bluetooth ашиглах боломжгүй. Android апп эсвэл Chrome хөтөч ашиглана уу.';
+  if (scale.phase === 'unsupported') return 'Android апп эсвэл Chrome хөтчөөр холбогдоно.';
   if (scale.phase === 'connected') return `${name} холбогдсон. Уусан ус автоматаар бүртгэгдэнэ.`;
   if (scale.phase === 'connecting') return `${name}-тай холбогдож байна…`;
-  return scale.saved ? `${name} холбогдоогүй байна.` : 'Ухаалаг суурийг Bluetooth-ээр холбоно. Суурь асаалттай, утсанд ойрхон байх ёстой.';
+  return scale.saved ? `${name} холбогдоогүй байна.` : 'Сууриа асаагаад утсандаа ойртуулна уу.';
 }
 
 // Each bottle keeps its empty weight; choosing one before putting it on the base keeps a swap from counting.

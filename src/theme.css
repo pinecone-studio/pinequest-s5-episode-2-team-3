@@ -1041,3 +1041,16 @@ html .hx-drag-add { position: absolute; left: 50%; top: 44%; transform: translat
 html .hx-drag-add[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { html .hx-knob { transition: none; } }
 @media (prefers-reduced-motion: reduce) { html .hx-wave { animation: none; } }
+
+/* Home, tidier: one weather card with a short reason, and the watch and base cards in one row style. */
+html .hydro .weather-chip { font-size: 15px; }
+html .hydro .weather-reason { font-size: 13px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html .hydro .hx-watch-link { padding: 14px 16px; gap: 12px; }
+html .hydro .hx-watch-link h2 { font-size: 16px; }
+html .hydro .hx-watch-icon { width: 42px; height: 42px; }
+html .hydro .device-panel { width: 100%; box-sizing: border-box; margin: 0; padding: 14px 16px; border: 0; border-radius: 16px; background: #fff; box-shadow: none; color: var(--ink); }
+html .hydro .device-panel .device-heading h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
+html .hydro .device-panel p { margin: 4px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+html .hydro .device-panel .scale-actions { margin-top: 10px; }
+html .hydro .device-panel .scale-actions button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--sky); color: #fff; font-size: 14px; font-weight: 700; }
+html[data-theme="dark"] .hydro .device-panel { background: #1f222a; }
