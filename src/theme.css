@@ -556,11 +556,13 @@ html .hx-popover .danger { color: #f75555; }
 
 html .hx-dim { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-end; justify-content: center; background: rgba(9, 16, 29, .5); animation: hx-fade .2s ease; }
 html .hx-dim + .hx-dim { z-index: 92; }
-html .hx-bottom { width: 100%; max-width: 430px; max-height: 92vh; overflow-y: auto; padding: 22px 20px 26px; border-radius: 28px 28px 0 0; background: #fff; text-align: center; animation: hx-up .25s ease; }
+/* Never taller than the screen: it scrolls inside, and the keypad's last row clears the home indicator. */
+html .hx-bottom { width: 100%; max-width: 430px; max-height: 92vh; max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; padding: 22px 20px max(16px, env(safe-area-inset-bottom)); border-radius: 28px 28px 0 0; background: #fff; text-align: center; animation: hx-up .25s ease; }
 html .hx-bottom h2 { margin: 0 0 18px; padding-bottom: 18px; border-bottom: 1px solid #eeeeee; font-size: 22px; font-weight: 700; color: var(--ink); }
 html .hx-edit-cup svg { width: 56px; height: 56px; }
 html .hx-amount-box { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 14px 0; padding: 14px; border-radius: 14px; background: #fafafa; }
-html .hx-amount-box input { width: 4.2ch; border: 0; background: none; text-align: right; font: inherit; font-size: 38px; font-weight: 700; color: var(--sky); }
+/* Width follows the digits (set in hx-edit.ts); tabular figures make every digit one «ch» wide. */
+html .hx-amount-box input { width: 4.6ch; min-width: 0; max-width: 100%; padding: 0; border: 0; background: none; text-align: center; font: inherit; font-size: 38px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--sky); }
 html .hx-amount-box input:focus { outline: none; }
 html .hx-amount-box:focus-within { box-shadow: 0 0 0 2px var(--sky); }
 html .hx-amount-box small { font-size: 16px; color: var(--muted); }
@@ -575,6 +577,17 @@ html .hx-blue { background: var(--sky); color: #fff; }
 html .hx-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 0 -8px; }
 html .hx-keypad button { min-height: 52px; border: 0; border-radius: 12px; background: none; font-size: 24px; font-weight: 600; color: var(--ink); }
 html .hx-keypad button:active { background: #f5f5f5; }
+/* Short screens (e.g. 430×700): a tighter sheet and lower keys, so the whole keypad fits. */
+@media (max-height: 760px) {
+  html .hx-bottom { padding-top: 14px; }
+  html .hx-bottom h2 { margin-bottom: 10px; padding-bottom: 10px; font-size: 19px; }
+  html .hx-edit-cup svg { width: 40px; height: 40px; }
+  html .hx-amount-box { margin: 8px 0; padding: 8px 14px; }
+  html .hx-amount-box input { font-size: 32px; }
+  html .hx-sheet-actions { margin: 4px 0 8px; }
+  html .hx-light, html .hx-blue { min-height: 46px; }
+  html .hx-keypad button { min-height: 42px; font-size: 22px; }
+}
 html .hx-wheels { position: relative; display: grid; gap: 8px; margin-bottom: 16px; }
 html .hx-wheels.two { grid-template-columns: repeat(2, 1fr); }
 html .hx-wheels.three { grid-template-columns: 1.4fr 1fr 1fr; }
@@ -602,8 +615,20 @@ html .ob-wheel-item.on small { display: inline; }
 html .ob-sex { grid-template-columns: repeat(2, auto); justify-content: center; gap: 40px; margin-top: 48px; }
 html .ob-sex-opt { gap: 12px; padding: 0; border: 0; background: none; font-size: 18px; font-weight: 600; }
 html .ob-sex-opt span { display: grid; place-items: center; width: 120px; height: 120px; border-radius: 50%; background: #f5f5f5; font-size: 64px; line-height: 1; color: #212121; transition: background .2s, color .2s; }
-html .ob-sex-opt.on { background: none; color: var(--sky); }
-html .ob-sex-opt.on span { background: var(--sky); color: #fff; }
+/* Each sex has its own colour when picked (blue / pink); unpicked or «Хэлэхгүй», both stay grey. */
+html .ob-sex-opt { --sex: #369fff; --sex-text: #1f8bff; }
+html .ob-sex-opt[data-sex="female"] { --sex: #ff6fa8; --sex-text: #e0478a; }
+html .ob-sex-opt.on { background: none; color: var(--sex-text); }
+html .ob-sex-opt.on span { background: var(--sex); color: #fff; animation: ob-sex-pop .22s ease-out; }
+html .ob-sex-opt:active span { transform: scale(.95); }
+@keyframes ob-sex-pop { from { transform: scale(.95); } }
+html[data-theme="dark"] .ob-sex-opt { --sex: #4aa8ff; --sex-text: #7cc0ff; color: #fff; }
+html[data-theme="dark"] .ob-sex-opt[data-sex="female"] { --sex: #ff7ab3; --sex-text: #ff9cc6; }
+html[data-theme="dark"] .ob-sex-opt span { background: #2a2d36; color: #e0e0e0; }
+html[data-theme="dark"] .ob-sex-opt.on span { background: var(--sex); color: #fff; }
+html[data-theme="dark"] .ob-sex-skip { background: #1f222a; border-color: #35383f; color: #fff; }
+html[data-theme="dark"] .ob-sex-skip.on { border-color: #4aa8ff; background: #1d2a3a; color: #7cc0ff; }
+@media (prefers-reduced-motion: reduce) { html .ob-sex-opt.on span { animation: none; } html .ob-sex-opt:active span { transform: none; } }
 html .ob-sex-skip { align-self: center; margin-top: 32px; min-height: 44px; padding: 0 22px; border: 1px solid #e0e0e0; border-radius: 999px; background: #fff; font-size: 15px; font-weight: 600; color: var(--ink); }
 html .ob-sex-skip.on { border-color: var(--sky); background: var(--sky-soft); color: var(--sky); }
 html .ob-units { display: inline-flex; align-self: center; gap: 6px; margin-top: 18px; padding: 4px; border-radius: 999px; background: #f5f5f5; }
@@ -617,6 +642,7 @@ html .ob-climate b { flex: 1; font-size: 17px; font-weight: 700; }
 html .ob-climate small { font-size: 13px; font-weight: 600; color: var(--sky); }
 html .ob-climate.on { border-color: var(--sky); background: var(--sky-soft); }
 html[data-theme="dark"] .ob-climate { background: #1f222a; border-color: #35383f; }
+html[data-theme="dark"] .ob-climate.on { border-color: #4aa8ff; background: #1d2a3a; }
 html .ob-making { gap: 10px; }
 html .ob-ring { position: relative; width: 220px; height: 220px; margin: 40px 0; }
 html .ob-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
@@ -763,7 +789,13 @@ html .big-add { color: var(--sky); }
 html .pour-arrow { color: #9fd0fb; }
 html .ob-locate { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; margin-top: 14px; border: 1.5px dashed var(--sky); border-radius: 14px; background: none; font: inherit; font-size: 15px; font-weight: 700; color: var(--sky); cursor: pointer; }
 html .ob-locate svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+html .ob-locate + .ob-locate { margin-top: 10px; }
+html .ob-manual { border-style: solid; border-color: var(--sky-line); }
+html .ob-manual span { font-size: 18px; line-height: 1; }
 html .ob-weather { min-height: 20px; margin: 10px 0 0; font-size: 14px; text-align: center; color: var(--muted); }
+html .ob-weather b { color: var(--sky-deep); }
+html[data-theme="dark"] .ob-manual { border-color: #35383f; }
+html[data-theme="dark"] .ob-weather b { color: #7cc0ff; }
 html .hx-weather { margin: -6px 0 0; padding: 10px 14px; border-radius: 12px; background: #fff; font-size: 14px; color: var(--ink); text-align: center; }
 html .hx-weather b { color: var(--sky); }
 html[data-theme="dark"] .hx-weather { background: #1f222a; }
