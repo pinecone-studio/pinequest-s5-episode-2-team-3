@@ -3,6 +3,7 @@ import { escape, number } from './format';
 import { mdIcon } from './components/Icon';
 import { ACTIVITIES, CONDITIONS, PROFILE_KEY, calcPlan, readProfile, writeProfile, type Activity, type Condition, type Plan, type Profile } from './plan';
 import { saveMember, readMember } from './member';
+import { signInWithGoogle } from './google-signin';
 import { readSettings, writeSettings } from './schedule';
 import { openAmountSheet, openNumberSheet } from './hx-edit';
 import { about } from './prefs';
@@ -201,8 +202,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         <label class="ob-field">Нууц үг<input id="ob-pass" type="password" autocomplete="new-password" placeholder="Нууц үг"/></label>
         <label class="ob-check"><input type="checkbox" id="ob-agree" ${agreed ? 'checked' : ''}/> <span>Дусалын <a href="/privacypolicy.html" target="_blank">үйлчилгээний нөхцөл</a>-ийг зөвшөөрч байна.</span></label>
         <p class="ob-or"><span>эсвэл</span></p>
-        <button type="button" class="ob-social" data-social>Google-ээр үргэлжлүүлэх</button>
-        <button type="button" class="ob-social" data-social>Apple-аар үргэлжлүүлэх</button>
+        <button type="button" class="ob-social" data-google><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285f4"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" fill="#34a853"/><path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2z" fill="#fbbc05"/><path d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10c.8-2.3 3-4.1 5.6-4.1z" fill="#ea4335"/></svg>Google-ээр үргэлжлүүлэх</button>
         <p class="ob-demo">Demo: имэйл, нууц үг хаашаа ч илгээгдэхгүй. Нэр зөвхөн энэ утсанд хадгалагдана.</p>
         <p class="ob-error" role="alert" hidden></p>
         <div class="ob-actions"><button type="button" class="ob-ghost" data-demo>Demo</button><button type="button" class="ob-primary" data-signup>Бүртгүүлэх</button></div></div>`;
@@ -334,7 +334,23 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       else if (screen === 'step') { readStep(); if (step > 1) step -= 1; else screen = 'signup'; }
       draw();
     });
-    on('[data-social]', () => { box.querySelector<HTMLInputElement>('#ob-agree')!.checked = true; });
+    // Google fills the name from the picked account; choosing it counts as accepting the terms.
+    on('[data-google]', el => void (async () => {
+      const error = box.querySelector<HTMLElement>('.ob-error')!;
+      error.hidden = true;
+      (el as HTMLButtonElement).disabled = true;
+      try {
+        const user = await signInWithGoogle();
+        name = user.name || box.querySelector<HTMLInputElement>('#ob-name')!.value.trim() || 'Найз';
+        agreed = true;
+        saveMember(name);
+        screen = 'step'; step = 1; draw();
+      } catch (e) {
+        error.textContent = e instanceof Error ? e.message : 'Google-ээр нэвтэрч чадсангүй.';
+        error.hidden = false;
+        (el as HTMLButtonElement).disabled = false;
+      }
+    })());
     on('[data-signup]', () => {
       name = box.querySelector<HTMLInputElement>('#ob-name')!.value;
       agreed = box.querySelector<HTMLInputElement>('#ob-agree')!.checked;
