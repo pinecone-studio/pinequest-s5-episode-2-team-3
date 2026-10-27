@@ -12,7 +12,7 @@ import { health } from './health';
 import { celebrateIfReached, showYesterday } from './day-result';
 import { startSync } from './sync';
 import { startDevices } from './devices';
-import { loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
+import { bindWeatherChip, loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
 import { pushWidget } from './widget';
 import { scale } from './scale';
 import { ScalePanel, bindDevicePanel } from './components/DevicePanel';
@@ -466,6 +466,7 @@ function render() {
   document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
+  bindWeatherChip();
   scale.shareToday(drink);  // the base's screen shows the same total
   bindDevicePanel(() => {});  // the base panel redraws itself on each reading
   bindSchedule(() => state, render);
