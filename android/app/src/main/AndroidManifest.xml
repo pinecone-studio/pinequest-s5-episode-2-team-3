@@ -133,4 +133,6 @@
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
     </queries>
+    <!-- Google sign-in (social-login) pulls in the Facebook SDK, which adds the advertising ID; the app does not use it. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 </manifest>
