@@ -760,10 +760,10 @@ html .ac-label small { font-size: 12px; font-weight: 400; line-height: 1.5; colo
 html .ac-label.danger { color: #f75555; }
 html .ac-row em { font-style: normal; font-size: 14px; font-weight: 500; color: var(--ink); }
 html .ac-row > i { font-style: normal; font-size: 22px; color: var(--ink); }
-html .ac-switch { appearance: none; position: relative; flex-shrink: 0; width: 44px; height: 24px; margin: 0; border-radius: 12px; background: #e0e0e0; cursor: pointer; transition: background .2s; }
-html .ac-switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
+html .ac-switch { appearance: none; -webkit-appearance: none; position: relative; flex: 0 0 auto; align-self: center; box-sizing: border-box; width: 38px; height: 22px; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 999px; background: #e0e0e0; cursor: pointer; transition: background .2s; }
+html .ac-switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: transform .2s; }
 html .ac-switch:checked { background: var(--sky); }
-html .ac-switch:checked::after { transform: translateX(20px); }
+html .ac-switch:checked::after { transform: translateX(16px); }
 html .ac-switch:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
 html .ac-card-title { margin: 6px 0 4px; font-size: 16px; font-weight: 700; color: var(--ink); }
 html .ac-card-head { display: flex; align-items: center; justify-content: space-between; }
