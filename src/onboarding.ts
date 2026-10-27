@@ -100,7 +100,31 @@ const MOCK = `<svg class="ob-mock" viewBox="0 0 220 300" aria-hidden="true">
   <circle cx="152" cy="239" r="11" fill="#fff" stroke="#eeeeee"/>
 </svg>`;
 
+// The walkthrough pictures: the 3D pets from the achievements page (pet3d.ts, loaded on demand), three
+// per slide, floating among bubbles. Until three.js arrives, or without WebGL, the phone mockup shows.
+type PetPics = typeof import('./pet3d');
+const CAST: [import('./pet').Kind, import('./pet').PetMood][][] = [
+  [['cat', 'good'], ['drop', 'joyful'], ['bunny', 'good']],
+  [['penguin', 'thirsty'], ['drop', 'thirsty'], ['frog', 'thirsty']],
+  [['bear', 'joyful'], ['dragon', 'joyful'], ['unicorn', 'joyful']],
+];
+function cast(pics: PetPics | null, slide: number): string {
+  if (!pics) return MOCK;
+  try {
+    const img = (kind: import('./pet').Kind, mood: import('./pet').PetMood, cls: string) =>
+      `<img class="ob-pet ${cls}" src="${pics.petImage({ kind, mood, stage: 'big', shine: cls === 'mid' ? 2 : 0 }, 320)}" alt="">`;
+    const [a, b, c] = CAST[slide];
+    return `<div class="ob-pets" aria-hidden="true">${img(a[0], a[1], 'side l')}${img(c[0], c[1], 'side r')}${img(b[0], b[1], 'mid')}
+      ${Array.from({ length: 9 }, (_, i) => `<span class="ob-bubble" style="--x:${(i * 37) % 100}%;--d:${(i % 4) * 0.9}s;--s:${8 + (i % 3) * 6}px"></span>`).join('')}</div>`;
+  } catch { return MOCK; }
+}
+const petPic = (pics: PetPics | null, mood: import('./pet').PetMood, cls: string, fallback: string) => {
+  if (!pics) return fallback;
+  try { return `<img class="${cls}" src="${pics.petImage({ kind: 'drop', mood, stage: 'big', shine: 2 }, 320)}" alt="">`; } catch { return fallback; }
+};
+
 export function showOnboarding(onDone: (plan: Plan) => void): void {
+  let pics: PetPics | null = null;
   const p: Profile = { ...readProfile() };
   const times = readSettings();
   let sex: Sex | null = null;
@@ -189,7 +213,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   function view(): string {
     if (screen === 'walk') {
       const s = SLIDES[slide];
-      return `<div class="ob-walk"><div class="ob-hero">${MOCK}</div>
+      return `<div class="ob-walk"><div class="ob-hero">${cast(pics, slide)}</div>
         <div class="ob-walk-text"><h2 id="onb-title">${s.title}</h2><p>${s.text}</p>
           <ol class="ob-dots" aria-label="${slide + 1} / ${SLIDES.length}">${SLIDES.map((_, i) => `<li class="${i === slide ? 'on' : ''}"></li>`).join('')}</ol></div>
         <div class="ob-actions"><button type="button" class="ob-ghost" data-skip>Алгасах</button><button type="button" class="ob-primary" data-next>Үргэлжлүүлэх</button></div></div>`;
@@ -209,7 +233,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     }
     if (screen === 'making') {
       return `<div class="ob-making"><h2 id="onb-title">Таны усны төлөвлөгөөг гаргаж байна…</h2><p class="ob-lead">Түр хүлээнэ үү.</p>
-        <div class="ob-ring" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="bg"/><circle cx="60" cy="60" r="52" class="fg" pathLength="100" stroke-dasharray="0 100"/></svg><b>0%</b></div>
+        ${petPic(pics, 'good', 'ob-making-pet', '')}<div class="ob-ring" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="bg"/><circle cx="60" cy="60" r="52" class="fg" pathLength="100" stroke-dasharray="0 100"/></svg><b>0%</b></div>
         <p class="ob-lead small">Хэсэг хугацаа шаардана. Усаар дүүрэн аялалдаа бэлдээрэй!</p></div>`;
     }
     if (screen === 'ready') {
@@ -218,7 +242,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       const shown = (plan.ml / u.per).toFixed(u.digits);
       return `<div class="ob-ready"><h2 id="onb-title">${plan.mode === 'limit' ? 'Таны өдрийн хязгаар' : 'Таны өдрийн зорилт'}</h2>
         <div class="ob-units wide" role="radiogroup" aria-label="Нэгж">${(Object.keys(UNITS) as Unit[]).map(k => `<button type="button" role="radio" aria-checked="${k === unit}" class="${k === unit ? 'on' : ''}" data-unit="${k}">${UNITS[k].label}</button>`).join('')}</div>
-        <span class="ob-glass" aria-hidden="true"><svg viewBox="0 0 48 64"><path d="M6 4h36l-4 56H10z" fill="#e3f0fd"/><path d="M8.6 22h30.8l-2.8 38H11.4z" fill="#369fff"/><circle cx="20" cy="40" r="2" fill="#fff"/><circle cx="28" cy="50" r="1.6" fill="#fff"/></svg></span>
+        <span class="ob-glass" aria-hidden="true">${petPic(pics, 'joyful', 'ob-ready-pet', '<svg viewBox="0 0 48 64"><path d="M6 4h36l-4 56H10z" fill="#e3f0fd"/><path d="M8.6 22h30.8l-2.8 38H11.4z" fill="#369fff"/><circle cx="20" cy="40" r="2" fill="#fff"/><circle cx="28" cy="50" r="1.6" fill="#fff"/></svg>')}</span>
         <p class="ob-result">${unit === 'ml' ? number(plan.ml) : shown}<span>${u.label}</span></p>
         ${plan.mode === 'limit' ? '' : '<button type="button" class="ob-adjust" data-adjust>✎ Тохируулах</button>'}
         <p class="ob-lead small">${escape(plan.how)}</p>
@@ -395,4 +419,5 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   }
 
   draw();
+  void import('./pet3d').then(m => { pics = m; if (screen === 'walk' || screen === 'ready') draw(); }).catch(() => { /* keeps the phone mockup */ });
 }
