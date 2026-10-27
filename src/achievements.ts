@@ -8,26 +8,11 @@ import { load, onExternalChange } from './storage';
 import { KINDS, STAGES, petState, petSvg, readPetKind, readPetName, takeNewKinds, unlockedKinds, writePetKind, writePetName, type Kind } from './pet';
 import './theme.css';
 
-// "Амжилт" page, Hydrify layout (demo): levels earned by days that counted (the goal reached, or
-// under a doctor's limit, the limit kept). The pet «Дусалхан» (pet.ts) on a blue header, then all fifteen levels.
-const LEVELS = [1, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 150, 200, 250, 300];
+// "Амжилт" page, Hydrify layout (demo): the pet «Дусалхан» (pet.ts) on a blue header, grown by days that
+// counted (the goal reached, or under a doctor's limit, the limit kept), then the animals to pick from.
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let state: AppState = defaults();
-
-// A winged hexagon with the level number on a ribbon; grey with a lock when not reached yet.
-function badge(level: number, locked: boolean): string {
-  if (locked) return `<svg class="ach-badge locked" viewBox="0 0 120 110" aria-hidden="true"><circle cx="60" cy="50" r="34" fill="#eeeeee"/><path d="M38 78l-10 24 16-6 8 10 8-22M82 78l10 24-16-6-8 10-8-22" fill="#eeeeee"/><rect x="50" y="46" width="20" height="16" rx="3" fill="#bdbdbd"/><path d="M54 46v-5a6 6 0 0 1 12 0v5" fill="none" stroke="#bdbdbd" stroke-width="3"/></svg>`;
-  const id = `g${level}`;
-  return `<svg class="ach-badge" viewBox="0 0 120 110" aria-hidden="true">
-    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa6c9"/><stop offset="1" stop-color="#5a6690"/></linearGradient></defs>
-    <path d="M22 40c-14 4-20 16-18 26 8-6 14-6 20-4zM98 40c14 4 20 16 18 26-8-6-14-6-20-4z" fill="#7b86ad"/>
-    <path d="M60 6l34 19v40L60 84 26 65V25z" fill="url(#${id})" stroke="#c9d1ec" stroke-width="3"/>
-    <text x="60" y="56" text-anchor="middle" font-size="34" font-weight="800" fill="#fff">${level}</text>
-    <path d="M18 66h84l-6 9 6 9H18l6-9z" fill="#1f8bff"/>
-    <text x="60" y="79" text-anchor="middle" font-size="11" font-weight="800" fill="#fff" letter-spacing="1">ТҮВШИН</text>
-  </svg>`;
-}
 
 // The stage name, and a bar for the days left until the next one.
 function stageLine(days: number): string {
@@ -66,7 +51,6 @@ function render(): void {
   const nextKind = KINDS.find(k => k.need > pet.best);
   const news = KINDS.filter(k => fresh!.has(k.id)).map(k => k.name);
   const done = pet.days;
-  const level = LEVELS.filter(t => done >= t).length; // 0 until the first counted day
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a>
     <main id="main" class="home home-app" tabindex="-1"><div class="app-shell">
       <header class="app-top">${siteNav('achievements')}</header>
@@ -79,14 +63,10 @@ function render(): void {
         ${stageLine(done)}
         ${news.length ? `<p class="pet-unlock" role="status">🎉 ${news.join(', ')} нээгдлээ! Доороос сонгоорой.</p>`
           : nextKind ? `<p class="ach-sub">${nextKind.name} нээгдэхэд ${number(nextKind.need - pet.streak)} өдөр дараалан хэрэгтэй</p>` : ''}
-        <p class="ach-sub">${level ? `${level}-р түвшин · ${number(done)} өдөр биелүүлсэн` : '1-р түвшин хүртэл 1 өдөр'}</p>
+        ${done ? `<p class="ach-sub">${number(done)} өдөр биелүүлсэн</p>` : ''}
       </div>
       <div class="hydro hx-page ach-body">
         ${kindList(pet.best, kind)}
-        <section class="hx-card ach-grid" aria-label="Бүх түвшин">${LEVELS.map((need, i) => {
-          const n = i + 1, got = n <= level, current = n === level;
-          return `<div class="ach-item">${badge(n, !got)}<b>${n}-р түвшин</b><small>${current ? 'Таны одоогийн түвшин' : got ? 'Давсан' : `${need} өдөр биелүүлэх`}</small></div>`;
-        }).join('')}</section>
       </div>
     </div></main>`;
   bindPet();

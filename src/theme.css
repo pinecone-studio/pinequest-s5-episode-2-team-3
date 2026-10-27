@@ -360,13 +360,8 @@ html #rp-today { margin-top: 14px; }
 /* "Амжилт" (src/achievements.ts). */
 html .ach-top { display: grid; justify-items: center; gap: 4px; padding: 0 16px 90px; background: linear-gradient(160deg, #369fff, #1f8bff); color: #fff; }
 html .ach-header h1, html .ach-header .hx-logo { color: #fff; }
-html .ach-badge { width: 92px; height: auto; }
 html .ach-sub { margin: 6px 0 0; font-size: 13px; opacity: .9; text-align: center; }
 html .ach-body { margin-top: -74px; }
-html .ach-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 6px; }
-html .ach-item { display: grid; justify-items: center; text-align: center; gap: 2px; }
-html .ach-item b { font-size: 16px; font-weight: 700; color: var(--ink); }
-html .ach-item small { font-size: 11px; color: var(--muted); }
 /* «Дусалхан» pet (src/pet.ts) on the achievements header. Colours come from custom properties so
    each mood only swaps a few values. Nothing here uses position, filter or opacity on the page: .app-top's
    view-transition-name makes it its own layer, so any such element would paint over the fixed tab bar. */
