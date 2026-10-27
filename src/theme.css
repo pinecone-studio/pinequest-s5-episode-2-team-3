@@ -272,7 +272,8 @@ html .hx-ticks path { stroke: #bdbdbd; stroke-width: 2; stroke-linecap: round; }
 html .hx-drop-ring { fill: #f5f5f5; }
 html .hx-drop { fill: #fff; }
 html .hx-water { transition: transform 1s cubic-bezier(.3, 1.2, .5, 1); }
-html .hx-wave { fill: url(#none); fill: #2f86e8; animation: gauge-wave 3s linear infinite; }
+html .hx-wave { fill: #2f86e8; animation: hx-wave 2.4s linear infinite; }
+@keyframes hx-wave { to { transform: translateX(60px); } }
 html .hx-wave.back { fill: #0062e5; animation-duration: 4.2s; }
 html .hx-wave:not(.back) { fill: #197fff; }
 html .hx-amount { position: absolute; left: 0; right: 0; top: 66%; margin: 0; text-align: center; font-size: 46px; font-weight: 800; letter-spacing: -1px; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -888,3 +889,4 @@ html .hx-gauge.dragging .hx-knob { transform: scale(1.25); }
 html .hx-drag-add { position: absolute; left: 50%; top: 44%; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: var(--sky); color: #fff; font-size: 15px; font-weight: 800; white-space: nowrap; pointer-events: none; }
 html .hx-drag-add[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { html .hx-knob { transition: none; } }
+@media (prefers-reduced-motion: reduce) { html .hx-wave { animation: none; } }

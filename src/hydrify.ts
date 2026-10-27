@@ -76,6 +76,10 @@ export function hxHeader(title: string): string {
 
 // A 270° arc from bottom left round to bottom right, filled to today's share, with ticks inside,
 // and a water drop in the middle whose water rises with it.
+// A wave far wider than the drop (x 108–192): it slides one wavelength (60) and starts over, so its
+// ends never show inside the drop.
+const WAVE = (x: number, y: number) => `M${x} ${y} q15 -8 30 0${' t30 0'.repeat(15)} V120 H${x}Z`;
+
 // Where the knob sits on the arc for a share of the goal, in % of the gauge box (viewBox 300×270).
 function knobAt(frac: number): string {
   const a = ((135 + frac * 270) * Math.PI) / 180;
@@ -167,8 +171,8 @@ export function hxGauge(drink: number, goal: number, mode: Mode, cup: number, dr
         <path class="hx-drop-ring" d="M150 62c-31 39-50 62-50 86a50 50 0 0 0 100 0c0-24-19-47-50-86z"/>
         <path class="hx-drop" d="M150 72c-26 34-42 54-42 76a42 42 0 0 0 84 0c0-22-16-42-42-76z"/>
         <g clip-path="url(#hx-drop)"><g class="hx-water" style="transform: translateY(${level.toFixed(1)}px)">
-          <path class="hx-wave back" d="M60 0 q15 -8 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 V120 H60Z"/>
-          <path class="hx-wave" d="M45 6 q15 -8 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 V120 H45Z"/>
+          <path class="hx-wave back" d="${WAVE(-60, 0)}"/>
+          <path class="hx-wave" d="${WAVE(-90, 6)}"/>
         </g></g>
       </svg>
       <span class="hx-knob" role="slider" tabindex="0" aria-label="Нумыг чирж ус нэмэх (сум товч, Enter)" aria-valuemin="${drink}" aria-valuemax="${Math.max(drink, goal)}" aria-valuenow="${drink}" aria-valuetext="${number(drink)} мл" style="${knobAt(frac)}"></span>
