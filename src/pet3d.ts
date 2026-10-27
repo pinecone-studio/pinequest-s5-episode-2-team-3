@@ -857,7 +857,6 @@ export function mountPet3d(host: HTMLElement): Pet3D {
     root.rotation.y = face + spin;
     root.rotation.z = walking ? Math.sin(t * 11) * 0.09 : 0;
     root.rotation.x = asleep ? 0 : lookY * 0.12;
-    if (asleep) { root.rotation.z = Math.PI / 2 * 0.92; root.position.y = 0.05; root.position.x = x + 0.4; }
     const sq = squash + chomp;
     body.scale.set(1 + sq * 0.6 - breathe * 0.5, 1 - sq + breathe, 1 + sq * 0.6 - breathe * 0.5);
     if (eating > 0) eating -= dt;
