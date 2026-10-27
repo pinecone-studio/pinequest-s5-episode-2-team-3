@@ -361,14 +361,115 @@ html #rp-today { margin-top: 14px; }
 html .ach-top { display: grid; justify-items: center; gap: 4px; padding: 0 16px 90px; background: linear-gradient(160deg, #369fff, #1f8bff); color: #fff; }
 html .ach-header h1, html .ach-header .hx-logo { color: #fff; }
 html .ach-badge { width: 92px; height: auto; }
-html .ach-badge.big { width: 190px; filter: drop-shadow(0 10px 20px rgba(0, 40, 120, .35)); }
-html .ach-level { margin: 6px 0 0; font-size: 24px; font-weight: 700; }
-html .ach-sub { margin: 0; font-size: 15px; opacity: .95; }
+html .ach-sub { margin: 6px 0 0; font-size: 13px; opacity: .9; text-align: center; }
 html .ach-body { margin-top: -74px; }
 html .ach-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 6px; }
 html .ach-item { display: grid; justify-items: center; text-align: center; gap: 2px; }
 html .ach-item b { font-size: 16px; font-weight: 700; color: var(--ink); }
 html .ach-item small { font-size: 11px; color: var(--muted); }
+/* «Дусалхан» pet (src/pet.ts) on the achievements header. Colours come from custom properties so
+   each mood only swaps a few values. Nothing here uses position, filter or opacity on the page: .app-top's
+   view-transition-name makes it its own layer, so any such element would paint over the fixed tab bar. */
+html .pet { display: block; overflow: visible; --pet-top: #f2faff; --pet-bottom: #9cd5ff; --pet-line: #fff; --pet-ink: #17365d; }
+html .pet .pet-stop-top { stop-color: var(--pet-top); }
+html .pet .pet-stop-bottom { stop-color: var(--pet-bottom); }
+html .pet-body { stroke: var(--pet-line); stroke-width: 5; stroke-linejoin: round; }
+html .pet-shine { fill: none; stroke: #fff; stroke-width: 6; stroke-linecap: round; opacity: .7; }
+html .pet-eyes circle { fill: var(--pet-ink); }
+html .pet-eyes .pet-glint { fill: #fff; }
+html .pet-ln { fill: none; stroke: var(--pet-ink); stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+html .pet-mouth-fill { fill: var(--pet-ink); }
+html .pet-blush { fill: #ff8fa3; opacity: .55; }
+html .pet-shadow { fill: rgba(0, 30, 90, .22); }
+html .pet-spot { fill: #fff; opacity: .6; }
+html .pet-crack { fill: none; stroke: var(--pet-ink); stroke-width: 3; stroke-linejoin: round; opacity: .45; }
+html .pet-crown { fill: #ffc83d; stroke: #fff; stroke-width: 3; stroke-linejoin: round; }
+html .pet-spark path { fill: #fff6b0; }
+html .pet-sweat { fill: #bfe6ff; stroke: #fff; stroke-width: 2; }
+html .pet-thermo rect { fill: #fff; stroke: #9aa7b0; stroke-width: 1.5; }
+html .pet-thermo circle { fill: #ef5350; }
+html .pet-zzz text { fill: #fff; font-family: Urbanist, sans-serif; font-size: 20px; font-weight: 800; }
+/* Each animal's colours; the mood rules below come after, so a sick or sleeping pet always turns grey. */
+html .pet.kind-cat { --pet-top: #fff4e6; --pet-bottom: #ffbe7a; }
+html .pet.kind-bear { --pet-top: #f6e7d9; --pet-bottom: #c8996c; }
+html .pet.kind-bunny { --pet-top: #ffffff; --pet-bottom: #f4c6d6; }
+html .pet.kind-sheep { --pet-top: #fffaf0; --pet-bottom: #e6d6bb; }
+html .pet.kind-dragon { --pet-top: #efe6ff; --pet-bottom: #a98bff; }
+html .pet-ear-in { fill: #ffb3c1; opacity: .75; }
+html .pet-nose { fill: var(--pet-ink); }
+html .pet-nose.pink { fill: #ff8fa3; }
+html .pet-snout { fill: #fff8f0; opacity: .9; }
+html .pet-whisker { fill: none; stroke: var(--pet-ink); stroke-width: 2.5; stroke-linecap: round; opacity: .55; }
+html .pet-dark { fill: var(--pet-ink); opacity: .8; }
+html .pet-wool circle { fill: #fffdf8; stroke: #fff; stroke-width: 3; }
+html .pet-horn { fill: #ffd166; stroke: #fff; stroke-width: 3; stroke-linejoin: round; }
+html .pet.kind-drop.mood-thirsty { --pet-top: #fbfdff; --pet-bottom: #c4e5ff; }
+html .pet.mood-sick { --pet-top: #e9edf0; --pet-bottom: #a3afb8; --pet-ink: #46545f; }
+html .pet.mood-weak { --pet-top: #dfe4ea; --pet-bottom: #97a4b1; --pet-ink: #4f5c68; }
+/* Slow breathing and blinking; sparkles, sweat and Zzz move a little. */
+html .pet-breathe { transform-box: fill-box; transform-origin: 50% 100%; animation: pet-breathe 3.6s ease-in-out infinite; }
+html .pet.mood-weak .pet-breathe { animation-duration: 5.5s; }
+html .pet-eyes { transform-box: fill-box; transform-origin: center; animation: pet-blink 5s infinite; }
+html .pet.mood-joyful .pet-eyes, html .pet.mood-sick .pet-eyes, html .pet.mood-weak .pet-eyes { animation: none; }
+html .pet-spark path { transform-box: fill-box; transform-origin: center; animation: pet-twinkle 2.4s ease-in-out infinite; }
+html .pet-spark path:nth-child(2) { animation-delay: .8s; }
+html .pet-spark path:nth-child(3) { animation-delay: 1.6s; }
+html .pet-sweat { animation: pet-drip 2.2s ease-in infinite; }
+html .pet-zzz text { animation: pet-zzz 3s ease-in-out infinite; }
+html .pet-zzz text:nth-child(2) { animation-delay: 1s; }
+html .pet-zzz text:nth-child(3) { animation-delay: 2s; }
+@keyframes pet-breathe { 50% { transform: scale(.98, 1.035); } }
+@keyframes pet-blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@keyframes pet-twinkle { 0%, 100% { transform: scale(.6); opacity: .5; } 50% { transform: scale(1.1); opacity: 1; } }
+@keyframes pet-drip { 0% { transform: translateY(-4px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
+@keyframes pet-zzz { 0% { transform: translate(0, 6px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translate(6px, -8px); opacity: 0; } }
+/* Achievements header: the pet is a button (tap → hop and a heart), then its name, streak, line and stage. */
+html .pet-tap { display: block; width: 200px; margin: 0 auto; padding: 0; border: 0; border-radius: 24px; background: none; cursor: pointer; }
+html .pet-tap .pet { width: 100%; height: auto; }
+html .pet-tap:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+html .pet-tap.hop .pet { animation: pet-hop .6s cubic-bezier(.3, 1.4, .5, 1); }
+html .pet-heart { position: fixed; z-index: 41; font-size: 26px; line-height: 1; color: #ff6b8a; pointer-events: none; animation: pet-heart 1s ease-out forwards; }
+@keyframes pet-hop { 30% { transform: translateY(-18px) scale(1.04, .96); } 60% { transform: translateY(0) scale(1.03, .97); } }
+@keyframes pet-heart { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-70px) scale(1.2); opacity: 0; } }
+html .pet-name { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .16); color: #fff; font: inherit; font-size: 22px; font-weight: 800; cursor: pointer; }
+html .pet-name svg { width: 18px; height: 18px; opacity: .85; }
+html .pet-name:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+html .pet-name-input { box-sizing: border-box; width: min(240px, 80%); min-height: 44px; padding: 0 16px; border: 2px solid #fff; border-radius: 999px; background: #fff; color: #212121; font: inherit; font-size: 20px; font-weight: 700; text-align: center; }
+html .pet-streak { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; margin-top: 4px; padding: 0 14px; border-radius: 999px; background: rgba(255, 255, 255, .18); color: #fff; font-size: 14px; font-weight: 700; }
+html .pet-streak.hot { background: #fff; color: #f97316; }
+html .pet-streak:not(.hot) span { filter: grayscale(1); opacity: .6; }
+html .pet-line { max-width: 32ch; margin: 6px 0 0; font-size: 15px; font-weight: 600; line-height: 1.4; text-align: center; }
+html .pet-stage { width: min(300px, 100%); margin-top: 8px; }
+html .pet-stage p { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 6px; font-size: 13px; }
+html .pet-stage p span { opacity: .9; }
+html .pet-bar { height: 8px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, .25); }
+html .pet-bar span { display: block; height: 100%; border-radius: inherit; background: #fff; }
+html .pet-unlock { margin: 8px 0 0; padding: 8px 14px; border-radius: 12px; background: rgba(255, 255, 255, .2); font-size: 14px; font-weight: 700; text-align: center; }
+/* The animal list: unlocked ones can be picked, locked ones are grey with the streak they need. */
+html .pet-kinds h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 12px; font-size: 18px; font-weight: 700; color: var(--ink); }
+html .pet-kinds h2 small { font-size: 12px; font-weight: 500; color: var(--muted); }
+html .pet-kind-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+html .pet-kind { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border: 2px solid var(--hair); border-radius: 16px; background: none; font: inherit; color: var(--ink); cursor: pointer; }
+html .pet-kind .pet { width: 72px; height: 72px; --pet-line: #cfe6fb; }
+html .pet-kind b { font-size: 14px; font-weight: 700; }
+html .pet-kind small { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); }
+html .pet-kind small svg { width: 11px; height: 11px; fill: currentColor; }
+html .pet-kind.on { border-color: var(--sky); background: var(--sky-soft); }
+html .pet-kind.on small { font-weight: 700; color: var(--sky-deep); }
+html .pet-kind:disabled { cursor: default; }
+html .pet-kind:disabled .pet { --pet-top: #f1f3f5; --pet-bottom: #d5dbe0; --pet-ink: #b7c0c7; --pet-line: #fff; }
+html .pet-kind:disabled .pet :is(.pet-ear-in, .pet-horn, .pet-nose, .pet-snout, .pet-dark, .pet-blush, .pet-wool circle) { fill: #dfe4e8; }
+html .pet-kind:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+html .pet-new { order: -1; margin: -4px 0 2px; padding: 2px 8px; border-radius: 999px; background: #f97316; color: #fff; font-size: 11px; font-weight: 800; }
+html[data-theme="dark"] .pet-kind { border-color: #35383f; }
+html[data-theme="dark"] .pet-kind .pet { --pet-line: #5b6170; }
+html[data-theme="dark"] .pet-kind:disabled .pet { --pet-top: #3a3e47; --pet-bottom: #2c3038; --pet-ink: #555b66; --pet-line: #4a4f5a; }
+html[data-theme="dark"] .pet-kind:disabled .pet :is(.pet-ear-in, .pet-horn, .pet-nose, .pet-snout, .pet-dark, .pet-blush, .pet-wool circle) { fill: #444a55; }
+@media (prefers-reduced-motion: reduce) {
+  html .pet-breathe, html .pet-eyes, html .pet-spark path, html .pet-sweat, html .pet-zzz text, html .pet-tap.hop .pet { animation: none; }
+  html .pet-heart { animation: pet-heart-still 1s forwards; }
+}
+@keyframes pet-heart-still { 0%, 100% { opacity: 0; } 25%, 75% { opacity: 1; } }
 
 /* "Түүх" week rings (history.ts weekRings) and list. */
 html .history-body:has(.hx-header) { padding: 0 16px 24px; }
