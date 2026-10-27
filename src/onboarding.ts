@@ -156,7 +156,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     switch (step) {
       case 1: return question('Таны хүйс?', 'Дусал таны усны төлөвлөгөөг тохируулна. Өөрийнхөө тухай бага зэрэг хэлээрэй.',
         `<div class="ob-sex">${(['male', 'female'] as const).map(s => `<button type="button" class="ob-sex-opt${sex === s ? ' on' : ''}" data-sex="${s}" aria-pressed="${sex === s}"><span aria-hidden="true">${s === 'male' ? '♂' : '♀'}</span>${s === 'male' ? 'Эрэгтэй' : 'Эмэгтэй'}</button>`).join('')}</div>
-        <button type="button" class="ob-sex-skip${sex === 'none' ? ' on' : ''}" data-sex="none" aria-pressed="${sex === 'none'}">Хэлэхгүй</button>`);
+        <button type="button" class="ob-sex-skip${sex === 'none' ? ' on' : ''}" data-sex="none" aria-pressed="${sex === 'none'}">Бусад</button>`);
       case 2: return question('Таны өндөр?', 'Өндөр нь усны төлөвлөгөөг тань тохируулахад чухал. Өндрөө сонгоно уу.',
         `${toggle('hunit', hUnit, [['cm', 'см'], ['ft', 'фут']])}<div class="ob-pick">${body(sex, p.weight, p.height)}${hUnit === 'cm'
           ? wheel('ob-height', range(90, 230), p.height, 'см')

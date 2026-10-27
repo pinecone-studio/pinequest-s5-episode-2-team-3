@@ -713,7 +713,7 @@ html .ob-wheel-item.on small { display: inline; }
 html .ob-sex { grid-template-columns: repeat(2, auto); justify-content: center; gap: 40px; margin-top: 48px; }
 html .ob-sex-opt { gap: 12px; padding: 0; border: 0; background: none; font-size: 18px; font-weight: 600; }
 html .ob-sex-opt span { display: grid; place-items: center; width: 120px; height: 120px; border-radius: 50%; background: #f5f5f5; font-size: 64px; line-height: 1; color: #212121; transition: background .2s, color .2s; }
-/* Each sex has its own colour when picked (blue / pink); unpicked or «Хэлэхгүй», both stay grey. */
+/* Each sex has its own colour when picked (blue / pink); unpicked or «Бусад», both stay grey. */
 html .ob-sex-opt { --sex: #369fff; --sex-text: #1f8bff; }
 html .ob-sex-opt[data-sex="female"] { --sex: #ff6fa8; --sex-text: #e0478a; }
 html .ob-sex-opt.on { background: none; color: var(--sex-text); }

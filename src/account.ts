@@ -153,7 +153,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
 
   const personalBody = (): string => {
     const p = readProfile(), s = readSettings(), a = about.read();
-    const SEX = { male: 'Эрэгтэй', female: 'Эмэгтэй', none: 'Хэлээгүй' } as const;
+    const SEX = { male: 'Эрэгтэй', female: 'Эмэгтэй', none: 'Бусад' } as const;
     const CLIMATE = { hot: 'Халуун', mild: 'Дунд зэрэг', cold: 'Хүйтэн' } as const;
     return rows([
       { label: 'Нэр', value: readMember()?.name ?? '—', href: '#profile' },
@@ -219,7 +219,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
     personal: {
       title: 'Хувийн мэдээлэл', back: '', body: personalBody,
       bind: root => on(root, {
-        sex: () => chooseSheet('Хүйс', [['male', 'Эрэгтэй'], ['female', 'Эмэгтэй'], ['none', 'Хэлэхгүй']], about.read().sex, v => { about.write({ sex: v as 'male' | 'female' | 'none' }); ctx.redraw(); }),
+        sex: () => chooseSheet('Хүйс', [['male', 'Эрэгтэй'], ['female', 'Эмэгтэй'], ['none', 'Бусад']], about.read().sex, v => { about.write({ sex: v as 'male' | 'female' | 'none' }); ctx.redraw(); }),
         climate: () => chooseSheet('Уур амьсгал', [['hot', 'Халуун'], ['mild', 'Дунд зэрэг'], ['cold', 'Хүйтэн']], about.read().climate, v => { about.write({ climate: v as 'hot' | 'mild' | 'cold' }); ctx.redraw(); }),
         height: () => openAmountSheet('Өндөр', '📏', readProfile().height, v => (v >= 90 ? saveProfile({ height: v }) : notify('Өндөр 90–230 см байна.')), 'см', 230),
         weight: () => openAmountSheet('Жин', '⚖️', readProfile().weight, v => (v >= 10 ? saveProfile({ weight: v }) : notify('Жин 10–250 кг байна.')), 'кг', 250),
