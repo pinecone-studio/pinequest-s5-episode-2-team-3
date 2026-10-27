@@ -480,12 +480,6 @@ html .hx-day b { position: absolute; inset: 0; display: grid; place-items: cente
 html .history-head h2 { font-size: 18px; font-weight: 700; }
 
 /* Account (settings.ts): upgrade banner, grouped menu rows with chevrons, sub-screens. */
-html .ac-upgrade { position: relative; display: flex; align-items: center; gap: 16px; padding: 18px 16px; border-radius: 16px; background: var(--sky); color: #fff; text-decoration: none; overflow: hidden; }
-html .ac-upgrade::before, html .ac-upgrade::after { content: ""; position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .5); }
-html .ac-upgrade::before { width: 6px; height: 6px; left: 14px; top: 12px; } html .ac-upgrade::after { width: 4px; height: 4px; left: 86px; top: 64px; }
-html .ac-crown { display: grid; place-items: center; flex-shrink: 0; width: 60px; height: 60px; border-radius: 50%; background: #fff; color: #f59e0b; font-size: 26px; }
-html .ac-upgrade b { display: block; font-size: 19px; font-weight: 700; }
-html .ac-upgrade small { font-size: 12px; opacity: .95; }
 html .ac-menu { padding: 6px 16px; }
 html .ac-menu ul { margin: 0; padding: 0; list-style: none; }
 html .ac-menu a, html .ac-logout, html .ac-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 56px; border: 0; background: none; font: inherit; font-size: 17px; font-weight: 600; color: var(--ink); text-decoration: none; text-align: left; }
@@ -786,16 +780,8 @@ html .ac-level li { display: flex; justify-content: space-between; min-height: 4
 html .ac-level li:last-child { border-bottom: 0; }
 html .ac-level em { font-style: normal; font-weight: 500; font-size: 14px; }
 /* premium */
-html .ac-tabs { margin-bottom: 0; }
-html .ac-price { position: relative; display: grid; justify-items: center; padding: 24px 18px; }
-html .ac-price h2 { margin: 0; font-size: 18px; font-weight: 700; color: var(--ink); }
-html .ac-amount { margin: 6px 0 16px; padding-bottom: 18px; width: 100%; border-bottom: 1px solid #eeeeee; text-align: center; font-size: 38px; font-weight: 800; color: var(--ink); }
-html .ac-amount small { font-size: 15px; font-weight: 500; color: var(--ink); }
 html .ac-price ul, html .ac-benefits ul { display: grid; gap: 14px; width: 100%; margin: 0; padding: 0; list-style: none; }
 html .ac-price li, html .ac-benefits li { display: flex; gap: 12px; font-size: 15px; color: var(--ink); }
-html .ac-tick { flex-shrink: 0; width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 2; }
-html .ac-save { position: absolute; right: 0; top: 0; padding: 4px 10px; border-radius: 0 16px 0 10px; background: var(--sky); color: #fff; font-size: 12px; font-weight: 700; }
-html .ac-current { margin: 18px 0 0; padding-top: 16px; width: 100%; border-top: 1px solid #eeeeee; text-align: center; font-size: 16px; color: var(--muted); }
 html .ac-inline { border: 0; background: none; padding: 0; color: var(--sky); font: inherit; text-decoration: underline; }
 html .ac-pay-list { display: grid; gap: 12px; }
 html .ac-pay-opt { display: block; width: 100%; padding: 14px 16px; border: 1.5px solid transparent; text-align: left; font: inherit; cursor: pointer; }
@@ -803,23 +789,12 @@ html .ac-pay-opt.on { border-color: var(--sky); }
 html .ac-pay { display: flex; align-items: center; gap: 14px; }
 html .ac-pay .ac-tick { stroke: var(--sky); }
 html .ac-brand svg { display: block; width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 0 0 1px #eeeeee; }
-html .ac-connected { font-style: normal; font-size: 14px; color: var(--muted); }
 html .ac-connect { min-height: 36px; border: 0; background: none; font-size: 14px; font-weight: 700; color: var(--sky); }
 html .ac-connect.on { color: var(--muted); font-weight: 500; }
-html .ac-change { font-size: 15px; font-weight: 600; color: var(--sky); text-decoration: none; }
-html .ac-processing { align-items: center; }
-html .ac-process-card { display: grid; justify-items: center; gap: 18px; width: min(320px, 86vw); padding: 36px 20px; border-radius: 20px; background: #fff; font-size: 16px; font-weight: 600; color: var(--ink); }
-html .ac-process-card p { margin: 0; }
-html .ac-spin { width: 64px; height: 64px; border: 7px solid var(--sky-soft); border-top-color: var(--sky); border-radius: 50%; animation: ob-spin 1s linear infinite; }
-html .ac-congrats { position: relative; display: grid; justify-items: center; gap: 6px; padding: 20px 0 6px; text-align: center; }
-html .ac-congrats h2 { margin: 12px 0 0; font-size: 28px; font-weight: 800; color: var(--ink); }
-html .ac-congrats p { margin: 0; color: var(--muted); }
-html .ac-crown-big { display: grid; place-items: center; width: 110px; height: 110px; border-radius: 50%; background: var(--sky); box-shadow: 0 0 0 14px var(--sky-soft); font-size: 50px; color: #fff; }
 html .ac-benefits h3 { margin: 0 0 14px; text-align: center; font-size: 18px; color: var(--ink); }
-html .ac-form { display: grid; gap: 14px; }
+html .ac-tick { flex-shrink: 0; width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 2; }
+html[data-theme="dark"] .ac-tick { stroke: #fff; }
 html .ac-form-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-html .ac-brands { display: flex; gap: 10px; }
-html .ac-brands svg { width: 36px; height: 36px; }
 /* cups */
 html .ac-cups-list .ac-row { cursor: default; }
 html .ac-grip { color: #9e9e9e; font-size: 18px; }
@@ -875,7 +850,6 @@ html[data-theme="dark"] .hx-drop-ring { fill: #2a2d36; }
 html[data-theme="dark"] .hx-drop { fill: #1f222a; }
 html[data-theme="dark"] .hx-amount-box, html[data-theme="dark"] .ob-field input { background: #2a2d36; }
 html[data-theme="dark"] .ac-switch:not(:checked) { background: #35383f; }
-html[data-theme="dark"] .ac-tick { stroke: #fff; }
 html[data-theme="dark"] .ac-doc, html[data-theme="dark"] .ac-faq details p, html[data-theme="dark"] .ob-lead { color: #bdbdbd; }
 html[data-theme="dark"] .hx-keypad button:active, html[data-theme="dark"] .hx-popover button:hover { background: #2a2d36; }
 html main.ac-subview .app-top .site-nav { display: none; }
