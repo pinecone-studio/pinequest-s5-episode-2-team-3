@@ -131,7 +131,7 @@ async function restart(): Promise<void> {
 
 const viewFor = accountViews({
   state: () => state, goalSection, backupSection: () => backupSection(),
-  devices: () => DevicePanel() + WatchPanel() + SyncStatus(),
+  devices: () => WatchPanel() + DevicePanel() + SyncStatus(),
   profilePanel: () => ProfilePanel(),
   restart: () => void restart(), logout, redraw: () => render(),
 });

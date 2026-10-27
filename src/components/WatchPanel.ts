@@ -2,9 +2,14 @@ import { health, healthSupported } from '../health';
 import { escape, number } from '../format';
 import './device-panel.css';
 
-// Settings card for a smartwatch read through Health Connect (Android only; hidden elsewhere).
+// Settings card for a smartwatch read through Health Connect. Linking works only in the Android app;
+// elsewhere the card says how to link the watch there.
 export function WatchPanel(): string {
-  return healthSupported() ? '<section class="device-panel" aria-labelledby="watch-title" data-watch-panel></section>' : '';
+  if (!healthSupported()) {
+    return `<section class="device-panel" aria-labelledby="watch-title"><div class="device-heading"><h2 id="watch-title">Ухаалаг цаг</h2></div>
+      <p>Galaxy Watch-ийг Дусал Android апп-аас холбоно: Профайл → Холбосон бүртгэл → «Цагтай холбох». Алхам, зүрхний цохилт, калори нь Health Connect-ээр ирнэ.</p></section>`;
+  }
+  return '<section class="device-panel" aria-labelledby="watch-title" data-watch-panel></section>';
 }
 
 let listening = false;
