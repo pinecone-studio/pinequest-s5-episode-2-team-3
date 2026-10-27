@@ -88,7 +88,7 @@ export function hxGauge(drink: number, goal: number, mode: Mode, cup: number, dr
     <div class="hx-gauge${over ? ' over' : ''}" data-goal="${goal}" role="img" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл">
       <svg viewBox="0 0 300 270" aria-hidden="true">
         <path class="hx-track" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100"/>
-        <path class="hx-progress" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100" stroke-dasharray="${(frac * 100).toFixed(1)} 100"/>
+        <path class="hx-progress${frac > 0 ? '' : ' empty'}" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100" stroke-dasharray="${(frac * 100).toFixed(1)} 100"/>
         <g class="hx-ticks">${ticks}</g>
         <defs><clipPath id="hx-drop"><path d="M150 72c-26 34-42 54-42 76a42 42 0 0 0 84 0c0-22-16-42-42-76z"/></clipPath></defs>
         <path class="hx-drop-ring" d="M150 62c-31 39-50 62-50 86a50 50 0 0 0 100 0c0-24-19-47-50-86z"/>
