@@ -550,7 +550,9 @@ html .ob-check input { width: 22px; height: 22px; accent-color: var(--sky); }
 html .ob-check a { color: var(--sky); }
 html .ob-or { display: flex; align-items: center; gap: 12px; margin: 6px 0; color: var(--muted); font-size: 14px; }
 html .ob-or::before, html .ob-or::after { content: ""; flex: 1; border-top: 1px solid #eeeeee; }
-html .ob-social { min-height: 56px; border: 1px solid #eeeeee; border-radius: 999px; background: #fff; font-size: 16px; font-weight: 600; color: var(--ink); }
+html .ob-social { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border: 1px solid #eeeeee; border-radius: 999px; background: #fff; font-size: 16px; font-weight: 600; color: var(--ink); }
+html .ob-social svg { width: 20px; height: 20px; }
+html .ob-social:disabled { opacity: .6; }
 html .ob-demo { margin: 4px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
 html .ob-error { margin: 0; color: #f75555; font-size: 14px; font-weight: 600; }
 html .ob-form .ob-actions { margin: auto -24px 0; }
