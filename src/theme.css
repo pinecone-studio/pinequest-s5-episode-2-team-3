@@ -29,6 +29,8 @@ html .app-top .brand > .brand-mark { background: var(--sky-soft); box-shadow: no
 html .app-date { background: var(--sky-soft); color: var(--sky-deep); }
 @media (min-width: 561px) {
   html main.home-app > .app-shell { background: #fff; }
+  /* Hydrify pages: grey ground so their white cards stand out, as on a phone and in dark. */
+  html main.home-app > .app-shell:has(.hx-header) { background: var(--home-bg); }
 }
 @media (max-width: 560px) {
   html .app-shell { background: #fff; }
