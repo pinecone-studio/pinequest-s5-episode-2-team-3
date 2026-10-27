@@ -1,6 +1,6 @@
 // Account settings of the Hydrify demo that live only on this phone: the onboarding answers the
-// profile does not keep (sex, climate), preferences, the reminder mode, security switches, the plan,
-// payment methods, theme and language. Each is one JSON object read with its defaults filled in.
+// profile does not keep (sex, climate), preferences, the reminder mode, security switches, theme and
+// language. Each is one JSON object read with its defaults filled in.
 function store<T extends object>(key: string, defaults: T) {
   return {
     read(): T {
@@ -33,20 +33,8 @@ export const security = store('dusal-security-v1', { biometric: false, faceId: f
 export const linked = store('dusal-linked-v1', { google: true, apple: true, facebook: false, twitter: false });
 export const analytics = store('dusal-analytics-v1', { usage: true, ads: false });
 
-export type Plan = 'free' | 'month' | 'year';
-export const plan = store('dusal-premium-v1', { plan: 'free' as Plan, since: '' });
-
+// A linked account or service shown with its brand mark (Холбосон бүртгэл).
 export interface PayMethod { id: string; name: string; detail: string; brand: string }
-export const payments = store('dusal-payments-v1', {
-  list: [
-    { id: 'paypal', name: 'PayPal', detail: 'sarnai@dusal.mn', brand: 'paypal' },
-    { id: 'gpay', name: 'Google Pay', detail: 'sarnai@dusal.mn', brand: 'google' },
-    { id: 'apple', name: 'Apple Pay', detail: 'sarnai@dusal.mn', brand: 'apple' },
-    { id: 'mc', name: 'Mastercard', detail: '•••• •••• •••• 4679', brand: 'mastercard' },
-    { id: 'visa', name: 'Visa', detail: '•••• •••• •••• 5567', brand: 'visa' },
-  ] as PayMethod[],
-  selected: 'mc',
-});
 
 export const look = store('dusal-look-v1', { theme: 'light' as 'system' | 'light' | 'dark', language: 'mn' });
 

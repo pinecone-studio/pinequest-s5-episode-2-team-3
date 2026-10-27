@@ -5,7 +5,7 @@ import { chooseSheet, confirmSheet, openAmountSheet, pickTime } from './hx-edit'
 import { readSettings, writeSettings } from './schedule';
 import { ACTIVITIES, readProfile, writeProfile, type Activity } from './plan';
 import { readMember } from './member';
-import { about, analytics, applyTheme, linked, look, payments, plan, prefs, reminder, security, type PayMethod } from './prefs';
+import { about, analytics, applyTheme, linked, look, prefs, reminder, security, type PayMethod } from './prefs';
 import { notify } from './components/Toast';
 
 // Account sub-screens, Hydrify layout (kit 52–84). Each is a #hash view: a title, the parent it goes
@@ -53,18 +53,8 @@ function on(root: HTMLElement, acts: Record<string, (el: HTMLElement) => void>, 
   });
 }
 
-// ---- Premium (kit 53–58, 69) ----
-const PRICES = { month: { price: 9900, per: 'сар' }, year: { price: 94900, per: 'жил' } } as const;
-const FEATURES = ['Зар сурталчилгаагүй', 'Өдрийн усаа хязгааргүй бүртгэх', 'Бүх түүхийг хязгааргүй харах', 'Усны дэлгэрэнгүй тайлан, шинжилгээ', 'Сануулгын нэмэлт горимууд (илүү олон удаа)', 'Premium-ийн онцгой боломж, шинэчлэлтүүд'];
-let billing: 'month' | 'year' = 'year';
+// ---- Linked accounts: brand marks ----
 const tick = '<svg class="ac-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-function priceCard(which: 'month' | 'year', extra = ''): string {
-  const p = PRICES[which];
-  return `<section class="hx-card ac-price">${which === 'year' ? '<span class="ac-save">20% хэмнэлт</span>' : ''}
-    <h2>Дусал Premium</h2><p class="ac-amount">${number(p.price)}₮<small> / ${p.per}</small></p>
-    <ul>${FEATURES.map(f => `<li>${tick}${f}</li>`).join('')}</ul>${extra}</section>`;
-}
-
 const BRAND: Record<string, string> = {
   paypal: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#fff"/><path d="M15 10h8a6 6 0 0 1 0 12h-4l-1.5 8H13z" fill="#253b80"/><path d="M18 14h6a5 5 0 0 1 0 10h-3l-1.2 6h-3.6z" fill="#179bd7"/></svg>',
   google: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#fff"/><path d="M29 20.3c0-.7 0-1.3-.2-1.9H20v3.6h5a4.3 4.3 0 0 1-1.9 2.8v2.3h3A9 9 0 0 0 29 20.3z" fill="#4285f4"/><path d="M20 29a8.9 8.9 0 0 0 6.1-2.2l-3-2.3a5.5 5.5 0 0 1-8.2-2.9h-3.1v2.4A9 9 0 0 0 20 29z" fill="#34a853"/><path d="M14.9 21.6a5.4 5.4 0 0 1 0-3.4v-2.4h-3.1a9 9 0 0 0 0 8.2z" fill="#fbbc05"/><path d="M20 14.6a4.9 4.9 0 0 1 3.4 1.3l2.6-2.6A8.7 8.7 0 0 0 20 11a9 9 0 0 0-8.2 4.8l3.1 2.4A5.4 5.4 0 0 1 20 14.6z" fill="#ea4335"/></svg>',
@@ -76,16 +66,6 @@ const BRAND: Record<string, string> = {
 };
 const brand = (m: PayMethod) => `<span class="ac-brand" aria-hidden="true">${BRAND[m.brand] ?? BRAND.card}</span>`;
 const method = (m: PayMethod, right: string) => `<span class="ac-pay">${brand(m)}<span class="ac-label">${escape(m.name)}<small>${escape(m.detail)}</small></span>${right}</span>`;
-
-function processing(): void {
-  const box = document.createElement('div');
-  box.className = 'hx-dim ac-processing';
-  box.innerHTML = '<div class="ac-process-card" role="status"><span class="ac-spin" aria-hidden="true"></span><p>Төлбөр боловсруулж байна…</p></div>';
-  document.body.append(box);
-  setTimeout(() => { box.remove(); plan.write({ plan: billing, since: new Date().toISOString() }); go('upgraded'); }, 1600);
-}
-
-const CONFETTI = Array.from({ length: 22 }, (_, i) => `<i style="left: ${(i * 41) % 100}%; top: ${(i * 29) % 30}%; background: ${['#369fff', '#f97316', '#facc15', '#ec4899'][i % 4]}; transform: rotate(${(i * 53) % 180}deg)"></i>`).join('');
 
 // ---- Cups (kit 59–62) ----
 let editing: { index: number; cup: Cup } | null = null;
@@ -114,7 +94,7 @@ const FAQ: Record<string, [string, string][]> = {
     ['Бүртгэл хэр нарийвчлалтай вэ?', 'Ухаалаг суурь жингийн мэдрэгчээр ±5 мл нарийвчлалтай хэмжинэ. Гараар нэмэхэд таны сонгосон аяганы хэмжээ орно.'],
   ],
   'Бүртгэл': [
-    ['Дусал үнэгүй юу?', 'Үндсэн боломжууд үнэгүй. Premium нь дэлгэрэнгүй тайлан, нэмэлт сануулга нэмнэ.'],
+    ['Дусал үнэгүй юу?', 'Тийм. Апп бүрэн үнэгүй, сарын төлбөргүй. Зөвхөн ухаалаг суурийг нэг удаа худалдаж авна.'],
     ['Өгөгдөл маань аюулгүй юу?', 'Бүртгэл таны утсанд хадгалагдаж, зөвхөн таны төхөөрөмжүүдийн хооронд синк хийгдэнэ.'],
   ],
   'Үйлчилгээ': [['Өгөгдлөө экспортлож болох уу?', 'Тийм. Өгөгдөл ба шинжилгээ → Өгөгдлөө татах хэсгээс JSON файл болгон татна.']],
@@ -194,74 +174,6 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
     chooseSheet(title, opts.map(o => [o, o]), String(p()[key]), v => { prefs.write({ [key]: v }); ctx.redraw(); });
 
   const VIEWS: Record<string, View> = {
-    upgrade: {
-      title: 'Багц ахиулах', back: '',
-      body: () => `<div class="rp-tabs ac-tabs" role="tablist" aria-label="Хугацаа"><button type="button" role="tab" aria-selected="${billing === 'month'}" data-act="bill" data-v="month">Сараар</button><button type="button" role="tab" aria-selected="${billing === 'year'}" data-act="bill" data-v="year">Жилээр</button></div>${priceCard(billing)}`,
-      foot: blue(`Үргэлжлүүлэх · ${number(PRICES[billing].price)}₮`, 'data-act="next"'),
-      bind: root => on(root, { bill: el => { billing = el.dataset.v as 'month' | 'year'; ctx.redraw(); }, next: () => go('pay-choose') }),
-    },
-    'pay-choose': {
-      title: 'Төлбөрийн хэрэгсэл сонгох', back: 'upgrade', right: '<a class="hx-more ac-head-plus" href="#payment-new" aria-label="Шинэ карт нэмэх">+</a>',
-      body: () => { const { list, selected } = payments.read(); return `<div class="ac-pay-list" role="radiogroup" aria-label="Төлбөрийн хэрэгсэл">${list.map(m => `<button type="button" role="radio" aria-checked="${m.id === selected}" class="hx-card ac-pay-opt${m.id === selected ? ' on' : ''}" data-act="pick" data-id="${m.id}">${method(m, m.id === selected ? tick : '')}</button>`).join('')}</div>`; },
-      foot: blue('OK', 'data-act="ok"'),
-      bind: root => on(root, { pick: el => { payments.write({ selected: el.dataset.id! }); ctx.redraw(); }, ok: () => go('review') }),
-    },
-    review: {
-      title: 'Захиалгын хураангуй', back: 'pay-choose',
-      body: () => { const { list, selected } = payments.read(); const m = list.find(x => x.id === selected) ?? list[0];
-        return `${priceCard(billing)}<h2 class="ac-sub">Сонгосон төлбөрийн хэрэгсэл</h2><section class="hx-card">${method(m, '<a class="ac-change" href="#pay-choose">Солих</a>')}</section>`; },
-      foot: blue(`Төлбөр батлах · ${number(PRICES[billing].price)}₮`, 'data-act="pay"'),
-      bind: root => on(root, { pay: processing }),
-    },
-    upgraded: {
-      title: '', back: '',
-      body: () => `<div class="ac-congrats"><div class="dr-confetti" aria-hidden="true">${CONFETTI}</div><span class="ac-crown-big" aria-hidden="true">♛</span>
-        <h2>Баяр хүргэе!</h2><p>Та ${billing === 'year' ? 'жилийн' : 'сарын'} Premium багц руу шилжлээ.</p></div>
-        <section class="hx-card ac-benefits"><h3>Нээгдсэн боломжууд:</h3><ul>${FEATURES.map(f => `<li>${tick}${f}</li>`).join('')}</ul>
-        <p class="ac-small center">Захиалга ${billing === 'year' ? 'жил' : 'сар'} бүр автоматаар сунгагдана. «Төлбөр ба захиалга» хэсгээс цуцалж болно.</p></section>`,
-      foot: blue('Premium-ийг туршиж эхлэх', 'data-act="start"'),
-      bind: root => on(root, { start: () => { location.href = '/'; } }),
-    },
-    billing: {
-      title: 'Төлбөр ба захиалга', back: '',
-      body: () => {
-        const cur = plan.read();
-        if (cur.plan === 'free') return priceCard('year', '<p class="ac-current">Одоогийн багц: Үнэгүй</p>') + `<p class="ac-small center">Premium-д шилжвэл тайлан, сануулгын бүх горим нээгдэнэ.</p>`;
-        const end = new Date(cur.since || Date.now()); end.setMonth(end.getMonth() + (cur.plan === 'year' ? 12 : 1));
-        return priceCard(cur.plan, '<p class="ac-current">Таны одоогийн багц</p>') + `<p class="ac-small center">Захиалга ${end.getFullYear()}.${String(end.getMonth() + 1).padStart(2, '0')}.${String(end.getDate()).padStart(2, '0')}-нд дуусна. <button type="button" class="ac-inline" data-act="cancel">Цуцлах</button></p>`;
-      },
-      foot: plan.read().plan === 'free' ? blue('Premium-д шилжих', 'data-act="up"') : undefined,
-      bind: root => on(root, { up: () => go('upgrade'), cancel: () => confirmSheet('Захиалга цуцлах', 'Premium багцаа цуцлах уу?', 'Тийм, цуцлах', () => { plan.write({ plan: 'free', since: '' }); notify('Захиалгыг цуцаллаа (demo).'); ctx.redraw(); }) }),
-    },
-    payment: {
-      title: 'Төлбөрийн хэрэгсэл', back: '',
-      body: () => `<div class="ac-pay-list">${payments.read().list.map(m => `<div class="hx-card ac-pay-opt">${method(m, '<em class="ac-connected">Холбогдсон</em>')}</div>`).join('')}</div>`,
-      foot: blue('+ Шинэ төлбөрийн хэрэгсэл', 'data-act="add"'),
-      bind: root => on(root, { add: () => go('payment-new') }),
-    },
-    'payment-new': {
-      title: 'Шинэ төлбөр нэмэх', back: 'payment',
-      body: () => `<form class="ac-form" id="pay-form" novalidate>
-        <label class="ob-field">Картын дугаар<input name="number" inputmode="numeric" autocomplete="cc-number" maxlength="19" placeholder="0000 0000 0000 0000"/></label>
-        <label class="ob-field">Эзэмшигчийн нэр<input name="name" autocomplete="cc-name" placeholder="Нэр"/></label>
-        <div class="ac-form-two"><label class="ob-field">Дуусах хугацаа<input name="exp" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/YY"/></label>
-        <label class="ob-field">CVV<input name="cvv" inputmode="numeric" autocomplete="cc-csc" maxlength="4" placeholder="000"/></label></div>
-        <p class="ac-small">Дэмжигдэх карт:</p><div class="ac-brands">${BRAND.mastercard}${BRAND.visa}${BRAND.amex}</div>
-        <p class="ob-error" role="alert" hidden></p>
-        <p class="ac-small">Demo: картын дугаарын зөвхөн сүүлийн 4 орон энэ утсанд хадгалагдана, хаашаа ч илгээгдэхгүй.</p></form>`,
-      foot: blue('Хадгалах', 'data-act="save"'),
-      bind: root => on(root, { save: () => {
-        const f = new FormData(root.querySelector<HTMLFormElement>('#pay-form')!);
-        const digits = String(f.get('number')).replace(/\D/g, ''), name = String(f.get('name')).trim();
-        const error = root.querySelector<HTMLElement>('.ob-error')!;
-        if (digits.length < 12 || !name || !/^\d{2}\/\d{2}$/.test(String(f.get('exp'))) || !/^\d{3,4}$/.test(String(f.get('cvv')))) { error.textContent = 'Картын мэдээллээ бүрэн, зөв бөглөнө үү.'; error.hidden = false; return; }
-        const b = digits.startsWith('4') ? 'visa' : digits.startsWith('5') ? 'mastercard' : digits.startsWith('3') ? 'amex' : 'card';
-        const m: PayMethod = { id: crypto.randomUUID(), name: { visa: 'Visa', mastercard: 'Mastercard', amex: 'American Express', card: 'Карт' }[b]!, detail: `•••• •••• •••• ${digits.slice(-4)}`, brand: b };
-        payments.write({ list: [...payments.read().list, m], selected: m.id });
-        notify('Шинэ карт нэмэгдлээ.');
-        history.back();
-      } }),
-    },
     cups: {
       title: 'Миний аяганууд', back: '', right: '<a class="hx-more ac-head-plus" href="#cup-new" aria-label="Аяга нэмэх">+</a>',
       body: cupsList,
