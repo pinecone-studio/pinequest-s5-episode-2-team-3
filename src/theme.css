@@ -36,6 +36,8 @@ html .app-date { background: var(--sky-soft); color: var(--sky-deep); }
 
 /* Tab bar: white, icon over label, the current page in sky blue. */
 html .app-top .site-nav { background: #fff; }
+/* The header holds the fixed tab bar; lifting it keeps chart dots and tips from painting over the bar. */
+html .app-top { position: relative; z-index: 40; }
 html main.home-app .app-top .site-nav, html .app-top .site-nav { border-color: var(--hair); box-shadow: 0 -4px 20px rgba(70, 140, 200, .1); }
 html .app-top .site-nav a[aria-current="page"], html main.home-app .app-top .site-nav a[aria-current="page"] { color: var(--sky-deep); background: none; }
 html .site-nav a[aria-current="page"] .nav-icon { color: var(--sky-deep); }
@@ -329,7 +331,7 @@ html .rp-range button:disabled { color: #bdbdbd; }
 html .rp-bars, html .rp-line { display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-template-rows: 200px auto; gap: 6px 4px; margin-top: 16px; }
 html .rp-axis { display: flex; flex-direction: column; justify-content: space-between; font-size: 12px; color: var(--muted); }
 html .rp-plot { position: relative; display: flex; align-items: flex-end; height: 200px; }
-html .rp-bar { position: relative; display: flex; align-items: flex-end; justify-content: center; height: 100%; padding: 0 3px; border: 0; background: none; }
+html .rp-bar { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; justify-content: center; height: 100%; padding: 0 3px; border: 0; background: none; }
 html .rp-bar i { display: block; width: 100%; max-width: 32px; border-radius: 999px 999px 0 0; background: #9dcfff; }
 html .rp-bar.on i { background: var(--sky); }
 html .rp-tip { position: absolute; top: -6px; left: 50%; transform: translate(-50%, -100%); padding: 4px 8px; border: 3px solid var(--sky); border-radius: 999px; background: #fff; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
