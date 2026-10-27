@@ -523,6 +523,10 @@ html .dr-actions .dr-share { background: var(--sky); color: #fff; }
 /* Onboarding, Hydrify layout (onboarding.ts). */
 html .onb.ob { display: block; padding: 0; background: #fff; overflow-y: auto; }
 @media (min-width: 561px) { html .onb.ob { left: 50%; right: auto; width: 430px; transform: translateX(-50%); box-shadow: 0 0 60px rgba(0, 0, 0, .12); } }
+/* On a computer the full-screen views take the same phone-sized frame as the pages. */
+@media (min-width: 561px) {
+  html .onb.ob, html .hx-sheet, html .day-result, html .drink-sheet { top: 20px; bottom: auto; height: min(932px, calc(100vh - 40px)); height: min(932px, calc(100dvh - 40px)); border-radius: 30px; }
+}
 html .ob-screen { min-height: 100%; display: flex; flex-direction: column; }
 html .ob-screen > div { flex: 1; display: flex; flex-direction: column; }
 html .ob h2 { margin: 0; font-size: 28px; font-weight: 800; line-height: 1.3; text-align: center; color: var(--ink); letter-spacing: -.3px; }
