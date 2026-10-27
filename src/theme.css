@@ -877,3 +877,14 @@ html .hydro .weather-chip { display: flex; align-items: center; justify-content:
 html .hydro .weather-chip b { color: var(--sky); }
 html .hydro .weather-reason { width: 100%; max-width: none; margin: -16px 0 0; padding: 4px 18px 14px; border-radius: 0 0 16px 16px; background: #fff; font-size: 14px; line-height: 1.5; color: var(--muted); text-align: center; }
 html[data-theme="dark"] .hydro .weather-chip, html[data-theme="dark"] .hydro .weather-reason { background: #1f222a; }
+
+/* Drag the gauge's arc to add water: a knob at the end of the arc and "+350 мл" while dragging */
+html .hx-gauge svg { touch-action: none; cursor: grab; }
+html .hx-gauge.dragging svg { cursor: grabbing; }
+html .hx-gauge.dragging .hx-progress, html .hx-gauge.dragging .hx-water { transition: none; }
+html .hx-knob { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 5px solid var(--sky); border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(54, 159, 255, .45); cursor: grab; touch-action: none; transition: transform .15s; }
+html .hx-knob:focus-visible { outline: 3px solid var(--sky-soft); outline-offset: 2px; }
+html .hx-gauge.dragging .hx-knob { transform: scale(1.25); }
+html .hx-drag-add { position: absolute; left: 50%; top: 44%; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: var(--sky); color: #fff; font-size: 15px; font-weight: 800; white-space: nowrap; pointer-events: none; }
+html .hx-drag-add[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { html .hx-knob { transition: none; } }

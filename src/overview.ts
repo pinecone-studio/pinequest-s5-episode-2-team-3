@@ -5,7 +5,7 @@ import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
 import { bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
-import { hxGauge, hxHeader, openCupSheet, readCup, readCupKind } from './hydrify';
+import { bindGaugeDrag, hxGauge, hxHeader, openCupSheet, readCup, readCupKind } from './hydrify';
 import { setKind } from './drinks';
 import { bindWatchCard, loadInsight, watchCard } from './watch-card';
 import { health } from './health';
@@ -462,6 +462,7 @@ function render() {
   void reportFamily(state, drink);
   bindFamily();
   bindHydration(drink, addDrink, render);
+  bindGaugeDrag(addDrink);
   document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
