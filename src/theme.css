@@ -272,7 +272,8 @@ html .hx-ticks path { stroke: #bdbdbd; stroke-width: 2; stroke-linecap: round; }
 html .hx-drop-ring { fill: #f5f5f5; }
 html .hx-drop { fill: #fff; }
 html .hx-water { transition: transform 1s cubic-bezier(.3, 1.2, .5, 1); }
-html .hx-wave { fill: url(#none); fill: #2f86e8; animation: gauge-wave 3s linear infinite; }
+html .hx-wave { fill: #2f86e8; animation: hx-wave 2.4s linear infinite; }
+@keyframes hx-wave { to { transform: translateX(60px); } }
 html .hx-wave.back { fill: #0062e5; animation-duration: 4.2s; }
 html .hx-wave:not(.back) { fill: #197fff; }
 html .hx-amount { position: absolute; left: 0; right: 0; top: 66%; margin: 0; text-align: center; font-size: 46px; font-weight: 800; letter-spacing: -1px; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -880,3 +881,23 @@ html .hb-ring b { position: absolute; inset: 0; display: grid; place-items: cent
 html[data-theme="dark"] .hb-tile.green { background: #1d2f24; } html[data-theme="dark"] .hb-tile.cyan { background: #18303a; }
 html[data-theme="dark"] .hb-tile b, html[data-theme="dark"] .hb-tile h3 { color: #fff; }
 html[data-theme="dark"] .hb-icon, html[data-theme="dark"] .hb-ring .bg { background: #1f222a; stroke: #1f222a; }
+
+/* An empty arc would still draw its two round caps as dots at both ends. */
+html .hx-progress.empty { visibility: hidden; }
+/* Today's weather (weather.ts) as a Hydrify card under the gauge */
+html .hydro .weather-chip { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 0; padding: 12px 16px 4px; border-radius: 16px 16px 0 0; background: #fff; font-size: 15px; font-weight: 600; color: var(--ink); }
+html .hydro .weather-chip b { color: var(--sky); }
+html .hydro .weather-reason { width: 100%; max-width: none; margin: -16px 0 0; padding: 4px 18px 14px; border-radius: 0 0 16px 16px; background: #fff; font-size: 14px; line-height: 1.5; color: var(--muted); text-align: center; }
+html[data-theme="dark"] .hydro .weather-chip, html[data-theme="dark"] .hydro .weather-reason { background: #1f222a; }
+
+/* Drag the gauge's arc to add water: a knob at the end of the arc and "+350 мл" while dragging */
+html .hx-gauge svg { touch-action: none; cursor: grab; }
+html .hx-gauge.dragging svg { cursor: grabbing; }
+html .hx-gauge.dragging .hx-progress, html .hx-gauge.dragging .hx-water { transition: none; }
+html .hx-knob { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 5px solid var(--sky); border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(54, 159, 255, .45); cursor: grab; touch-action: none; transition: transform .15s; }
+html .hx-knob:focus-visible { outline: 3px solid var(--sky-soft); outline-offset: 2px; }
+html .hx-gauge.dragging .hx-knob { transform: scale(1.25); }
+html .hx-drag-add { position: absolute; left: 50%; top: 44%; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: var(--sky); color: #fff; font-size: 15px; font-weight: 800; white-space: nowrap; pointer-events: none; }
+html .hx-drag-add[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { html .hx-knob { transition: none; } }
+@media (prefers-reduced-motion: reduce) { html .hx-wave { animation: none; } }

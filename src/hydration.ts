@@ -417,7 +417,9 @@ function bindPourHandle(buddy: HTMLElement | null, drink: number): void {
     if (!water && gauge) {
       const f = Math.min(1, (drink + (ml ?? 0)) / goal);
       gauge.querySelector<SVGGElement>('.hx-water')!.style.transform = `translateY(${(196 - f * 92).toFixed(1)}px)`;
-      gauge.querySelector('.hx-progress')!.setAttribute('stroke-dasharray', `${(f * 100).toFixed(1)} 100`);
+      const arc = gauge.querySelector('.hx-progress')!;
+      arc.setAttribute('stroke-dasharray', `${(f * 100).toFixed(1)} 100`);
+      arc.classList.toggle('empty', f <= 0);
       gauge.classList.toggle('pouring', ml !== null);
       return;
     }

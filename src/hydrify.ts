@@ -76,6 +76,83 @@ export function hxHeader(title: string): string {
 
 // A 270° arc from bottom left round to bottom right, filled to today's share, with ticks inside,
 // and a water drop in the middle whose water rises with it.
+// A wave far wider than the drop (x 108–192): it slides one wavelength (60) and starts over, so its
+// ends never show inside the drop.
+const WAVE = (x: number, y: number) => `M${x} ${y} q15 -8 30 0${' t30 0'.repeat(15)} V120 H${x}Z`;
+
+// Where the knob sits on the arc for a share of the goal, in % of the gauge box (viewBox 300×270).
+function knobAt(frac: number): string {
+  const a = ((135 + frac * 270) * Math.PI) / 180;
+  return `left: ${(((150 + 122 * Math.cos(a)) / 300) * 100).toFixed(2)}%; top: ${(((150 + 122 * Math.sin(a)) / 270) * 100).toFixed(2)}%`;
+}
+
+// Drag the arc (finger or mouse) round to a new total: the water, the arc, the knob and the number
+// follow, "+350 мл" shows what will be added, and letting go adds it. Starting on the knob or
+// anywhere on the ring works; dragging back to today's total adds nothing. The arc ends at the goal
+// (more than that goes through «Уух» or «↕»). Keyboard on the knob: arrows ±10 мл (Shift ±100),
+// Enter adds, Escape puts it back.
+export function bindGaugeDrag(add: (ml: number) => unknown): void {
+  const gauge = document.querySelector<HTMLElement>('.hx-gauge');
+  if (!gauge) return;
+  const svg = gauge.querySelector('svg')!, knob = gauge.querySelector<HTMLElement>('.hx-knob')!;
+  const label = gauge.querySelector<HTMLElement>('.hx-drag-add')!, amount = gauge.querySelector<HTMLElement>('#today-drink')!;
+  const arc = gauge.querySelector('.hx-progress')!, water = gauge.querySelector<SVGGElement>('.hx-water')!;
+  const goal = Number(gauge.dataset.goal), drink = Number(gauge.dataset.drinkNow);
+  let target = drink, dragging = false;
+  const show = (total: number) => {
+    target = Math.max(drink, Math.min(Math.max(drink, goal), total));
+    const f = Math.min(1, target / goal), extra = target - drink;
+    arc.setAttribute('stroke-dasharray', `${(f * 100).toFixed(1)} 100`);
+    arc.classList.toggle('empty', f <= 0);
+    water.style.transform = `translateY(${(196 - f * 92).toFixed(1)}px)`;
+    knob.setAttribute('style', knobAt(f));
+    knob.setAttribute('aria-valuenow', String(target)); knob.setAttribute('aria-valuetext', `${number(target)} мл, +${number(extra)} мл`);
+    amount.textContent = number(target);
+    label.hidden = extra <= 0; label.textContent = `+${number(extra)} мл`;
+    gauge.classList.toggle('dragging', extra > 0 || dragging);
+  };
+  const reset = () => { dragging = false; show(drink); gauge.classList.remove('dragging'); };
+  const commit = () => { const extra = target - drink; dragging = false; gauge.classList.remove('dragging'); if (extra >= 10) add(extra); else reset(); };
+  // Pointer → share of the arc: angle from the centre, 135° (start, bottom left) round to 45°.
+  const fracAt = (e: PointerEvent): number | null => {
+    const m = svg.getScreenCTM();
+    if (!m) return null;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    const deg = ((Math.atan2(p.y - 150, p.x - 150) * 180) / Math.PI + 360 - 135) % 360;
+    return deg <= 270 ? deg / 270 : deg < 315 ? 1 : 0;
+  };
+  const onRing = (e: PointerEvent) => {
+    const m = svg.getScreenCTM();
+    if (!m) return false;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    const r = Math.hypot(p.x - 150, p.y - 150);
+    return r > 92 && r < 152;
+  };
+  gauge.addEventListener('pointerdown', e => {
+    if ((e.target as Element).closest('button')) return;
+    if (e.target !== knob && !onRing(e)) return;
+    e.preventDefault();
+    dragging = true;
+    gauge.setPointerCapture(e.pointerId);
+    const f = fracAt(e);
+    if (f !== null) show(Math.round((f * goal) / 10) * 10);
+  });
+  gauge.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const f = fracAt(e);
+    if (f !== null) show(Math.round((f * goal) / 10) * 10);
+  });
+  gauge.addEventListener('pointerup', () => { if (dragging) commit(); });
+  gauge.addEventListener('pointercancel', reset);
+  knob.addEventListener('keydown', e => {
+    const step = e.shiftKey ? 100 : 10;
+    const by = { ArrowUp: step, ArrowRight: step, ArrowDown: -step, ArrowLeft: -step }[e.key];
+    if (by) { e.preventDefault(); show(target + by); }
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') reset();
+  });
+}
+
 export function hxGauge(drink: number, goal: number, mode: Mode, cup: number, drinking = false): string {
   const kind = readCupKind();
   const frac = Math.max(0, Math.min(1, drink / goal));
@@ -85,19 +162,21 @@ export function hxGauge(drink: number, goal: number, mode: Mode, cup: number, dr
     .map(deg => `<path d="M${point(deg, 94)} L${point(deg, 102)}"/>`).join('');
   const level = 196 - frac * 92; // water top inside the drop (it spans y 104–196)
   return `<section class="hx-card hx-gauge-card" aria-label="Өнөөдрийн ус">
-    <div class="hx-gauge${over ? ' over' : ''}" data-goal="${goal}" role="img" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл">
+    <div class="hx-gauge${over ? ' over' : ''}" data-goal="${goal}" data-drink-now="${drink}" data-no-swipe role="group" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл">
       <svg viewBox="0 0 300 270" aria-hidden="true">
         <path class="hx-track" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100"/>
-        <path class="hx-progress" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100" stroke-dasharray="${(frac * 100).toFixed(1)} 100"/>
+        <path class="hx-progress${frac > 0 ? '' : ' empty'}" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100" stroke-dasharray="${(frac * 100).toFixed(1)} 100"/>
         <g class="hx-ticks">${ticks}</g>
         <defs><clipPath id="hx-drop"><path d="M150 72c-26 34-42 54-42 76a42 42 0 0 0 84 0c0-22-16-42-42-76z"/></clipPath></defs>
         <path class="hx-drop-ring" d="M150 62c-31 39-50 62-50 86a50 50 0 0 0 100 0c0-24-19-47-50-86z"/>
         <path class="hx-drop" d="M150 72c-26 34-42 54-42 76a42 42 0 0 0 84 0c0-22-16-42-42-76z"/>
         <g clip-path="url(#hx-drop)"><g class="hx-water" style="transform: translateY(${level.toFixed(1)}px)">
-          <path class="hx-wave back" d="M60 0 q15 -8 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 V120 H60Z"/>
-          <path class="hx-wave" d="M45 6 q15 -8 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 V120 H45Z"/>
+          <path class="hx-wave back" d="${WAVE(-60, 0)}"/>
+          <path class="hx-wave" d="${WAVE(-90, 6)}"/>
         </g></g>
       </svg>
+      <span class="hx-knob" role="slider" tabindex="0" aria-label="Нумыг чирж ус нэмэх (сум товч, Enter)" aria-valuemin="${drink}" aria-valuemax="${Math.max(drink, goal)}" aria-valuenow="${drink}" aria-valuetext="${number(drink)} мл" style="${knobAt(frac)}"></span>
+      <span class="hx-drag-add" aria-hidden="true" hidden></span>
       <p class="hx-amount"><b id="today-drink">${number(drink)}</b></p>
       <button type="button" class="hx-goal" id="plan-toggle" aria-controls="plan-wrap" aria-expanded="false">/${number(goal)} мл${mode === 'limit' ? ' хязгаар' : ''}</button>
     </div>
