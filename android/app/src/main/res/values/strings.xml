@@ -4,6 +4,15 @@
     <string name="title_activity_main">Дусал</string>
     <string name="package_name">mn.pinecone.dusal</string>
     <string name="custom_url_scheme">mn.pinecone.dusal</string>
-    <string name="widget_face">Усны дусал</string>
-    <string name="widget_description">Өнөөдрийн ус эсвэл эмчийн хязгаараас үлдсэн хэмжээ, дараагийн уух цаг</string>
+    <!-- Home screen widgets: names and descriptions in the widget picker. -->
+    <string name="widget_drink_name">Өнөөдрийн ус</string>
+    <string name="widget_drink_info_description">Өнөөдөр уусан ус, хэдэн удаа уусан, зорилтдоо хэр ойр байгаа</string>
+    <string name="widget_limit_name">Үлдсэн хэмжээ</string>
+    <string name="widget_limit_info_description">Эмчийн хязгаараас үлдсэн эсвэл уусан хэмжээгээр дүүрэх ус</string>
+    <string name="widget_ring_name">Цагираг</string>
+    <string name="widget_ring_info_description">Өнөөдрийн ус цагаан цагираг дотор</string>
+    <string name="widget_mix_name">Ундааны задаргаа</string>
+    <string name="widget_mix_info_description">Өнөөдөр юу юу ууснаа ундаа тус бүрээр</string>
+    <string name="widget_gauges_name">Гурван хэмжүүр</string>
+    <string name="widget_gauges_info_description">Өнөөдрийн хувь, streak, 7 хоногийн биелэлт</string>
 </resources>

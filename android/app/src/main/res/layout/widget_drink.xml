@@ -1,82 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Health-app style card (DrinkWidget.java): a small title, one big number, a progress bar and one line
-     under it, left aligned and centred top to bottom, so a taller widget has no empty block. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- «Өнөөдрийн ус», 2×2 (DrinkWidget), like One UI's sleep score: a deep-indigo card with a starry sky,
+     a lavender title, a white drop with how many times today, and the litres big with a round badge of the
+     change from yesterday at this hour, then a status word. Sample values for the picker. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_card"
-    android:gravity="center_vertical"
-    android:orientation="vertical"
-    android:padding="14dp">
+    android:background="@drawable/widget_card_navy">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        android:src="@drawable/widget_stars" />
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="18dp">
 
         <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:text="💧 Дусал"
-            android:textColor="@color/widget_muted"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <!-- The streak (goal days in a row); hidden under a doctor's limit. -->
-        <TextView
-            android:id="@+id/widget_streak"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/widget_warn"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
+            android:maxLines="1"
+            android:text="Өнөөдөр"
+            android:textColor="@color/widget_navy_title"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_w_drop" />
+
+            <TextView
+                android:id="@+id/widget_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:maxLines="1"
+                android:text="5 удаа"
+                android:textColor="@color/widget_white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="bottom"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widget_big"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="1.2"
+                android:textColor="@color/widget_navy_number"
+                android:textSize="46sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="2dp"
+                android:layout_marginBottom="6dp"
+                android:text="л"
+                android:textColor="@color/widget_navy_number"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/widget_badge"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/widget_badge">
+
+                <ImageView
+                    android:id="@+id/widget_arrow"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_w_up" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/widget_delta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:maxLines="1"
+                android:text="0.3"
+                android:textColor="@color/widget_navy_number"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="Хэвийн"
+            android:textColor="@color/widget_white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/widget_big"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:textColor="@color/widget_text"
-        android:textSize="34sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/widget_unit"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:maxLines="1"
-        android:textColor="@color/widget_muted"
-        android:textSize="12sp" />
-
-    <ProgressBar
-        android:id="@+id/widget_bar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:max="1000"
-        android:maxHeight="8dp"
-        android:minHeight="8dp"
-        android:progressBackgroundTint="@color/widget_track"
-        android:progressDrawable="@drawable/widget_progress"
-        android:progressTint="@color/widget_accent" />
-
-    <TextView
-        android:id="@+id/widget_line"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="@color/widget_text"
-        android:textSize="12sp"
-        android:textStyle="bold" />
-</LinearLayout>
+</FrameLayout>

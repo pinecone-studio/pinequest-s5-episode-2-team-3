@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One half of the drinks widget's stacked bar (two ProgressBars on top of each other, see widget_mix.xml). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle"><corners android:radius="16dp" /><solid android:color="@color/widget_gray" /></shape>
+    </item>
+    <item android:id="@android:id/secondaryProgress">
+        <clip><shape android:shape="rectangle"><corners android:radius="16dp" /><solid android:color="#00000000" /></shape></clip>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip><shape android:shape="rectangle"><corners android:radius="16dp" /><solid android:color="@color/widget_bar_green" /></shape></clip>
+    </item>
+</layer-list>

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- «Гурван хэмжүүр», 4×1 (Widgets.gauges), like One UI's battery gauges: today's share of the goal, the
+     streak out of a week, and goal days in the last 7, each a 270° gauge with a white icon and a number. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_pill"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="58dp"
+            android:layout_height="58dp">
+
+            <ProgressBar
+                android:id="@+id/widget_gauge1"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:max="1333"
+                android:progress="600"
+                android:progressDrawable="@drawable/widget_gauge"
+                android:secondaryProgress="1000" />
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_w_drop" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/widget_value1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-6dp"
+            android:maxLines="1"
+            android:text="60%"
+            android:textColor="@color/widget_white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="58dp"
+            android:layout_height="58dp">
+
+            <ProgressBar
+                android:id="@+id/widget_gauge2"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:max="1333"
+                android:progress="571"
+                android:progressDrawable="@drawable/widget_gauge"
+                android:secondaryProgress="1000" />
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_w_flame" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/widget_value2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-6dp"
+            android:maxLines="1"
+            android:text="4"
+            android:textColor="@color/widget_white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="58dp"
+            android:layout_height="58dp">
+
+            <ProgressBar
+                android:id="@+id/widget_gauge3"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:max="1333"
+                android:progress="714"
+                android:progressDrawable="@drawable/widget_gauge"
+                android:secondaryProgress="1000" />
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_w_calendar" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/widget_value3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-6dp"
+            android:maxLines="1"
+            android:text="5/7"
+            android:textColor="@color/widget_white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>
