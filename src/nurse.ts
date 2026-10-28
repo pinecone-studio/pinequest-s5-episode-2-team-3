@@ -6,9 +6,9 @@ import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { escape, number } from './format';
 import { load, onExternalChange } from './storage';
 import { readMember } from './member';
-import { kindOf } from './drinks';
+import { isSalty, kindOf } from './drinks';
 import { Toast, notify } from './components/Toast';
-import { WEEKDAY_LONG, WEEKDAY_SHORT, dayTotals, dialysisLabel, gains, kg, md, readDialysisDays, readWeights, shiftDay, weekday, type Gain } from './progress-data';
+import { WEEKDAY_LONG, WEEKDAY_SHORT, dayTotals, dialysisLabel, gains, kg, md, readDialysisDays, readThirst, readWeights, shiftDay, weekday, type Gain } from './progress-data';
 import './theme.css';
 import './progress.css';
 
@@ -27,6 +27,7 @@ interface Day { key: string; total: number; dialysis: boolean }
 interface Report {
   days: Day[]; dialysis: number[]; name: string; title: string;
   bad: number; average: number; max: Day | null; gains: Gain[]; events: WaterEntry[];
+  salty: number; thirst: number;
 }
 
 function report(): Report {
@@ -42,8 +43,11 @@ function report(): Report {
     // Over the limit, or (with a goal) short of it.
     bad: days.filter(d => (limitMode() ? d.total > state.goal : d.total < state.goal)).length,
     average: logged.length ? Math.round(logged.reduce((s, d) => s + d.total, 0) / logged.length) : 0,
-    gains: gains(readWeights()).filter(g => g.to >= start && g.to <= today),
+    gains: gains(readWeights()).filter(g => g.to >= start && g.to <= today).reverse(),  // newest first
     events: state.events.filter(e => e.type === 'drink' && dayKey(new Date(e.at)) >= start),
+    // Salty milk tea or soup (drink sheet) and times «Цангаж байна» was opened, this week.
+    salty: state.events.filter(e => e.type === 'drink' && dayKey(new Date(e.at)) >= start && isSalty(e)).length,
+    thirst: readThirst().filter(t => dayKey(new Date(t.at)) >= start).length,
   };
 }
 
@@ -100,6 +104,8 @@ function sourceCard(r: Report): string {
       <h2 id="nr-from-title">Юунаас</h2>
       ${list.length ? `<div class="nr-stack" aria-hidden="true">${list.map(s => `<i class="${s.key}" style="flex-grow: ${s.pct}"></i>`).join('')}</div>
       <p class="nr-from-legend">${list.map(s => `<span><i class="${s.key}"></i>${s.label} ${s.pct}%</span>`).join('')}</p>` : '<p class="nr-note">Энэ 7 хоногт бүртгэл алга.</p>'}
+      ${r.salty ? `<p class="nr-extra">Давстай: <b>${r.salty} аяга</b> сүүтэй цай / шөл</p>` : ''}
+      ${r.thirst ? `<p class="nr-extra">Цангасан: <b>${r.thirst} удаа</b></p>` : ''}
     </section>`;
 }
 
@@ -123,6 +129,8 @@ function summary(r: Report): string {
   ];
   const from = sources(r.events);
   if (from.length) lines.push('', `Юунаас: ${from.map(s => `${s.label} ${s.pct}%`).join(', ')}`);
+  if (r.salty) lines.push(`Давстай: ${r.salty} аяга сүүтэй цай / шөл`);
+  if (r.thirst) lines.push(`Цангасан: ${r.thirst} удаа`);
   if (r.gains.length) lines.push('', 'Диализ хоорондын жин:', ...r.gains.map(g => `${gainLine(g)}: ${signedKg(g.kg)} кг`));
   lines.push('', 'ДУСАЛ-ын бүртгэл · эмчилгээний шийдвэрийг эмч гаргана');
   return lines.join('\n');

@@ -97,6 +97,7 @@ html .nr-from-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10
 html .nr-from-legend span { display: inline-flex; align-items: center; gap: 6px; }
 html .nr-from-legend i { width: 10px; height: 10px; border-radius: 3px; }
 html .nr-from .water { background: var(--sky); } html .nr-from .milkTea { background: #b8865a; } html .nr-from .soup { background: #f0bf5a; }
+html .nr-extra { margin: 10px 0 0; font-size: 14px; color: var(--ink); }
 html .nr-weight ul { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 15px; color: var(--ink); }
 html .nr-weight b { font-weight: 800; }
 html .nr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
