@@ -5,7 +5,7 @@ import { ACTIVITIES, CONDITIONS, PROFILE_KEY, calcPlan, readProfile, writeProfil
 import { saveMember, readMember } from './member';
 import { signInWithGoogle } from './google-signin';
 import { readSettings, writeSettings } from './schedule';
-import { openAmountSheet, openNumberSheet } from './hx-edit';
+import { openAmountSheet } from './hx-edit';
 import { about } from './prefs';
 import { climateOf, fetchWeather } from './weather';
 
@@ -202,7 +202,6 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   let sex: Sex | null = null;
   let climate: Climate = 'mild';
   let weather = ''; // the line under the climate cards: where the choice came from
-  let feels: number | null = null; // a felt temperature typed in by hand, offered again next time
   let hUnit: 'cm' | 'ft' = 'cm';
   let wUnit: 'kg' | 'lb' = 'kg';
   let unit: Unit = 'ml';
@@ -269,7 +268,6 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       case 8: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа уур амьсгалыг сонгоно уу.',
         `<div class="ob-cards">${(Object.keys(CLIMATES) as Climate[]).map(c => `<button type="button" class="ob-climate${climate === c ? ' on' : ''}" data-climate="${c}" aria-pressed="${climate === c}"><svg viewBox="0 0 32 32" aria-hidden="true">${CLIMATES[c].icon}</svg><b>${CLIMATES[c].label}</b>${CLIMATES[c].extra ? `<small>+${CLIMATES[c].extra} мл</small>` : ''}</button>`).join('')}</div>
         ${'geolocation' in navigator ? `<button type="button" class="ob-locate" data-locate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Миний байршлын цаг агаараар</button>` : ''}
-        <button type="button" class="ob-locate ob-manual" data-manual><span aria-hidden="true">🌡</span>Температур гараар оруулах</button>
         <p class="ob-weather" role="status">${weather}</p>`);
       default: {
         const list = sex === 'female' ? [FOR_ALL[0], ...FOR_WOMEN, ...FOR_ALL.slice(1)] : FOR_ALL;
@@ -360,8 +358,8 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       weather = `Өнөөдөр таны байршилд ${got.feels}°C мэт мэдрэгдэнэ → «${CLIMATES[climate].label}». Цаашид нүүр хуудас өдөр бүр шалгана.`;
     } catch (err) {
       weather = (err as GeolocationPositionError)?.code === 1
-        ? 'Байршлын зөвшөөрөл өгөөгүй. Температураа гараар оруулах эсвэл доороос сонгоно уу.'
-        : 'Байршил авч чадсангүй. Температураа гараар оруулах эсвэл доороос сонгоно уу.';
+        ? 'Байршлын зөвшөөрөл өгөөгүй. Доороос сонгоно уу.'
+        : 'Байршил авч чадсангүй. Доороос сонгоно уу.';
     }
     if (screen === 'step' && step === 8) draw();
   }
@@ -466,13 +464,6 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     on('[data-wunit]', el => { readStep(); wUnit = el.dataset.wunit as 'kg' | 'lb'; draw(); });
     on('[data-climate]', el => { climate = el.dataset.climate as Climate; weather = ''; draw(); });
     on('[data-locate]', () => void locate());
-    // The felt temperature typed in (it may be below zero) picks the card; the person can still change it.
-    on('[data-manual]', () => openNumberSheet('Мэдрэгдэх температур', '🌡', feels ?? 20, t => {
-      feels = t;
-      climate = climateOf(t);
-      weather = `Таны оруулсан: <b>${t}°C → ${CLIMATES[climate].label}</b>`;
-      draw();
-    }, '°C', -40, 50));
     on('[data-unit]', el => { unit = el.dataset.unit as Unit; draw(); });
     on('[data-adjust]', () => openAmountSheet('Өдрийн зорилт', '💧', result().ml, ml => { custom = Math.max(500, Math.min(5000, Math.round(ml / 50) * 50)); draw(); }));
     on('[data-act]', el => { p.activity = el.dataset.act as Activity; draw(); });

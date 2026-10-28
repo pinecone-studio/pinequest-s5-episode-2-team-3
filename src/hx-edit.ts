@@ -66,25 +66,20 @@ export function pickTime(at: Date, done: (d: Date) => void, title = 'Цаг со
   });
 }
 
-// The slot left of 0 is empty, or «−» on a keypad that takes negative numbers (temperature).
-const keypad = (signed = false) => `<div class="hx-keypad">${['1', '2', '3', '4', '5', '6', '7', '8', '9', signed ? '−' : '', '0', '⌫'].map(k => k
-  ? `<button type="button" data-key="${k}" aria-label="${k === '⌫' ? 'Устгах' : k === '−' ? 'Хасах тэмдэг' : k}">${k}</button>` : '<span></span>').join('')}</div>`;
-const KEYPAD = keypad();
+// The slot left of 0 is empty.
+const KEYPAD = `<div class="hx-keypad">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map(k => k
+  ? `<button type="button" data-key="${k}" aria-label="${k === '⌫' ? 'Устгах' : k}">${k}</button>` : '<span></span>').join('')}</div>`;
 
-// The amount field and the keypad under it write the same value: at most `digits` digits, and a
-// leading «−» when signed. The field is as wide as its digits (tabular figures), so «3300» and
+// The amount field and the keypad under it write the same value: at most `digits` digits. The field is as wide as its digits (tabular figures), so «3300» and
 // «10000» show in full instead of being cut off.
-function bindKeypad(panel: HTMLElement, get: () => string, set: (v: string) => void, digits = 5, signed = false): void {
+function bindKeypad(panel: HTMLElement, get: () => string, set: (v: string) => void, digits = 5): void {
   const input = panel.querySelector<HTMLInputElement>('#hx-amount')!;
-  const clean = (v: string) => {
-    const minus = signed && /^\s*[-−]/.test(v) ? '-' : '';
-    return minus + v.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, digits);
-  };
+  const clean = (v: string) => v.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, digits);
   const fit = () => { input.style.width = `${Math.max(2, input.value.length) + 0.6}ch`; };
   input.addEventListener('input', () => { set(clean(input.value)); fit(); });
   panel.querySelectorAll<HTMLButtonElement>('[data-key]').forEach(b => b.addEventListener('click', () => {
     const now = get(), key = b.dataset.key!;
-    set(key === '⌫' ? now.slice(0, -1) : key === '−' ? (now.startsWith('-') ? now.slice(1) : `-${now}`) : clean(now === '0' ? key : now === '-0' ? `-${key}` : now + key));
+    set(key === '⌫' ? now.slice(0, -1) : clean(now === '0' ? key : now + key));
     input.value = get();
     fit();
   }));
@@ -107,27 +102,6 @@ export function openAmountSheet(title: string, icon: string, initial: number, on
     const error = box.querySelector<HTMLElement>('#hx-edit-error')!;
     if (!Number.isInteger(ml) || ml < 1 || ml > max) { error.textContent = `1–${max.toLocaleString('en-US')} ${unit} байна.`; error.hidden = false; return; }
     close(); onOk(ml);
-  });
-  box.querySelector<HTMLInputElement>('#hx-amount')!.focus();
-}
-
-// A whole number that may be negative, e.g. the felt temperature in onboarding: same sheet as the
-// amount, with «−» on the keypad and its own range.
-export function openNumberSheet(title: string, icon: string, initial: number, onOk: (value: number) => void, unit: string, min: number, max: number): void {
-  let value = String(initial);
-  const { box, close } = sheet('hx-edit', `<h2>${title}</h2>
-    <span class="hx-edit-cup" aria-hidden="true">${icon}</span>
-    <label class="hx-amount-box"><span class="visually-hidden">${title}</span><input id="hx-amount" inputmode="text" value="${value}" aria-describedby="hx-edit-error"/><small>${unit}</small></label>
-    <p class="hx-error" id="hx-edit-error" role="alert" hidden></p>
-    <div class="hx-sheet-actions"><button type="button" class="hx-light" data-cancel>Цуцлах</button><button type="button" class="hx-blue" data-save>OK</button></div>
-    ${keypad(true)}`);
-  bindKeypad(box, () => value, v => { value = v; }, Math.max(String(Math.abs(min)).length, String(Math.abs(max)).length), true);
-  box.querySelector('[data-cancel]')!.addEventListener('click', close);
-  box.querySelector('[data-save]')!.addEventListener('click', () => {
-    const n = Number(value);
-    const error = box.querySelector<HTMLElement>('#hx-edit-error')!;
-    if (value === '' || value === '-' || !Number.isInteger(n) || n < min || n > max) { error.textContent = `${min}…${max} ${unit} байна.`; error.hidden = false; return; }
-    close(); onOk(n);
   });
   box.querySelector<HTMLInputElement>('#hx-amount')!.focus();
 }
