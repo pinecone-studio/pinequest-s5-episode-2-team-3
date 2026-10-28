@@ -25,9 +25,6 @@ import { guardPlan } from '../shared/plan';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, startReminders } from './schedule';
 import { startAppIcon } from './app-icon';
-import { feedWaiting, markFeed } from './feed-alert';
-import { homeFeel, homePetDrank, placeHomePet } from './home-pet';
-import { petState } from './pet';
 import { dateLabel, escape, number } from './format';
 import { brandMark, mdIcon } from './components/Icon';
 import './theme.css';
@@ -353,7 +350,6 @@ function bindPlan() {
 
 let drinking = false;
 async function addDrink(ml: number) {
-  const before = drankOn(state.events, today);
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
   setKind(entry.id, readCupKind());
   drinking = true; render(); // "Ууж байна..." while it saves and the gauge fills (kit screen 30)
@@ -366,8 +362,6 @@ async function addDrink(ml: number) {
   undoReset = null;
   offerUndo();
   render();
-  const goal = todayGoal(state.goal, state.mode);
-  homePetDrank(state.mode === 'goal' && before < goal && before + ml >= goal);
 }
 
 // Demo helper: empty today's ring by removing today's drinks, so the fill can be shown again.
@@ -466,8 +460,6 @@ function render() {
   bindFamily();
   bindHydration(drink, addDrink, render);
   bindGaugeDrag(addDrink);
-  markFeed(feedWaiting(state));
-  placeHomePet(homeFeel(petState(state.events, state.goal, state.mode).mood, drink / goal, state.mode === 'limit'), drink / goal);
   document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();

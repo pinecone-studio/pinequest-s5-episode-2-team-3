@@ -1,7 +1,8 @@
 import type { AppState } from './data';
 import { escape, number } from './format';
 import { CUP_ICONS, readCups, writeCups, readCup, writeCup, type Cup } from './hydrify';
-import { chooseSheet, confirmSheet, openAmountSheet, pickTime } from './hx-edit';
+import { chooseManySheet, chooseSheet, confirmSheet, openAmountSheet, pickTime } from './hx-edit';
+import { WEEKDAY_LONG, WEEK_ORDER, dialysisLabel, readDialysisDays, writeDialysisDays } from './progress-data';
 import { readSettings, writeSettings } from './schedule';
 import { ACTIVITIES, readProfile, writeProfile, type Activity } from './plan';
 import { readMember } from './member';
@@ -161,6 +162,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
       { label: 'Жин', value: `${p.weight} кг`, act: 'weight' }, { label: 'Нас', value: `${p.age} нас`, act: 'age' },
       { label: 'Сэрэх цаг', value: s.wake, act: 'wake' }, { label: 'Унтах цаг', value: s.sleep, act: 'sleep' },
       { label: 'Хөдөлгөөн', value: ACTIVITIES[p.activity].label, act: 'activity' }, { label: 'Уур амьсгал', value: CLIMATE[a.climate], act: 'climate' },
+      { label: 'Диализын өдрүүд', value: dialysisLabel(readDialysisDays()) || 'Сонгоогүй', act: 'dialysis' },
     ]) + rows([{ label: 'Биеийн онцлог, төлөвлөгөө', desc: 'Онош, эмчийн хязгаар, AI тооцоо', href: '#profile' }]);
   };
   const saveProfile = (patch: Partial<ReturnType<typeof readProfile>>) => {
@@ -226,6 +228,8 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
         age: () => openAmountSheet('Нас', '🎂', readProfile().age, v => (v >= 4 ? saveProfile({ age: v }) : notify('Нас 4–110 байна.')), 'нас', 110),
         wake: () => setTime('wake', 'Сэрэх цаг'),
         sleep: () => setTime('sleep', 'Унтах цаг'),
+        // Used by «Явц» and the nurse's report (progress-data.ts); kept on this phone only.
+        dialysis: () => chooseManySheet('Диализын өдрүүд', WEEK_ORDER.map(d => [String(d), WEEKDAY_LONG[d]]), readDialysisDays().map(String), v => { writeDialysisDays(v.map(Number)); ctx.redraw(); }),
         activity: () => chooseSheet('Хөдөлгөөн', (Object.keys(ACTIVITIES) as Activity[]).map(a => [a, `${ACTIVITIES[a].label} · ${ACTIVITIES[a].hint}`]), readProfile().activity, v => saveProfile({ activity: v as Activity })),
       }),
     },

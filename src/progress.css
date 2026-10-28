@@ -1,0 +1,129 @@
+/* «Явц» (achievements.ts) and the nurse's weekly report (nurse.ts), on the theme's tokens. */
+html .pr-page { padding-bottom: 110px; }
+html .pr-page h2 { margin: 0; font-size: 17px; font-weight: 700; color: var(--ink); }
+
+/* Streak */
+html .pr-streak { display: flex; align-items: center; gap: 14px; }
+html .pr-streak-icon { display: grid; place-items: center; flex-shrink: 0; width: 60px; height: 60px; border-radius: 50%; background: var(--sky-soft); color: var(--sky); }
+html .pr-streak-icon svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+html .pr-streak p { margin: 0; }
+html .pr-streak-n { font-size: 28px; font-weight: 800; line-height: 1.1; color: var(--ink); }
+html .pr-streak-what { font-size: 15px; font-weight: 700; color: var(--ink); }
+html .pr-streak-note { margin-top: 2px !important; font-size: 13px; line-height: 1.35; color: var(--muted); }
+
+/* Month calendar */
+/* On narrow phones the count drops under the month instead of squeezing it. */
+html .pr-cal-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 8px; margin: -8px 0 6px; }
+html .pr-cal-step h2 { white-space: nowrap; }
+html .pr-cal-step { display: flex; align-items: center; margin-left: -12px; }
+html .pr-cal-step button { width: 44px; height: 44px; border: 0; background: none; font-size: 24px; color: var(--ink); cursor: pointer; }
+html .pr-cal-step button:disabled { color: #bdbdbd; cursor: default; }
+html .pr-cal-head p { margin: 0; font-size: 13px; color: var(--muted); white-space: nowrap; }
+html .pr-cal-head p b { color: var(--ink); }
+html .pr-cal-week, html .pr-cal-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+html .pr-cal-week small { padding-bottom: 6px; font-size: 12px; text-align: center; color: var(--muted); }
+html .pr-cal-days { margin: 0; padding: 0; list-style: none; }
+html .pr-cal-days li { display: grid; place-items: center; aspect-ratio: 1; border: 1.5px solid transparent; border-radius: 9px; background: #f1f2f4; font-size: 13px; font-weight: 700; color: #9e9e9e; font-variant-numeric: tabular-nums; }
+html .pr-cal-days li:empty { background: none; }
+html .pr-cal-days li.ok { background: #2e9e5b; color: #fff; }
+html .pr-cal-days li.over { border-color: #b3211f; background: #fdecec; color: #b3211f; }
+html .pr-cal-days li.today { border: 2px solid var(--ink); background: #fff; color: var(--ink); }
+html .pr-legend { display: flex; gap: 16px; margin: 12px 0 0; font-size: 12px; color: var(--muted); }
+html .pr-legend span { display: inline-flex; align-items: center; gap: 6px; }
+html .pr-legend i { width: 10px; height: 10px; border-radius: 3px; }
+html .pr-legend i.ok { background: #2e9e5b; }
+html .pr-legend i.over { border: 1.5px solid #b3211f; background: #fdecec; }
+
+/* Weight between dialysis sessions */
+html .pr-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+html .pr-card-head h2 { white-space: nowrap; }
+html .pr-pill { flex-shrink: 0; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--sky-line); border-radius: 999px; background: #fff; font: inherit; font-size: 14px; font-weight: 700; color: var(--sky-deep); cursor: pointer; }
+html .pr-gains { display: flex; align-items: flex-end; gap: 8px; height: 140px; margin: 14px 0 0; padding: 0; list-style: none; }
+html .pr-gains li { position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+html .pr-gains b { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+html .pr-gains li.last b { font-weight: 800; color: var(--ink); }
+html .pr-gains i { width: 100%; max-width: 46px; border-radius: 8px 8px 0 0; background: #9fd4b4; }
+html .pr-gains li.heavy i { background: #f4b26b; }
+html .pr-gains li.last i { background: #2e9e5b; }
+html .pr-gains li.heavy.last i { background: #e08a2e; }
+html .pr-gains small { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+html .pr-good { margin: 14px 0 0; padding: 11px 14px; border-radius: 12px; background: #e8f5ed; font-size: 14px; line-height: 1.4; color: #1d6b3d; }
+html .pr-empty { margin: 14px 0 2px; font-size: 14px; color: var(--muted); }
+html .pr-foot { margin: 10px 0 0; font-size: 12px; line-height: 1.4; color: var(--muted); }
+
+/* «Сувилагчид харуулах» link */
+html .pr-link { display: flex; align-items: center; gap: 14px; min-height: 76px; color: var(--ink); text-decoration: none; }
+html .pr-link-icon { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; background: var(--sky-soft); color: var(--sky); }
+html .pr-link-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html .pr-link-text { display: grid; gap: 2px; flex: 1; min-width: 0; }
+html .pr-link-text b { font-size: 16px; font-weight: 700; }
+html .pr-link-text small { font-size: 13px; color: var(--muted); }
+html .pr-link > i { font-style: normal; font-size: 26px; color: var(--muted); }
+html .pr-link:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+
+/* 7 / 30 / 90 day milestones */
+html .pr-miles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+html .pr-miles li { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 84px; padding: 12px 6px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20, 40, 70, .06); text-align: center; }
+html .pr-miles b { font-size: 24px; font-weight: 800; line-height: 1.1; color: #bdbdbd; }
+html .pr-miles small { font-size: 12px; color: var(--muted); }
+html .pr-miles li.reached b { color: #2e9e5b; }
+html .pr-miles li.next b { color: var(--sky); }
+html .pr-bar { display: block; width: 72%; height: 4px; margin-top: 6px; border-radius: 999px; background: #eeeeee; overflow: hidden; }
+html .pr-bar span { display: block; height: 100%; border-radius: inherit; background: var(--sky); }
+
+/* Nurse's weekly report (nurse.ts) */
+html .nr-header h1 { font-size: 20px; }
+html .nr-who h2 { font-size: 20px; font-weight: 800; }
+html .nr-who p { margin: 4px 0 10px; font-size: 14px; color: var(--muted); }
+html .nr-pill { display: inline-block; padding: 6px 12px; border-radius: 999px; background: var(--sky-soft); font-size: 13px; font-weight: 700; color: var(--sky-deep); }
+html .nr-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+html .nr-tiles li { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 80px; padding: 12px 6px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20, 40, 70, .06); text-align: center; }
+html .nr-tiles b { font-size: 22px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+html .nr-tiles small { font-size: 12px; line-height: 1.3; color: var(--muted); }
+html .nr-tiles li.bad { background: #fdecec; }
+html .nr-tiles li.bad b, html .nr-tiles li.bad small { color: #b3211f; }
+html .nr-days table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+html .nr-days th, html .nr-days td { padding: 11px 6px; border-bottom: 1px solid #eeeeee; text-align: right; font-weight: 500; color: var(--ink); white-space: nowrap; }
+html .nr-days th[scope="row"], html .nr-days thead th:first-child { text-align: left; }
+html .nr-days thead th { padding-top: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+html .nr-days tr.bad { background: #fdf3f3; }
+html .nr-days td.bad { font-weight: 800; color: #b3211f; }
+html .nr-days td.good { font-weight: 700; color: #2e9e5b; }
+html .nr-note { margin: 10px 0 0; font-size: 12px; line-height: 1.4; color: var(--muted); }
+html .nr-stack { display: flex; height: 14px; margin-top: 12px; border-radius: 999px; overflow: hidden; background: #eeeeee; }
+html .nr-stack i, html .nr-from-legend i { background: #bdbdbd; }
+html .nr-stack i { flex: 0 0 0; min-width: 2px; }
+html .nr-from-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+html .nr-from-legend span { display: inline-flex; align-items: center; gap: 6px; }
+html .nr-from-legend i { width: 10px; height: 10px; border-radius: 3px; }
+html .nr-from .water { background: var(--sky); } html .nr-from .milktea { background: #b8865a; } html .nr-from .soup { background: #f0bf5a; }
+html .nr-weight ul { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 15px; color: var(--ink); }
+html .nr-weight b { font-weight: 800; }
+html .nr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+html .nr-actions button { min-height: 52px; border-radius: 999px; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+html .nr-pdf { border: 1.5px solid var(--sky); background: #fff; color: var(--sky-deep); }
+html .nr-share { border: 0; background: var(--sky); color: #fff; }
+html .nr-foot { margin: 0; font-size: 12px; text-align: center; color: var(--muted); }
+
+/* Dark theme */
+html[data-theme="dark"] .pr-cal-days li { background: #2a2d36; color: #757575; }
+html[data-theme="dark"] .pr-cal-days li:empty { background: none; }
+html[data-theme="dark"] .pr-cal-days li.ok { background: #2e9e5b; color: #fff; }
+html[data-theme="dark"] .pr-cal-days li.over, html[data-theme="dark"] .nr-tiles li.bad { background: #3a1f22; }
+html[data-theme="dark"] .pr-cal-days li.over, html[data-theme="dark"] .nr-tiles li.bad b, html[data-theme="dark"] .nr-tiles li.bad small, html[data-theme="dark"] .nr-days td.bad { color: #ff8a8d; border-color: #ff8a8d; }
+html[data-theme="dark"] .pr-cal-days li.today { background: #1f222a; border-color: #fff; color: #fff; }
+html[data-theme="dark"] .pr-miles li, html[data-theme="dark"] .nr-tiles li, html[data-theme="dark"] .pr-pill, html[data-theme="dark"] .nr-pdf { background: #1f222a; box-shadow: none; }
+html[data-theme="dark"] .pr-good { background: #1c3326; color: #8fd9ab; }
+html[data-theme="dark"] .nr-days th, html[data-theme="dark"] .nr-days td { border-color: #35383f; }
+html[data-theme="dark"] .nr-days tr.bad { background: #2c1d20; }
+html[data-theme="dark"] .pr-bar, html[data-theme="dark"] .nr-stack { background: #35383f; }
+
+/* «PDF татах» prints the report alone: no buttons, menus or page chrome. */
+@media print {
+  html, body, main.home-app, main.home-app > .app-shell { height: auto !important; min-height: 0 !important; overflow: visible !important; background: #fff !important; box-shadow: none !important; }
+  main.home-app > .app-shell { padding-bottom: 0 !important; border: 0 !important; }
+  html .nr-actions, html .hx-back, html .site-nav, html .skip-link, html .toast { display: none !important; }
+  html .pr-page { padding-bottom: 0; }
+  html .hx-card, html .nr-tiles li { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+  html .nr-days tr.bad, html .nr-tiles li.bad, html .nr-stack i { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

@@ -43,9 +43,6 @@ html .app-top { position: relative; z-index: 40; }
 html main.home-app .app-top .site-nav, html .app-top .site-nav { border-color: var(--hair); box-shadow: 0 -4px 20px rgba(70, 140, 200, .1); }
 html .app-top .site-nav a[aria-current="page"], html main.home-app .app-top .site-nav a[aria-current="page"] { color: var(--sky-deep); background: none; }
 html .site-nav a[aria-current="page"] .nav-icon { color: var(--sky-deep); }
-/* Today's bowl waits for the pet (feed-alert.ts, nav.ts). */
-html .site-nav a[href="/achievements.html"] { position: relative; }
-html.feed-waiting .site-nav a[href="/achievements.html"]::after { content: ""; position: absolute; top: 4px; left: calc(50% + 8px); width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: #ff4d4f; }
 
 /* Buttons: one sky-blue pill style everywhere. */
 html .dark-button, html .plan-save, html .thirst-cta, html .onb-next, html .primary-button {

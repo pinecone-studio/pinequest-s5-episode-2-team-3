@@ -15,6 +15,8 @@ const bottle = (fill: string) => svg(`<path d="M13 3h6v5l3 4v15a2 2 0 0 1-2 2h-8
 export const KINDS = {
   coffee: { name: 'Кофе', icon: cup('#7a4a2a') },
   tea: { name: 'Цай', icon: cup('#e2553f') },
+  milktea: { name: 'Сүүтэй цай', icon: cup('#c19a6b', '#f3e6d3') },
+  soup: { name: 'Шөл', icon: svg('<path d="M4 15h24c0 6-5 11-12 11S4 21 4 15z" fill="#f0b429"/><path d="M11 6c-1 2 1 3 0 5M16 5c-1 2 1 3 0 5M21 6c-1 2 1 3 0 5" stroke="#f0b429" stroke-width="1.6" fill="none" stroke-linecap="round"/>') },
   juice: { name: 'Жүүс', icon: glass('#f5a623') },
   sport: { name: 'Спорт ундаа', icon: bottle('#369fff') },
   coconut: { name: 'Наргил', icon: svg('<circle cx="16" cy="18" r="10" fill="#8bc34a"/><path d="M16 4v8" stroke="#5d4037" stroke-width="2"/>') },
