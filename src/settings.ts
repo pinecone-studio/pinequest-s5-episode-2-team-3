@@ -93,6 +93,7 @@ const ICON = (d: string) => `<svg class="ac-icon" viewBox="0 0 24 24" aria-hidde
 const ICONS = {
   personal: '<circle cx="12" cy="8" r="4"/><path d="M4 20.5c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',
   reminders: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  widgets: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="17" height="7" rx="2"/>',
   cups: '<path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h2a2.5 2.5 0 0 1 0 5h-2M7 3.5c0 1.5 1 1.5 1 3M11 3.5c0 1.5 1 1.5 1 3"/>',
   preferences: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 7.5l2.1 1.2M17.7 15.3l2.1 1.2M4.2 16.5l2.1-1.2M17.7 8.7l2.1-1.2"/><circle cx="12" cy="12" r="6.5"/>',
   security: '<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
@@ -106,7 +107,7 @@ const ICONS = {
 function menu(): string {
   const row = (key: keyof typeof ICONS, label: string, href = `#${key}`) => `<li><a href="${href}">${ICON(ICONS[key])}<span>${label}</span><i aria-hidden="true">›</i></a></li>`;
   return `<section class="hx-card ac-menu"><ul>
-      ${row('personal', 'Хувийн мэдээлэл')}${row('reminders', 'Уух сануулга', '#reminder')}${row('cups', 'Миний аяганууд')}${row('preferences', 'Тохиргоо')}
+      ${row('personal', 'Хувийн мэдээлэл')}${row('reminders', 'Уух сануулга', '#reminder')}${row('cups', 'Миний аяганууд')}${row('widgets', 'Нүүр дэлгэцийн widget')}${row('preferences', 'Тохиргоо')}
     </ul></section>
     <section class="hx-card ac-menu"><ul>
       ${row('security', 'Бүртгэл ба аюулгүй байдал')}${row('linked', 'Холбосон бүртгэл')}
