@@ -66,15 +66,22 @@ export function pickTime(at: Date, done: (d: Date) => void, title = 'Цаг со
   });
 }
 
-// The slot left of 0 is empty.
-const KEYPAD = `<div class="hx-keypad">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map(k => k
-  ? `<button type="button" data-key="${k}" aria-label="${k === '⌫' ? 'Устгах' : k}">${k}</button>` : '<span></span>').join('')}</div>`;
+// The slot left of 0 is empty, or a decimal point for amounts like 62.4 кг.
+const keypad = (point = false) => `<div class="hx-keypad">${['1', '2', '3', '4', '5', '6', '7', '8', '9', point ? '.' : '', '0', '⌫'].map(k => k
+  ? `<button type="button" data-key="${k}" aria-label="${k === '⌫' ? 'Устгах' : k === '.' ? 'Таслал' : k}">${k}</button>` : '<span></span>').join('')}</div>`;
+const KEYPAD = keypad();
 
 // The amount field and the keypad under it write the same value: at most `digits` digits. The field is as wide as its digits (tabular figures), so «3300» and
 // «10000» show in full instead of being cut off.
-function bindKeypad(panel: HTMLElement, get: () => string, set: (v: string) => void, digits = 5): void {
+// With `decimals`, one point and that many digits after it are kept too.
+function bindKeypad(panel: HTMLElement, get: () => string, set: (v: string) => void, digits = 5, decimals = 0): void {
   const input = panel.querySelector<HTMLInputElement>('#hx-amount')!;
-  const clean = (v: string) => v.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, digits);
+  const whole = (v: string) => v.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, digits);
+  const clean = (v: string) => {
+    const at = decimals ? v.replace(',', '.').indexOf('.') : -1;
+    if (at < 0) return whole(v);
+    return `${whole(v.slice(0, at)) || '0'}.${v.slice(at + 1).replace(/\D/g, '').slice(0, decimals)}`;
+  };
   const fit = () => { input.style.width = `${Math.max(2, input.value.length) + 0.6}ch`; };
   input.addEventListener('input', () => { set(clean(input.value)); fit(); });
   panel.querySelectorAll<HTMLButtonElement>('[data-key]').forEach(b => b.addEventListener('click', () => {
@@ -87,20 +94,20 @@ function bindKeypad(panel: HTMLElement, get: () => string, set: (v: string) => v
 }
 
 // "Кофе уух" (kit screen 35): a drink's icon, the amount by keypad, Цуцлах / OK.
-export function openAmountSheet(title: string, icon: string, initial: number, onOk: (ml: number) => void, unit = 'мл', max = 5000): void {
+export function openAmountSheet(title: string, icon: string, initial: number, onOk: (ml: number) => void, unit = 'мл', max = 5000, decimals = 0): void {
   let amount = String(initial);
   const { box, close } = sheet('hx-edit', `<h2>${title}</h2>
     <span class="hx-edit-cup" aria-hidden="true">${icon}</span>
-    <label class="hx-amount-box"><span class="visually-hidden">Хэмжээ, мл</span><input id="hx-amount" inputmode="numeric" value="${amount}" aria-describedby="hx-edit-error"/><small>${unit}</small></label>
+    <label class="hx-amount-box"><span class="visually-hidden">Хэмжээ, мл</span><input id="hx-amount" inputmode="${decimals ? 'decimal' : 'numeric'}" value="${amount}" aria-describedby="hx-edit-error"/><small>${unit}</small></label>
     <p class="hx-error" id="hx-edit-error" role="alert" hidden></p>
     <div class="hx-sheet-actions"><button type="button" class="hx-light" data-cancel>Цуцлах</button><button type="button" class="hx-blue" data-save>OK</button></div>
-    ${KEYPAD}`);
-  bindKeypad(box, () => amount, v => { amount = v; }, Math.max(5, String(max).length));
+    ${decimals ? keypad(true) : KEYPAD}`);
+  bindKeypad(box, () => amount, v => { amount = v; }, Math.max(5, String(max).length), decimals);
   box.querySelector('[data-cancel]')!.addEventListener('click', close);
   box.querySelector('[data-save]')!.addEventListener('click', () => {
     const ml = Number(amount);
     const error = box.querySelector<HTMLElement>('#hx-edit-error')!;
-    if (!Number.isInteger(ml) || ml < 1 || ml > max) { error.textContent = `1–${max.toLocaleString('en-US')} ${unit} байна.`; error.hidden = false; return; }
+    if (!(decimals ? Number.isFinite(ml) : Number.isInteger(ml)) || ml < 1 || ml > max) { error.textContent = `1–${max.toLocaleString('en-US')} ${unit} байна.`; error.hidden = false; return; }
     close(); onOk(ml);
   });
   box.querySelector<HTMLInputElement>('#hx-amount')!.focus();

@@ -3,6 +3,7 @@ import { DevicePanel, bindDevicePanel } from './components/DevicePanel';
 import { WatchPanel, bindWatchPanel } from './components/WatchPanel';
 import { ProfilePanel, bindProfilePanel } from './components/ProfilePanel';
 import { hxHeader } from './hydrify';
+import { bindWatchCard, watchCard } from './watch-card';
 import { accountViews } from './account';
 import { confirmSheet } from './hx-edit';
 import './style.css';
@@ -17,6 +18,7 @@ import { Toast, notify } from './components/Toast';
 import { load, save, saveMessage, onExternalChange, requestPersistence } from './storage';
 import { downloadBackup, readBackup, summarize, type BackupSummary } from './backup';
 import './theme.css';
+import './home-limit.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let state = defaults();
@@ -92,6 +94,7 @@ function backupSection(): string {
 const ICON = (d: string) => `<svg class="ac-icon" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const ICONS = {
   personal: '<circle cx="12" cy="8" r="4"/><path d="M4 20.5c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',
+  doctor: '<rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4.5V3h6v1.5M12 9v6M9 12h6"/>',
   reminders: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   widgets: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="17" height="7" rx="2"/>',
   cups: '<path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h2a2.5 2.5 0 0 1 0 5h-2M7 3.5c0 1.5 1 1.5 1 3M11 3.5c0 1.5 1 1.5 1 3"/>',
@@ -107,7 +110,7 @@ const ICONS = {
 function menu(): string {
   const row = (key: keyof typeof ICONS, label: string, href = `#${key}`) => `<li><a href="${href}">${ICON(ICONS[key])}<span>${label}</span><i aria-hidden="true">›</i></a></li>`;
   return `<section class="hx-card ac-menu"><ul>
-      ${row('personal', 'Хувийн мэдээлэл')}${row('reminders', 'Уух сануулга', '#reminder')}${row('cups', 'Миний аяганууд')}${row('widgets', 'Нүүр дэлгэцийн widget')}${row('preferences', 'Тохиргоо')}
+      ${row('personal', 'Хувийн мэдээлэл')}${row('doctor', 'Эмчийн зөвлөмж')}${row('reminders', 'Уух сануулга', '#reminder')}${row('cups', 'Миний аяганууд')}${row('widgets', 'Нүүр дэлгэцийн widget')}${row('preferences', 'Тохиргоо')}
     </ul></section>
     <section class="hx-card ac-menu"><ul>
       ${row('security', 'Бүртгэл ба аюулгүй байдал')}${row('linked', 'Холбосон бүртгэл')}
@@ -146,7 +149,7 @@ function render(): void {
         <div class="hydro hx-page">
           ${view ? `<div class="hx-header"><a class="hx-back" href="#${view.back}" aria-label="Буцах">‹</a><h1>${view.title}</h1>${view.right ?? '<span></span>'}</div>` : hxHeader('Профайл')}
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-          ${view ? view.body() : menu()}
+          ${view ? view.body() : menu() + watchCard()}
           ${view?.foot ? `<div class="ac-foot">${view.foot}</div>` : ''}
         </div>
       </div>
@@ -158,6 +161,7 @@ function render(): void {
   bindDevicePanel(render);
   bindWatchPanel();
   bindProfilePanel();
+  bindWatchCard();
 }
 window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
 

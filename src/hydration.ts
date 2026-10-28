@@ -6,7 +6,6 @@ import { dayKey, TYPES, type WaterEntry } from './data';
 import { AVATARS, avatarSvg, openAvatarPicker, readAvatar, type Face } from './avatars';
 import { lastDrink, minutesSince, paceText, sinceText, sinceTone, type Pace } from './pace';
 import { icon } from './components/Icon';
-import { previewHomePet } from './home-pet';
 
 // Home: a bottle buddy that fills toward the daily goal, a row of cups that add on a tap, and «Өөр» to swipe any amount.
 // Tapping the button sends a drop into the bottle before the entry is saved.
@@ -418,7 +417,6 @@ function bindPourHandle(buddy: HTMLElement | null, drink: number): void {
     if (!water && gauge) {
       const f = Math.min(1, (drink + (ml ?? 0)) / goal);
       gauge.querySelector<SVGGElement>('.hx-water')!.style.transform = `translateY(${(196 - f * 92).toFixed(1)}px)`;
-      previewHomePet(f);
       const arc = gauge.querySelector('.hx-progress')!;
       arc.setAttribute('stroke-dasharray', `${(f * 100).toFixed(1)} 100`);
       arc.classList.toggle('empty', f <= 0);
