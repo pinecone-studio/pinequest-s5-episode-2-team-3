@@ -9,7 +9,8 @@ import type { Kind, PetMood, Stage } from './pet';
 // others from one shared hidden renderer, so the page never holds more than two WebGL contexts.
 
 // `shine` 0–4 grows with the level: a brighter glow, then more and more gold sparkles circling it.
-export interface Look { kind: Kind; mood: PetMood; stage: Stage; shine?: number }
+// `water` makes the body clear glass with water inside that rises with `fill` (the home gauge).
+export interface Look { kind: Kind; mood: PetMood; stage: Stage; shine?: number; water?: boolean }
 
 const COLORS: Record<Kind, number> = {
   drop: 0x2f93ff, mouse: 0xaab6c6, cat: 0xff9a45, rooster: 0xfff3e2, frog: 0x4cc860, dog: 0xdca468, pig: 0xff9fbd, monkey: 0x9a6640, goat: 0xf1ede6, snake: 0x5cc356, horse: 0xbd7d45, cow: 0xfbf8f3, tiger: 0xff8a1e, camel: 0xd8a965, bear: 0xa8703c, penguin: 0x2a3f6e, bunny: 0xff8ab5, whale: 0x3474e0, sheep: 0xffe9d6, unicorn: 0xf7c6f2, dragon: 0x22b4d6, legend: 0xd9f1ff,
@@ -33,12 +34,12 @@ const glossy = (color: number, extra: Partial<THREE.MeshPhysicalMaterialParamete
 const jelly = (color: number, extra: Partial<THREE.MeshPhysicalMaterialParameters> = {}) =>
   glossy(color, { roughness: 0.22, sheen: 0.6, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.35, iridescence: 0.35, iridescenceIOR: 1.3, emissive: new THREE.Color(color), emissiveIntensity: 0.08, ...extra });
 // A bright edge that glows where the surface turns away (fresnel), drawn over the body so it reads as water.
-function rim(color = 0xffffff, power = 2.6, strength = 0.85): THREE.ShaderMaterial {
+function rim(color = 0xffffff, power = 2.6, strength = 0.85, add = true): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     uniforms: { color: { value: new THREE.Color(color) }, power: { value: power }, strength: { value: strength } },
     vertexShader: 'varying vec3 vN; varying vec3 vV; void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
     fragmentShader: 'uniform vec3 color; uniform float power; uniform float strength; varying vec3 vN; varying vec3 vV; void main() { float f = pow(1.0 - max(dot(normalize(vN), normalize(vV)), 0.0), power) * strength; gl_FragColor = vec4(color, f); }',
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    transparent: true, depthWrite: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending,
   });
 }
 // A soft star-shaped glint, shared by the glitter, aura and bubbles' shine.
@@ -224,7 +225,8 @@ const tube = (pts: [number, number, number][], r: number, m: THREE.Material) =>
 const spiral = (x: number, y: number, z: number, r: number, turns = 1.6): [number, number, number][] =>
   Array.from({ length: 14 }, (_, i) => { const a = (i / 13) * turns * Math.PI * 2, k = r * (1 - i / 18); return [x + Math.cos(a) * k, y + Math.sin(a) * k, z - i * 0.02]; });
 
-interface Model { tail?: THREE.Object3D; wag?: number; fly?: boolean; tick?: (t: number, dt: number) => void; glitter?: THREE.Points[]; aura?: THREE.Sprite; spout?: THREE.Object3D; sparkles?: THREE.Group; root: THREE.Group; body: THREE.Group; eyes: THREE.Group; armL: THREE.Group; armR: THREE.Group; wings: THREE.Object3D[]; halo?: THREE.Object3D; sweat?: THREE.Object3D; mouthOpen?: THREE.Object3D }
+interface Water { plane: THREE.Plane; inner: THREE.Mesh; surface: THREE.Mesh }
+interface Model { water?: Water; tail?: THREE.Object3D; wag?: number; fly?: boolean; tick?: (t: number, dt: number) => void; glitter?: THREE.Points[]; aura?: THREE.Sprite; spout?: THREE.Object3D; sparkles?: THREE.Group; root: THREE.Group; body: THREE.Group; eyes: THREE.Group; armL: THREE.Group; armR: THREE.Group; wings: THREE.Object3D[]; halo?: THREE.Object3D; sweat?: THREE.Object3D; mouthOpen?: THREE.Object3D }
 
 function eye(): THREE.Group {
   const g = new THREE.Group();
@@ -275,14 +277,26 @@ function build(look: Look): Model {
     }
     geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
     body.add(mesh(geo, jelly(0xffffff, { vertexColors: true, emissive: new THREE.Color(0x101828), emissiveIntensity: 0.1 })));
+  } else if (look.water) {
+    // A clear glass drop; the water inside is cut flat at the level by a clipping plane (moved each frame).
+    // On a white card an additive glow vanishes, so the glass gets a tinted body and a blue edge.
+    body.add(mesh(dropGeometry(), jelly(grey ? 0xc9d3dc : 0xb4dcff, { transparent: true, opacity: 0.3, depthWrite: false, iridescence: 0.6, emissiveIntensity: 0.06 })));
+    body.add(mesh(dropGeometry(), rim(grey ? 0x7d8b98 : 0x2f86e8, 1.8, 0.9, false), [0, 0, 0], [1.015, 1.008, 1.015]));
+    const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -10);
+    const inner = mesh(dropGeometry(), glossy(grey ? 0x6f8597 : 0x0f6fe8, { roughness: 0.12, emissive: new THREE.Color(0x0a4fb0), emissiveIntensity: 0.25, clippingPlanes: [plane] }), [0, 0, 0], [0.93, 0.95, 0.93]);
+    const surface = mesh(new THREE.CircleGeometry(1, 48), glossy(grey ? 0x9fb2c2 : 0x4fb0ff, { roughness: 0.05, emissive: new THREE.Color(0x2a8cff), emissiveIntensity: 0.3 }));
+    surface.rotation.x = -Math.PI / 2;
+    body.add(inner, surface);
+    model.water = { plane, inner, surface };
   } else body.add(mesh(dropGeometry(), skin));
   body.add(mesh(dropGeometry(), rim(grey ? 0xe8eef3 : 0xeaf7ff), [0, 0, 0], [1.01, 1.005, 1.01]));
   // Feet and little arms (arms swing from the shoulder pivots).
-  const feet = kind === 'penguin' ? glossy(0xffa630) : skin;
+  const limb = look.water ? jelly(grey ? 0x9eacb8 : 0x5fb2ff) : skin;
+  const feet = kind === 'penguin' ? glossy(0xffa630) : limb;
   for (const x of [-0.38, 0.38]) root.add(mesh(new THREE.SphereGeometry(0.26, 24, 16), feet, [x, 0.12, 0.18], [1.1, 0.6, 1.3]));
   for (const [arm, side] of [[armL, -1], [armR, 1]] as const) {
     arm.position.set(side * 0.9, 0.05, 0.12);
-    arm.add(mesh(new THREE.SphereGeometry(0.2, 24, 16), skin, [side * 0.1, -0.22, 0], [0.72, 1.15, 0.72]));
+    arm.add(mesh(new THREE.SphereGeometry(0.2, 24, 16), limb, [side * 0.1, -0.22, 0], [0.72, 1.15, 0.72]));
     arm.rotation.z = side * (mood === 'joyful' ? 2.3 : 0.45);
     body.add(arm);
   }
@@ -775,16 +789,18 @@ function world(s: THREE.Scene) {
   };
 }
 
-export interface Pet3D { set(look: Look, roam: boolean): void; hop(): void; eat(): void; cheer(): void; dragged(): boolean; destroy(): void }
+export interface Pet3D { set(look: Look, roam: boolean): void; fill(share: number): void; hop(): void; eat(): void; cheer(): void; dragged(): boolean; destroy(): void }
 
 // The live pet: idles, blinks, waddles left and right, looks at the finger, spins when dragged and
 // hops when tapped. Rendering stops while the page is hidden or the view is off screen.
-export function mountPet3d(host: HTMLElement): Pet3D {
+// `stage: false` leaves out the round stage and the floaters (the home gauge draws its own frame).
+export function mountPet3d(host: HTMLElement, { stage = true } = {}): Pet3D {
   const canvas = document.createElement('canvas');
   canvas.className = 'pet3d';
   host.append(canvas);
   const renderer = newRenderer(canvas);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  renderer.localClippingEnabled = true;
   // Battery saver: under 25% and not charging it draws about 20 frames a second instead of 60.
   let lowPower = false;
   type Battery = EventTarget & { level: number; charging: boolean };
@@ -794,14 +810,16 @@ export function mountPet3d(host: HTMLElement): Pet3D {
   }).catch(() => { /* no battery info: full speed */ });
   let wait = 0;
   const { scene: s, shadow } = scene(renderer);
-  const env = world(s);
+  const env = stage ? world(s) : { theme() {}, ripple() {}, update() {} };
   let stepT = 0;
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-  camera.position.set(0, 1.6, 7.6); camera.lookAt(0, 1.3, 0);
+  camera.position.set(0, 1.6, stage ? 7.6 : 5.4); camera.lookAt(0, 1.25, 0);
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let model: Model | null = null, look: Look | null = null, roam = false;
   let x = 0, target = 0, pause = 1.5, face = 0, y = 0, vy = 0, squash = 0, spin = 0, spinV = 0, blink = 3;
+  let full = 0, level = 0;
+  const at = new THREE.Vector3();
   let eating = 0, cheering = 0, dragX: number | null = null, moved = 0, lookX = 0, lookY = 0;
 
   const resize = () => {
@@ -879,6 +897,18 @@ export function mountPet3d(host: HTMLElement): Pet3D {
     if (model.spout) { const k = (t * 1.2) % 1; model.spout.scale.set(1 + k * 0.4, 0.6 + Math.sin(k * Math.PI) * 0.8, 1 + k * 0.4); }
     if (model.sparkles) { model.sparkles.rotation.y = t * 0.7; model.sparkles.children.forEach((c, i) => { c.rotation.y = t * 3 + i; c.scale.setScalar(0.7 + Math.abs(Math.sin(t * 3 + i)) * 0.6); }); }
     if (model.sweat) { const k = (t * 0.6) % 1; model.sweat.position.y = 0.75 - k * 0.35; model.sweat.scale.setScalar(k < 0.85 ? 1 : (1 - k) * 6); }
+    if (model.water) {
+      // The water rises towards `full`, sloshing a little; the plane stays level while the body sways.
+      level += (full - level) * (still ? 1 : Math.min(1, dt * 2.5));
+      const ly = -0.86 + level * 2.25, slosh = still ? 0 : Math.sin(t * 3.1) * 0.06 * (walking || y > 0 || eating > 0 ? 2 : 0.5);
+      const { plane, inner, surface } = model.water;
+      inner.visible = surface.visible = level > 0.01;
+      surface.position.y = ly;
+      surface.scale.setScalar(Math.max(0.001, radiusAt(ly / 0.95) * 0.93));
+      surface.rotation.set(-Math.PI / 2 + slosh, 0, slosh * 0.6);
+      body.updateWorldMatrix(true, false);
+      plane.constant = body.localToWorld(at.set(0, ly, 0)).y;
+    }
     const sc = SCALE[look.stage] * (1 / (1 + (y + lift) * 0.25));
     shadow.position.x = root.position.x; shadow.scale.set(sc, sc, sc);
   }
@@ -902,7 +932,7 @@ export function mountPet3d(host: HTMLElement): Pet3D {
   return {
     set(next, r) {
       roam = r;
-      if (look && look.kind === next.kind && look.mood === next.mood && look.stage === next.stage && look.shine === next.shine) return;
+      if (look && look.kind === next.kind && look.mood === next.mood && look.stage === next.stage && look.shine === next.shine && look.water === next.water) return;
       look = next;
       if (model) { s.remove(model.root); dispose(model.root); }
       model = build(next);
@@ -910,6 +940,7 @@ export function mountPet3d(host: HTMLElement): Pet3D {
       model.root.scale.setScalar(SCALE[next.stage]);
       s.add(model.root);
     },
+    fill(share) { full = Math.max(0, Math.min(1, share)); },
     hop() { if (y === 0) { vy = 4.6; spinV = 0.25; } },
     eat() { eating = 1.6; x *= 0.3; pause = 2; },
     cheer() { cheering = 1.4; },
