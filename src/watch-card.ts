@@ -2,6 +2,7 @@ import { escape, number, time } from './format';
 import { health, type HealthDay } from './health';
 import { API_URL } from './api';
 import { readProfile } from './plan';
+import { openWatchConnect } from './watch-connect';
 
 // Home card with the watch's day (heart rate, steps, active calories through Health Connect) and
 // one AI tip built from those numbers and today's water. Without a linked watch the home shows a
@@ -84,11 +85,11 @@ export function watchCard(): string {
     const text = health.phase === 'unsupported' ? 'Алхам, зүрхний цохилтоо Android апп-д харна.'
       : health.phase === 'missing' ? 'Health Connect суулгаж, синк асаагаарай.'
       : health.phase === 'denied' ? 'Зөвшөөрөл өгөөгүй байна. Дахин оролдоно уу.'
-      : 'Алхам, зүрхний цохилтоо харж, зөвлөгөө аваарай.';
+      : health.message || 'Алхам, зүрхний цохилтоо харж, зөвлөгөө аваарай.';
     return `<section class="hx-card hx-watch-link" aria-labelledby="hx-watch-title">
       <span class="hx-watch-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 9v3l2 1"/></svg></span>
       <div><h2 id="hx-watch-title">Ухаалаг цаг холбох</h2><p>${text}</p></div>
-      ${health.phase !== 'missing' ? `<button type="button" class="hx-blue" data-watch-connect>${health.phase === 'unsupported' ? 'Заавар' : 'Холбох'}</button>` : ''}
+      <button type="button" class="hx-blue" data-watch-connect>Цаг холбох</button>
     </section>`;
   }
   const head = `<div class="hb-head"><h2 id="hx-watch-title">Өнөөдрийн дадал</h2><span class="hx-badge on">⌚ Холбогдсон</span></div>`;
@@ -113,8 +114,5 @@ export function watchCard(): string {
 }
 
 export function bindWatchCard(): void {
-  document.querySelector('[data-watch-connect]')?.addEventListener('click', () => {
-    if (health.phase === 'unsupported') { location.href = '/settings.html#linked'; return; }
-    void health.connect();
-  });
+  document.querySelector('[data-watch-connect]')?.addEventListener('click', openWatchConnect);
 }
