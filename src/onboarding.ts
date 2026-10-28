@@ -36,7 +36,22 @@ type Unit = keyof typeof UNITS;
 // The figure on the height and weight steps (kit 10–12), drawn from the numbers so it changes as
 // the wheel turns: BMI widens the shoulders, chest, waist (a belly from about BMI 25), hips, arms
 // and legs; height scales the whole figure from the feet up. Women get narrower shoulders, wider
-// hips and a top. Height 175 cm and BMI 22 is the drawing's base size.
+// hips, longer hair and a top. Height 175 cm and BMI 22 is the drawing's base size. Every part is a
+// smooth outline through a few points (thigh, knee, calf, ankle…), shaded at the edges to look round.
+type Pt = [number, number];
+const f1 = (n: number) => n.toFixed(1);
+// A closed Catmull-Rom curve through the points.
+function smooth(pts: Pt[]): string {
+  const n = pts.length, at = (i: number) => pts[(i + n) % n];
+  let d = `M${f1(pts[0][0])} ${f1(pts[0][1])}`;
+  for (let i = 0; i < n; i++) {
+    const [a, b, c, e] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
+    d += `C${f1(b[0] + (c[0] - a[0]) / 6)} ${f1(b[1] + (c[1] - a[1]) / 6)} ${f1(c[0] - (e[0] - b[0]) / 6)} ${f1(c[1] - (e[1] - b[1]) / 6)} ${f1(c[0])} ${f1(c[1])}`;
+  }
+  return `${d}Z`;
+}
+const mirror = (pts: Pt[]): Pt[] => pts.map(([x, y]) => [160 - x, y]);
+
 function body(sex: Sex | null, weight: number, height: number): string {
   const bmi = weight / (height / 100) ** 2;
   const w = Math.max(0.72, Math.min(1.9, bmi / 22));
@@ -44,34 +59,93 @@ function body(sex: Sex | null, weight: number, height: number): string {
   const f = sex === 'female';
   const s = Math.max(0.78, Math.min(1.12, height / 175));
   const S = (f ? 25 : 30) * (0.8 + 0.2 * w), C = (f ? 21 : 24) * w, W = (f ? 17 : 21) * w + belly * 9;
-  const H = (f ? 26 : 22) * w + belly * 3, limb = 0.85 + 0.5 * (w - 1);
-  const X = (dx: number) => (80 + dx).toFixed(1);
-  const torso = `M${X(-S)} 60 Q${X(-S - 3)} 66 ${X(-C)} 78 Q${X(-W - 4 * belly)} 112 ${X(-W)} 126 Q${X(-H)} 138 ${X(-H)} 150 L${X(H)} 150 Q${X(H)} 138 ${X(W)} 126 Q${X(W + 4 * belly)} 112 ${X(C)} 78 Q${X(S + 3)} 66 ${X(S)} 60 Q80 52 ${X(-S)} 60Z`;
-  const handX = Math.max(S + 6, W + 4 * belly + 9, H + 7);
-  const arm = (d: 1 | -1) => `M${X(d * (S - 3))} 64 Q${X(d * (S + 6 + 3 * belly))} 104 ${X(d * handX)} 168`;
-  const knee = H * 0.55, foot = 13 + 2 * w;
-  const leg = (d: 1 | -1) => `M${X(d * H * 0.5)} 158 Q${X(d * knee)} 222 ${X(d * foot)} 282`;
-  const skin = '#f2b48c', shade = '#e39f76';
+  const H = (f ? 26 : 22) * w + belly * 3, lw = w ** 0.6, nw = (f ? 5.5 : 6.5) * lw ** 0.7;
+  const Wb = W + 4 * belly;
+  const R = (dx: number, y: number): Pt => [80 + dx, y];
+  const skin = '#f2b48c', shade = '#d9946a', line = '#c47f5a', hair = '#3b2a20';
+  const detail = (d: string, o = 0.55, sw = 0.9) => `<path d="${d}" stroke="${line}" stroke-width="${sw}" stroke-linecap="round" fill="none" opacity="${o}"/>`;
+  const both = (make: (d: 1 | -1) => string) => make(-1) + make(1);
+  const X = (dx: number) => f1(80 + dx);
+
+  // Torso: neck base, trapezius, shoulder, chest, ribs, waist, hips, down to the crotch.
+  const torsoR: Pt[] = [R(nw + 1, 50), R(nw + 8, 54.5), R(S - 1.5, 58.5), R(C + 1, 72), R(C, 86), R((C + Wb) / 2 + belly * 2, 102), R(Wb, 116), R(W + 1.5, 128), R(H, 140), R(H - 0.5, 152), R(4, 157)];
+  const torso = smooth([...torsoR, ...mirror(torsoR).reverse()]);
+
+  // Legs: a centre line and half-width at the hip, thigh, knee, calf and ankle.
+  const ck = 5 + 0.3 * H, ca = 8 + w, kw = 5.4 * lw;
+  const legKeys: [number, number, number][] = [
+    [142, H / 2, H / 2],
+    [165, H * 0.48 + 0.5, H * 0.47],
+    [188, (H * 0.45 + ck) / 2, (H * 0.4 + kw) / 2 + 1.2 * lw],
+    [212, ck, kw],
+    [236, ck * 0.4 + ca * 0.6 + 0.4, 6.4 * lw],
+    [260, ca, 4 * lw],
+    [281, ca, 3.4 * lw],
+  ];
+  const legR = smooth([
+    ...legKeys.map(([y, c, h]): Pt => R(c + h, y)),
+    ...legKeys.slice(1).reverse().map(([y, c, h]): Pt => R(Math.max(0.8, c - h), y)),
+    R(1, 150),
+  ]);
+  const legAt = (y: number) => { const i = legKeys.findIndex(k => k[0] >= y); const [a, b] = [legKeys[i - 1], legKeys[i]]; const t = (y - a[0]) / (b[0] - a[0]); return [a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; };
+  const footR = smooth([R(ca - 3.6, 277), R(ca + 3.6, 277), R(ca + 4.8, 282), R(ca + 8.5, 285.5), R(ca + 8, 289), R(ca - 3.6, 289.5), R(ca - 4.8, 285)]);
+
+  // Arms: shoulder cap, upper arm, elbow, forearm, wrist, hand; they hang clear of the belly and hips.
+  const ua = Math.max(S + 0.5, C + 2 * lw) + belly * 1.5;
+  const ex = Math.max(ua + 0.5, Wb + 4.4 * lw + 1), wx = Math.max(H + 3.4 * lw + 1.5, ex - 2), hc = wx + 0.5;
+  const armKeys: [number, number, number][] = [[68, S + 0.5, 6 * lw], [90, ua, 5 * lw], [112, ex, 4 * lw], [126, (ex + wx) / 2, 4.6 * lw], [150, wx, 3 * lw], [162, hc, 4 * lw], [174, hc, 3 * lw]];
+  const armR = smooth([
+    R(S - 2, 57.5), ...armKeys.map(([y, c, h]): Pt => R(c + h, y)), R(hc, 178.5),
+    ...armKeys.slice(1).reverse().map(([y, c, h]): Pt => R(c - h, y)), R(C - 1, 76), R(S - 7, 62),
+  ]);
+
+  // Shorts over the hips and the top of the thighs.
+  const [sc, sh] = legAt(178);
+  const shorts = `M${X(-H - 1.5)} 136 L${X(H + 1.5)} 136 L${X(sc + sh + 1.5)} 178 L${X(Math.max(1, sc - sh - 1))} 180 L80 ${f ? 162 : 160} L${X(-Math.max(1, sc - sh - 1))} 180 L${X(-sc - sh - 1.5)} 178Z`;
+
+  const head = smooth(f
+    ? [[80, 7], [91, 12], [93, 25], [89, 35], [84, 40], [80, 41], [76, 40], [71, 35], [67, 25], [69, 12]]
+    : [[80, 6], [92, 12], [94, 26], [90, 36], [84, 41], [80, 42], [76, 41], [70, 36], [66, 26], [68, 12]]);
+  const neck = `M${X(-nw)} 34 L${X(nw)} 34 L${X(nw + 1)} 53 L${X(-nw - 1)} 53Z`;
+
+  const chest = f
+    ? `<path d="M${X(-C + 0.5)} 75 C${X(-C * 0.5)} 70 ${X(-3)} 78 80 80 C${X(3)} 78 ${X(C * 0.5)} 70 ${X(C - 0.5)} 75 L${X(C - 1)} 97 Q80 101 ${X(-C + 1)} 97Z" fill="#212121"/>
+       ${both(d => `<path d="M${X(d * C * 0.55)} 74 L${X(d * (nw + 4))} 54" stroke="#212121" stroke-width="2.2" stroke-linecap="round"/>`)}
+       ${both(d => `<path d="M${X(d * C * 0.85)} 91 Q${X(d * C * 0.42)} 99 ${X(d)} 91" stroke="#4a4a4a" stroke-width="1" fill="none"/>`)}`
+    : both(d => detail(`M${X(d * C * 0.85)} 80 Q${X(d * C * 0.55)} 93 ${X(d * 1.5)} 88`) + `<circle cx="${X(d * C * 0.52)}" cy="84" r="1.1" fill="#c57e5e"/>`)
+      + (bmi < 26 ? detail('M80 91V118', 0.3) + [101, 110].map(y => both(d => detail(`M${X(d * 1.5)} ${y} q${f1(d * 3)} 1 ${f1(d * 6)} 0`, 0.3))).join('') : '');
+
+  const face = `${both(d => `<ellipse cx="${X(d * 14)}" cy="26" rx="2.6" ry="4.5" fill="${shade}"/>`)}
+    <path d="${head}" fill="url(#ob-skin)"/>
+    ${both(d => `<ellipse cx="${X(d * 5.2)}" cy="25" rx="1.7" ry="1.25" fill="#2b1d14"/><path d="M${X(d * 8)} 20.8 q${f1(-d * 2.8)} -1.6 ${f1(-d * 5.6)} -.3" stroke="${hair}" stroke-width="1.2" stroke-linecap="round" fill="none"/>`)}
+    ${detail('M80 26q-1.2 4 .2 5.4q1 .3 1.6-.2', 0.8)}
+    <path d="M77 35.3q3 1.5 6 0" stroke="${f ? '#d9776f' : '#b5705a'}" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    <ellipse cx="80" cy="44" rx="${f1(nw)}" ry="2.2" fill="${shade}" opacity=".6"/>`;
+
   return `<svg class="ob-body" viewBox="0 -36 160 336" role="img" aria-label="${height} см, ${weight} кг">
-    <ellipse cx="80" cy="292" rx="${(34 * w).toFixed(1)}" ry="5" fill="#e9e9e9"/>
+    <defs><linearGradient id="ob-skin" x1="0" x2="1"><stop offset="0" stop-color="${shade}"/><stop offset=".3" stop-color="${skin}"/><stop offset=".7" stop-color="${skin}"/><stop offset="1" stop-color="${shade}"/></linearGradient></defs>
+    <ellipse cx="80" cy="292" rx="${f1(34 * w)}" ry="5" fill="#e9e9e9"/>
     <g transform="translate(80 292) scale(${s.toFixed(3)}) translate(-80 -292)">
-      <path d="${leg(-1)}" stroke="${skin}" stroke-width="${(17 * limb).toFixed(1)}" stroke-linecap="round" fill="none"/>
-      <path d="${leg(1)}" stroke="${skin}" stroke-width="${(17 * limb).toFixed(1)}" stroke-linecap="round" fill="none"/>
-      <ellipse cx="${X(-foot - 3)}" cy="287" rx="9" ry="4.5" fill="${shade}"/><ellipse cx="${X(foot + 3)}" cy="287" rx="9" ry="4.5" fill="${shade}"/>
-      <path d="${arm(-1)}" stroke="${shade}" stroke-width="${(11 * limb).toFixed(1)}" stroke-linecap="round" fill="none"/>
-      <path d="${arm(1)}" stroke="${shade}" stroke-width="${(11 * limb).toFixed(1)}" stroke-linecap="round" fill="none"/>
-      <circle cx="${X(-handX)}" cy="171" r="${(5.5 * limb).toFixed(1)}" fill="${skin}"/><circle cx="${X(handX)}" cy="171" r="${(5.5 * limb).toFixed(1)}" fill="${skin}"/>
-      <rect x="${(80 - 7 * limb).toFixed(1)}" y="40" width="${(14 * limb).toFixed(1)}" height="16" rx="4" fill="${shade}"/>
-      <path d="${torso}" fill="${skin}"/>
-      ${f ? `<path d="M${X(-C + 1)} 80 Q80 88 ${X(C - 1)} 80 L${X(C - 2)} 96 Q80 102 ${X(-C + 2)} 96Z" fill="#212121"/>`
-        : `<path d="M${X(-C * 0.75)} 90 q${(C * 0.35).toFixed(1)} 6 ${(C * 0.7).toFixed(1)} 0 M${X(C * 0.05)} 90 q${(C * 0.35).toFixed(1)} 6 ${(C * 0.7).toFixed(1)} 0" stroke="${shade}" stroke-width="1.6" fill="none"/>`}
-      ${belly > 0.05 ? `<ellipse cx="80" cy="${(120 + 4 * belly).toFixed(1)}" rx="${(W * 0.7).toFixed(1)}" ry="${(10 + 9 * belly).toFixed(1)}" fill="${shade}" opacity=".35"/>` : ''}
-      <circle cx="80" cy="${(126 + 3 * belly).toFixed(1)}" r="1.4" fill="${shade}"/>
-      <path d="M${X(-H - 1)} 146 L${X(H + 1)} 146 L${X(H + 2)} 182 L${X(4)} 182 L80 166 L${X(-4)} 182 L${X(-H - 2)} 182Z" fill="#212121"/>
-      <circle cx="80" cy="24" r="16" fill="${skin}"/>
-      <ellipse cx="64" cy="26" rx="3" ry="5" fill="${shade}"/><ellipse cx="96" cy="26" rx="3" ry="5" fill="${shade}"/>
-      ${f ? '<path d="M62 26c-4-24 40-24 36 0 3 10 2 22-2 30l-4-16c-3-8-6-12-12-14-6 2-10 7-13 14l-4 16c-4-8-4-20-1-30z" fill="#3b2a20"/>'
-        : '<path d="M63 22c0-16 34-18 34 0-4-6-10-8-17-8s-13 2-17 8z" fill="#3b2a20"/>'}
+      ${f ? `<path d="${smooth([[64, 24], [65, 7], [80, 1], [95, 7], [96, 24], [98, 46], [93, 55], [80, 50], [67, 55], [62, 46]])}" fill="${hair}"/>` : ''}
+      <path d="${neck}" fill="${shade}"/>
+      <path d="${legR}" fill="url(#ob-skin)"/>
+      <path d="${legR}" transform="matrix(-1 0 0 1 160 0)" fill="url(#ob-skin)"/>
+      <path d="${footR}" fill="${skin}"/><path d="${footR}" transform="matrix(-1 0 0 1 160 0)" fill="${skin}"/>
+      ${both(d => detail(`M${X(d * (ck - 3))} 214 Q${X(d * ck)} 217.5 ${X(d * (ck + 3))} 214`, 0.5) + detail(`M${X(d * (ca + 1.5))} 287 h${f1(d * 5)}`, 0.35, 0.7))}
+      <path d="${torso}" fill="url(#ob-skin)"/>
+      ${belly > 0.05 ? `<ellipse cx="80" cy="${f1(118 + 4 * belly)}" rx="${f1(W * 0.72)}" ry="${f1(10 + 9 * belly)}" fill="${shade}" opacity=".3"/>` : ''}
+      ${both(d => detail(`M${X(d * (nw + 1))} 55.5 Q${X(d * S * 0.5)} 52.5 ${X(d * (S - 4))} 57`))}
+      ${chest}
+      <ellipse cx="80" cy="${f1(124 + 3 * belly)}" rx="1.1" ry="1.6" fill="${line}" opacity=".7"/>
+      ${both(d => detail(`M${X(d * W * 0.8)} 126 Q${X(d * W * 0.45)} 134 ${X(d * 6)} 138`, 0.4))}
+      <path d="${shorts}" fill="#212121"/><path d="M${X(-H - 1.5)} 140 H${X(H + 1.5)}" stroke="#3d3d3d" stroke-width="2"/>
+      <path d="${armR}" fill="url(#ob-skin)"/><path d="${armR}" transform="matrix(-1 0 0 1 160 0)" fill="url(#ob-skin)"/>
+      ${both(d => detail(`M${X(d * (ex - 2.5))} 112 q${f1(d * 1.5)} 1.2 ${f1(d * 3)} 0`, 0.5)
+        + [-1.4, 0, 1.4].map(o => detail(`M${X(d * (hc + o))} 167 v${o ? 6 : 8}`, 0.45, 0.6)).join('')
+        + `<ellipse cx="${X(d * (hc - 3.4 * lw))}" cy="164" rx="1.6" ry="4" fill="${skin}" stroke="${line}" stroke-width=".5" stroke-opacity=".6"/>`)}
+      ${face}
+      ${f ? `<path d="${smooth([[66, 22], [67, 9], [80, 3.5], [93, 9], [94, 22], [89, 13], [79, 11], [72, 14]])}" fill="${hair}"/>`
+        : `<path d="${smooth([[66, 20], [65.5, 11], [71, 5], [80, 2.5], [89, 5], [94.5, 11], [94, 20], [91.5, 13.5], [85, 10.5], [75, 10.5], [68.5, 13.5]])}" fill="${hair}"/>`}
     </g>
   </svg>`;
 }
