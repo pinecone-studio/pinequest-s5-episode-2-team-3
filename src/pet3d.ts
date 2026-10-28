@@ -10,7 +10,9 @@ import type { Kind, PetMood, Stage } from './pet';
 
 // `shine` 0–4 grows with the level: a brighter glow, then more and more gold sparkles circling it.
 // `water` makes the body clear glass with water inside that rises with `fill` (the home gauge).
-export interface Look { kind: Kind; mood: PetMood; stage: Stage; shine?: number; water?: boolean }
+// `feel` draws a face other than the mood's: the home drop's steps from parched to overjoyed.
+export type Feel = PetMood | 'parched' | 'okay' | 'happy';
+export interface Look { kind: Kind; mood: PetMood; stage: Stage; shine?: number; water?: boolean; feel?: Feel }
 
 const COLORS: Record<Kind, number> = {
   drop: 0x2f93ff, mouse: 0xaab6c6, cat: 0xff9a45, rooster: 0xfff3e2, frog: 0x4cc860, dog: 0xdca468, pig: 0xff9fbd, monkey: 0x9a6640, goat: 0xf1ede6, snake: 0x5cc356, horse: 0xbd7d45, cow: 0xfbf8f3, tiger: 0xff8a1e, camel: 0xd8a965, bear: 0xa8703c, penguin: 0x2a3f6e, bunny: 0xff8ab5, whale: 0x3474e0, sheep: 0xffe9d6, unicorn: 0xf7c6f2, dragon: 0x22b4d6, legend: 0xd9f1ff,
@@ -302,34 +304,44 @@ function build(look: Look): Model {
   }
 
   // Face.
-  if (mood === 'good' || mood === 'thirsty') {
-    const s = mood === 'thirsty' ? 0.85 : 1;
-    for (const x of [-0.34, 0.34]) { const e = onSurface(eye(), x, 0.24); e.scale.setScalar(s); eyes.add(e); }
-  } else if (mood === 'joyful') {
+  const face: Feel = look.feel ?? mood;
+  if (face === 'good' || face === 'thirsty' || face === 'okay' || face === 'happy' || face === 'parched') {
+    const s = face === 'thirsty' ? 0.85 : face === 'happy' ? 1.1 : 1;
+    for (const x of [-0.34, 0.34]) { const e = onSurface(eye(), x, 0.24); e.scale.set(s, face === 'parched' ? 0.5 : s, s); eyes.add(e); }
+    // Worried brows when parched, raised ones when happy.
+    if (face === 'parched' || face === 'happy') for (const x of [-0.34, 0.34]) {
+      const brow = onSurface(mesh(new THREE.CapsuleGeometry(0.022, 0.13, 4, 8), glossy(INK)).rotateZ(Math.PI / 2 + Math.sign(x) * (face === 'parched' ? -0.45 : 0.2)), x, face === 'parched' ? 0.4 : 0.47);
+      eyes.add(brow);
+    }
+  } else if (face === 'joyful') {
     for (const x of [-0.34, 0.34]) eyes.add(onSurface(arc(0.12, 0.035), x, 0.2));
-  } else if (mood === 'sick') {
+  } else if (face === 'sick') {
     for (const x of [-0.34, 0.34]) eyes.add(onSurface(arc(0.1, 0.03, true), x, 0.24));
   } else {
     for (const x of [-0.34, 0.34]) eyes.add(onSurface(mesh(new THREE.CapsuleGeometry(0.03, 0.18, 4, 8), glossy(INK)).rotateZ(Math.PI / 2), x, 0.22));
   }
   body.add(eyes);
-  if (mood === 'joyful') {
+  if (face === 'joyful' || face === 'happy') {
     const m = onSurface(new THREE.Group(), 0, -0.02);
     m.add(mesh(new THREE.CircleGeometry(0.13, 24, Math.PI, Math.PI), flat(0x6b1d33)));
     m.add(mesh(new THREE.CircleGeometry(0.07, 16, Math.PI, Math.PI), flat(0xff7a95), [0, -0.05, 0.002]));
     body.add(m);
     model.mouthOpen = m;
-  } else if (mood === 'thirsty') {
-    body.add(onSurface(mesh(new THREE.CircleGeometry(0.05, 16), flat(0x6b1d33), [0, 0, 0], [1, 1.3, 1]), 0, -0.04));
-  } else if (mood === 'weak') {
+  } else if (face === 'thirsty' || face === 'parched') {
+    // Parched: mouth wide open, panting.
+    const o = face === 'parched' ? 0.085 : 0.05;
+    body.add(onSurface(mesh(new THREE.CircleGeometry(o, 20), flat(0x6b1d33), [0, 0, 0], [1, 1.3, 1]), 0, -0.04));
+    if (face === 'parched') body.add(onSurface(mesh(new THREE.CircleGeometry(0.045, 16, Math.PI, Math.PI), flat(0xff7a95)), 0, -0.07, 0.025));
+  } else if (face === 'weak' || face === 'okay') {
     body.add(onSurface(mesh(new THREE.CapsuleGeometry(0.02, 0.12, 4, 8), glossy(INK)).rotateZ(Math.PI / 2), 0, -0.02));
   } else {
-    body.add(onSurface(arc(0.09, 0.024, mood !== 'sick'), 0, mood === 'sick' ? -0.08 : 0.02));
+    body.add(onSurface(arc(0.09, 0.024, face !== 'sick'), 0, face === 'sick' ? -0.08 : 0.02));
   }
-  if (mood === 'good' || mood === 'joyful') for (const x of [-0.58, 0.58]) body.add(onSurface(mesh(new THREE.CircleGeometry(0.11, 24), flat(PINK, 0.55), [0, 0, 0], [1.2, 0.7, 1]), x, 0.04, 0.01));
-  if (mood === 'thirsty') {
+  if (face === 'good' || face === 'joyful' || face === 'happy') for (const x of [-0.58, 0.58]) body.add(onSurface(mesh(new THREE.CircleGeometry(0.11, 24), flat(PINK, face === 'good' ? 0.55 : 0.8), [0, 0, 0], [1.2, 0.7, 1]), x, 0.04, 0.01));
+  if (face === 'thirsty' || face === 'parched') {
     const d = mesh(new THREE.SphereGeometry(0.09, 16, 12), glossy(0xbfe6ff), [0.72, 0.75, 0.55], [0.8, 1.2, 0.8]);
     body.add(d); model.sweat = d;
+    if (face === 'parched') d.add(mesh(new THREE.SphereGeometry(0.09, 16, 12), glossy(0xbfe6ff), [-1.75, -0.45, 0]));  // a second drop on the other cheek
   }
 
   // The animal.
@@ -932,7 +944,7 @@ export function mountPet3d(host: HTMLElement, { stage = true } = {}): Pet3D {
   return {
     set(next, r) {
       roam = r;
-      if (look && look.kind === next.kind && look.mood === next.mood && look.stage === next.stage && look.shine === next.shine && look.water === next.water) return;
+      if (look && look.kind === next.kind && look.mood === next.mood && look.stage === next.stage && look.shine === next.shine && look.water === next.water && look.feel === next.feel) return;
       look = next;
       if (model) { s.remove(model.root); dispose(model.root); }
       model = build(next);
