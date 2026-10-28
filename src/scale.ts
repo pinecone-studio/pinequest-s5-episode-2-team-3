@@ -185,6 +185,8 @@ export class ScaleLink {
       const bottle = saved.list.find(b => b.id === saved.selected);
       this.result = `${bottle ? `«${bottle.name}»` : 'Сав'} сонгогдлоо (${chosen[1]} г) ✓`;
     } else {
+      // The base forgot its bottle when zeroed, so none is selected here either.
+      if (text === 'zero' && saved.selected) writeBottles({ ...saved, selected: null });
       this.result = tare ? `Савны жин: ${tare[1]} г ✓`
         : text === 'tare-failed' ? 'Жин тогтворжсонгүй. Саваа хөдөлгөлгүй тавиад дахин оролдоно уу.'
         : text === 'zero' ? 'Суурийн жинг тэглэлээ ✓' : this.result;
