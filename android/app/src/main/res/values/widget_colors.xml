@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home screen widget card (DrinkWidget): light here, dark in values-night. The ring brings the colour. -->
+<resources>
+    <color name="widget_card">#FFFFFF</color>
+    <color name="widget_text">#0F172A</color>
+    <color name="widget_muted">#64748B</color>
+</resources>

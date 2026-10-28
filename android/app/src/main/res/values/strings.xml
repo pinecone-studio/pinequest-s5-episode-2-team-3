@@ -5,5 +5,5 @@
     <string name="package_name">mn.pinecone.dusal</string>
     <string name="custom_url_scheme">mn.pinecone.dusal</string>
     <string name="widget_face">Усны дусал</string>
-    <string name="widget_description">Streak болон усны дусал. Өдөр өнгөрөх тусам өнгө нь өөрчлөгдөнө</string>
+    <string name="widget_description">Өнөөдрийн ус эсвэл эмчийн хязгаараас үлдсэн хэмжээ, дараагийн уух цаг</string>
 </resources>
