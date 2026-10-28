@@ -34,6 +34,11 @@ const uint8_t OLED_I2C_ADDRESS = 0x3C;
 const float MAX_LOAD_G = 5000;         // load cell rating; above this the screen shows OVER
 const int SMOOTHING_SAMPLES = 8;       // moving average; the HX711 gives 10 samples/s, so 0.8 s
 const int TARE_SAMPLES = 20;           // tare and calibration average 2 s of readings
+// A 5 kg cell on the HX711 gives a few hundred raw counts per gram. Far fewer means the weight is not
+// reaching the cell (wiring, mounting), and such a factor would only turn noise into grams.
+const float MIN_FACTOR = 20;           // raw counts per gram
+const long HX711_LIMIT = 8388000;      // readings this close to ±2^23: the HX711 input is out of range
+const float ZERO_BAND_G = 0.5;         // the screen shows 0.0 inside this, so the cell's drift does not flicker
 const uint32_t SCREEN_INTERVAL_MS = 100;  // 10 frames a second, so the bottle on the screen moves smoothly
 // The screen wakes when the weight changes by more than SCREEN_WAKE_G and goes dark after SCREEN_ON_MS
 // without a change. Saves power and keeps the OLED from burning in.
@@ -150,6 +155,13 @@ void fillWindow(long raw) {
   inBand = settled = false;
 }
 
+// A reading pinned at the HX711's limit: a load cell wire is loose, broken or on the wrong pin.
+bool warnLimit(long raw) {
+  if (labs(raw) < HX711_LIMIT) return false;
+  Serial.printf("HX711 reading %ld is at its limit: check the load cell wires (E+/E-/A+/A-)\n", raw);
+  return true;
+}
+
 // Averages readings straight from the HX711. False if it stops answering (DT/SCK wiring or power).
 bool averageRaw(int samples, long& out) {
   long long sum = 0;
@@ -189,8 +201,16 @@ void calibrate(float knownGrams) {
   showMessage("Kalibrovk...", "hudluhgui baina uu");
   long raw;
   if (!averageRaw(TARE_SAMPLES, raw)) return;
-  if (raw == offset) { Serial.println("no change from zero: put the weight on after 'tare'"); return; }
-  factor = (raw - offset) / knownGrams;
+  warnLimit(raw);
+  const long change = raw - offset;
+  if (fabsf(change / knownGrams) < MIN_FACTOR) {
+    Serial.printf("calibration NOT saved: only %ld raw counts for %.0f g (a working cell gives tens of thousands)\n", change, knownGrams);
+    Serial.println("  the weight is not reaching the load cell. Check: E+/E-/A+/A- wires to the HX711, one end of the cell");
+    Serial.println("  screwed to the base and the other to the plate, nothing touching the case. 'watch' shows the raw value live.");
+    showMessage("Kalibrovk bolsongui", "Serial: watch");
+    return;
+  }
+  factor = change / knownGrams;
   prefs.putFloat("factor", factor);
   fillWindow(raw);
   Serial.printf("factor set: %.4f raw/g\n", factor);
@@ -563,6 +583,7 @@ void drawScreen() {
   if (g > MAX_LOAD_G) snprintf(number, sizeof number, "OVER");
   else if (water && g < PRESENT_MIN_G) snprintf(number, sizeof number, "--");
   else if (water) snprintf(number, sizeof number, "%ld", lroundf(g - bottleG));
+  else if (fabsf(g) < ZERO_BAND_G) snprintf(number, sizeof number, "0.0");  // no "-0.0" / "0.1" flicker when empty
   else snprintf(number, sizeof number, fabsf(g) < 99.95f ? "%.1f" : "%.0f", g);  // ~0.1 g resolution
   char link[12] = "";
   if (queued) snprintf(link, sizeof link, bleConnected ? "BT %d" : "%d hulee", queued);
@@ -589,11 +610,31 @@ void drawScreen() {
 
 void printStatus() {
   if (!hx711Alive()) { Serial.println("HX711 not responding"); return; }
+  warnLimit(smoothedRaw());
   Serial.printf("raw %ld | offset %ld | factor %.4f | ", smoothedRaw(), offset, factor);
   if (calibrated()) Serial.printf("%.1f g\n", grams());
   else Serial.println("not calibrated");
   Serial.printf("%s | boot %lu | settled %d g | phase %d (0 moving, 1 empty, 2 present) | bottle %.0f g | left %d ml | waiting %d | app %s\n",
                 deviceId, (unsigned long)bootId, settledG, (int)phase, bottleG, remainingMl(), queued, bleConnected ? "connected" : "not connected");
+}
+
+// 'watch': the raw reading four times a second for 10 s. Pressing the plate must move it by thousands;
+// if it hardly moves, the weight is not reaching the load cell.
+void watchRaw() {
+  Serial.println("watch: press on the plate for 10 s; raw should change by thousands");
+  const uint32_t end = millis() + 10000;
+  uint32_t next = 0;
+  while ((int32_t)(millis() - end) < 0) {
+    readScale();
+    if ((int32_t)(millis() - next) >= 0) {
+      next = millis() + 250;
+      const long raw = smoothedRaw();
+      Serial.printf("raw %ld (%+ld from zero)", raw, raw - offset);
+      if (calibrated()) Serial.printf(" | %.1f g", grams());
+      Serial.println(labs(raw) >= HX711_LIMIT ? " | at the HX711 limit: check wires" : "");
+    }
+    delay(5);
+  }
 }
 
 void handleSerial() {
@@ -603,7 +644,8 @@ void handleSerial() {
   if (line == "tare") tare();
   else if (line.startsWith("cal ")) calibrate(line.substring(4).toFloat());
   else if (line == "raw" || line == "status") printStatus();
-  else Serial.println("commands: tare | cal <grams> | status");
+  else if (line == "watch") watchRaw();
+  else Serial.println("commands: tare | cal <grams> | status | watch");
 }
 
 // Lists every I2C device so a wrong OLED address or swapped SDA/SCL is easy to spot.
@@ -622,6 +664,12 @@ void setup() {
   pinMode(PIN_BUTTON, INPUT_PULLUP);
   prefs.begin("scale");
   factor = prefs.getFloat("factor", 0);
+  // An earlier calibration made without the weight reaching the cell: start over instead of showing noise.
+  if (factor != 0 && fabsf(factor) < MIN_FACTOR) {
+    Serial.printf("stored factor %.4f raw/g is too small (bad calibration): calibrate again\n", factor);
+    factor = 0;
+    prefs.remove("factor");
+  }
   bottleG = prefs.getFloat("bottle", 0);
   todayMl = prefs.getInt("today", 0);
   bootId = prefs.getUInt("boot", 0) + 1;
