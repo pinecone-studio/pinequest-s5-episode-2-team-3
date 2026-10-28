@@ -14,7 +14,9 @@ import { readPetName } from './pet';
 // are scheduled with the system for the next week (see native-reminders.ts), skipping ones already met.
 const KEY = 'dusal-reminders-v1';
 const SENT_KEY = 'dusal-reminders-sent-v1';
-export interface Settings { wake: string; sleep: string; every: number; on: boolean }
+// `times`: the doctor's own drinking times and amounts (doctor-card.ts); while set they replace the even split.
+export interface DoctorTime { at: string; ml: number }
+export interface Settings { wake: string; sleep: string; every: number; on: boolean; times?: DoctorTime[] }
 const DEFAULTS: Settings = { wake: '07:00', sleep: '22:00', every: 2, on: false };
 const EVERY = [1, 1.5, 2, 3] as const;
 const FACTS = [
@@ -34,6 +36,7 @@ export function readSettings(): Settings {
       sleep: time(s?.sleep, DEFAULTS.sleep),
       every: EVERY.includes(s?.every as never) ? s!.every! : DEFAULTS.every,
       on: s?.on === true,
+      times: Array.isArray(s?.times) && s.times.every(t => /^\d{2}:\d{2}$/.test(t?.at) && Number.isInteger(t?.ml) && t.ml > 0) && s.times.length ? s.times : undefined,
     };
   } catch { return { ...DEFAULTS }; }
 }
@@ -55,14 +58,16 @@ export function slots(state: AppState, now = new Date()): Slot[] {
   const s = readSettings();
   const start = minutes(s.wake), end = minutes(s.sleep) > start ? minutes(s.sleep) : minutes(s.sleep) + 24 * 60;
   const step = Math.round(s.every * 60);
-  const times: number[] = [];
-  for (let t = start; t < end; t += step) times.push(t);
+  const custom = s.times ? [...s.times].sort((a, b) => minutes(a.at) - minutes(b.at)) : null;
+  const times: number[] = custom ? custom.map(t => minutes(t.at)) : [];
+  if (!custom) for (let t = start; t < end; t += step) times.push(t);
   if (!times.length) times.push(start);
-  const per = Math.max(10, Math.round(state.goal / times.length / 10) * 10);
+  const even = Math.max(10, Math.round(state.goal / times.length / 10) * 10);
+  const per = times.map((_, i) => custom ? custom[i].ml : even);
   const nowMin = now.getHours() * 60 + now.getMinutes();
   // Pour today's drinks, in time order, into the slot each was drunk in (before the first slot counts
   // as the first), spilling forward only.
-  const left = times.map(() => per);
+  const left = [...per];
   const today = dayKey(now);
   const drinks = state.events.filter(e => e.type === 'drink' && dayKey(new Date(e.at)) === today).sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
   for (const e of drinks) {
@@ -74,9 +79,9 @@ export function slots(state: AppState, now = new Date()): Slot[] {
     let st: Slot['state'];
     if (!left[i]) st = 'done';
     else if (at > nowMin) st = 'later';
-    else if (at + step <= nowMin) st = 'late';
+    else if ((times[i + 1] ?? at + step) <= nowMin) st = 'late';
     else st = 'now';
-    return { at, time: clock(at), ml: per, left: left[i], state: st };
+    return { at, time: clock(at), ml: per[i], left: left[i], state: st };
   });
 }
 
@@ -101,7 +106,7 @@ function sheet(state: AppState): string {
   const support = nativeReminders || 'Notification' in window;
   return `<div class="cal-card sched-card">
     <div class="cal-top"><h2 id="sched-title">Өнөөдрийн хуваарь</h2><button type="button" class="cal-close" aria-label="Хаах">${mdIcon('close')}</button></div>
-    <p class="sched-sum">${state.mode === 'limit' ? 'Хязгаар' : 'Зорилт'} ${number(state.goal)} мл · ${list.length} удаа · тус бүр <b>${number(list[0]?.ml ?? 0)} мл</b></p>
+    <p class="sched-sum">${state.mode === 'limit' ? 'Хязгаар' : 'Зорилт'} ${number(state.goal)} мл · ${list.length} удаа · ${readSettings().times ? '<b>эмчийн заасан цагаар</b>' : `тус бүр <b>${number(list[0]?.ml ?? 0)} мл</b>`}</p>
     <ol class="sched-list">${list.map(x => `<li class="${x.state}"><span class="t">${x.time}</span><span class="ml">${number(x.ml)} мл</span><span class="st">${icon[x.state]} ${word[x.state]}</span></li>`).join('')}</ol>
     <form class="sched-form" id="sched-form">
       <label>Сэрэх<input type="time" id="sched-wake" value="${s.wake}"/></label>
@@ -132,7 +137,7 @@ export function bindSchedule(state: () => AppState, redraw: () => void): void {
       box.querySelector('.cal-close')!.addEventListener('click', close);
       const save = () => {
         const s = readSettings();
-        writeSettings({ ...s, wake: (box.querySelector('#sched-wake') as HTMLInputElement).value || s.wake, sleep: (box.querySelector('#sched-sleep') as HTMLInputElement).value || s.sleep, every: Number((box.querySelector('#sched-every') as HTMLSelectElement).value) });
+        writeSettings({ ...s, times: undefined, wake: (box.querySelector('#sched-wake') as HTMLInputElement).value || s.wake, sleep: (box.querySelector('#sched-sleep') as HTMLInputElement).value || s.sleep, every: Number((box.querySelector('#sched-every') as HTMLSelectElement).value) });
         void planNative(state());
         draw();
       };
@@ -169,7 +174,7 @@ interface Tone { face: Face; title: string; body?: string }
 function tone(state: AppState, day: number, slot: number, count: number, ml: number): Tone {
   const late = slot >= count / 2 ? { face: 'worried' as const, title: 'Ус уух цаг өнгөрч байна' } : { face: 'happy' as const, title: 'Ус уух цаг боллоо' };
   if (state.mode === 'limit') {
-    const upTo = Math.min(state.goal, Math.round((state.goal * (slot + 1)) / count / 10) * 10);
+    const upTo = Math.min(state.goal, slots(state).slice(0, slot + 1).reduce((sum, x) => sum + x.ml, 0));
     return { face: 'happy', title: 'Шингэнээ жигд хуваарилаарай', body: `Одоогоор нийт ${number(upTo)} мл хүртэл уухад болно · эмчийн хязгаар ${number(state.goal)} мл. Хязгаараа хэтрүүлэхгүй, бага бага балгаарай.` };
   }
   const met = drunkToday(state) >= state.goal;
