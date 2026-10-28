@@ -172,18 +172,6 @@ html .week-report > .tile-sub { margin: 0 16px 14px; }
 
 html .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* "Баяр хүргэе!" / "Өө!" (src/day-result.ts). */
-html .day-result { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 20px; background: #fff; overflow-y: auto; }
-html .dr-card { display: grid; justify-items: center; gap: 12px; width: min(380px, 100%); text-align: center; }
-html .dr-date { margin: 0; font-size: 18px; font-weight: 600; color: var(--ink); }
-html .dr-hi { margin: -8px 0 0; font-size: 12px; color: var(--muted); }
-html .dr-face svg { width: 110px; height: auto; overflow: visible; }
-html .dr-panel { position: relative; width: 100%; padding: 22px 18px 120px; border-radius: 20px; background: var(--sky-soft); text-align: left; }
-html .dr-panel h2 { margin: 0 0 8px; font-size: 24px; font-weight: 700; color: var(--ink); }
-html .dr-panel p { margin: 0; font-size: 13px; color: #4b6075; max-width: 26ch; }
-html .dr-trophy { position: absolute; left: 18px; bottom: 14px; width: 80px; height: 90px; }
-html .day-result.bad .dr-trophy { filter: grayscale(.7); opacity: .7; }
-html .dr-home { min-height: 50px; padding: 0 36px; border: 0; border-radius: 12px; background: var(--sky); color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 8px 18px rgba(90, 184, 240, .35); }
 
 /* "Зорилтоо тохируулах": the big glass count and ready-made days (overview.ts planSection). */
 html .plan-card h2 { text-align: center; }
@@ -685,29 +673,13 @@ html .ac-demo .ac-note { margin: 0; }
 html .ac-link { color: var(--sky); font-weight: 600; }
 html .settings-page .device-panel, html .settings-page .settings-section, html .settings-page .sync-status, html .settings-page .profile-panel, html .settings-page .settings-list { margin: 0; border-radius: 16px; box-shadow: none; }
 
-/* Hydrify "Daily Goal Achieved!" (day-result.ts). */
-html .day-result { display: flex; flex-direction: column; padding: 0; background: #fff; }
-@media (min-width: 561px) { html .day-result { left: 50%; right: auto; width: 430px; transform: translateX(-50%); box-shadow: 0 0 60px rgba(0, 0, 0, .12); } }
-html .dr-confetti { position: absolute; inset: 0 0 auto 0; height: 340px; overflow: hidden; pointer-events: none; }
-html .dr-confetti i { position: absolute; width: 8px; height: 14px; border-radius: 2px; }
-html .day-result .dr-card { flex: 1; display: grid; align-content: center; justify-items: center; gap: 14px; width: 100%; padding: 40px 24px 20px; text-align: center; }
-html .day-result .dr-trophy { position: static; width: 220px; height: 240px; }
-html .day-result.bad .dr-trophy { filter: grayscale(.85); opacity: .6; }
-html .day-result h2 { margin: 6px 0 0; font-size: 30px; font-weight: 800; color: var(--ink); }
-html .day-result .dr-card > p { margin: 0; max-width: 32ch; font-size: 17px; line-height: 1.6; color: #424242; }
-html .day-result hr { width: 100%; border: 0; border-top: 1px solid #eeeeee; margin: 6px 0; }
-html .dr-share-line { color: #424242; }
-html .dr-actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 14px; padding: 20px 24px 28px; border-top: 1px solid #eeeeee; }
-html .dr-actions button { min-height: 56px; border: 0; border-radius: 999px; font-size: 16px; font-weight: 700; }
-html .dr-actions .dr-home { background: var(--sky-soft); color: var(--sky); box-shadow: none; padding: 0; }
-html .dr-actions .dr-share { background: var(--sky); color: #fff; }
 
 /* Onboarding, Hydrify layout (onboarding.ts). */
 html .onb.ob { display: block; padding: 0; background: #fff; overflow-y: auto; }
 @media (min-width: 561px) { html .onb.ob { left: 50%; right: auto; width: 430px; transform: translateX(-50%); box-shadow: 0 0 60px rgba(0, 0, 0, .12); } }
 /* On a computer the full-screen views take the same phone-sized frame as the pages. */
 @media (min-width: 561px) {
-  html .onb.ob, html .hx-sheet, html .day-result, html .drink-sheet { top: 20px; bottom: auto; height: min(932px, calc(100vh - 40px)); height: min(932px, calc(100dvh - 40px)); border-radius: 30px; }
+  html .onb.ob, html .hx-sheet, html .drink-sheet { top: 20px; bottom: auto; height: min(932px, calc(100vh - 40px)); height: min(932px, calc(100dvh - 40px)); border-radius: 30px; }
 }
 html .ob-screen { min-height: 100%; display: flex; flex-direction: column; }
 html .ob-screen > div { flex: 1; display: flex; flex-direction: column; }
@@ -1046,7 +1018,7 @@ html[data-theme="dark"] { --home-bg: #181a20; --ink: #ffffff; --muted: #9e9e9e; 
 html[data-theme="dark"] body, html[data-theme="dark"] main.home-app, html[data-theme="dark"] .app-shell { background: #181a20 !important; color: #fff; }
 html[data-theme="dark"] .hx-card, html[data-theme="dark"] .hx-bottom, html[data-theme="dark"] .hx-popover, html[data-theme="dark"] .hx-sheet,
 html[data-theme="dark"] .ac-search, html[data-theme="dark"] .ac-chips button:not([aria-selected="true"]), html[data-theme="dark"] .ac-process-card,
-html[data-theme="dark"] .hx-cup, html[data-theme="dark"] .hx-chips button, html[data-theme="dark"] .onb.ob, html[data-theme="dark"] .day-result,
+html[data-theme="dark"] .hx-cup, html[data-theme="dark"] .hx-chips button, html[data-theme="dark"] .onb.ob,
 html[data-theme="dark"] .app-top, html[data-theme="dark"] .site-nav { background: #1f222a !important; color: #fff; }
 html[data-theme="dark"] .hx-list li, html[data-theme="dark"] .hx-card-head, html[data-theme="dark"] .ac-menu .ac-row, html[data-theme="dark"] .ac-amount,
 html[data-theme="dark"] .ac-level li, html[data-theme="dark"] .ac-current, html[data-theme="dark"] .hx-bottom h2, html[data-theme="dark"] .ac-foot { border-color: #35383f; }

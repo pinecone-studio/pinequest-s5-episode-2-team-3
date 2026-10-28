@@ -9,7 +9,6 @@ import { bindGaugeDrag, hxGauge, hxHeader, openCupSheet, readCup, readCupKind } 
 import { setKind } from './drinks';
 import { bindWatchCard, loadInsight, watchCard } from './watch-card';
 import { health } from './health';
-import { celebrateIfReached, showYesterday } from './day-result';
 import { startSync } from './sync';
 import { startDevices } from './devices';
 import { bindWeatherChip, loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
@@ -351,7 +350,6 @@ function bindPlan() {
 
 let drinking = false;
 async function addDrink(ml: number) {
-  const before = drankOn(state.events, today);
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
   setKind(entry.id, readCupKind());
   drinking = true; render(); // "Ууж байна..." while it saves and the gauge fills (kit screen 30)
@@ -364,7 +362,6 @@ async function addDrink(ml: number) {
   undoReset = null;
   offerUndo();
   render();
-  celebrateIfReached(state, before, before + ml);
 }
 
 // Demo helper: empty today's ring by removing today's drinks, so the fill can be shown again.
@@ -527,7 +524,6 @@ void reload().then(() => {
   // "/?onboard" shows it again from the start (for demos); the water log is kept.
   const again = new URLSearchParams(location.search).has('onboard');
   if (again) history.replaceState(null, '', location.pathname + location.hash);
-  if (!again && !needsOnboarding()) showYesterday(state);
   if (again || needsOnboarding()) showOnboarding(async plan => {
     const result = await save({ ...state, goal: plan.ml, mode: plan.mode });
     await reload();
