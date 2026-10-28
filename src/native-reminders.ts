@@ -43,7 +43,7 @@ export async function scheduleNative(items: readonly NativeReminder[]): Promise<
       body: item.body,
       schedule: { at: item.at, allowWhileIdle: true },
       smallIcon: 'ic_stat_drop',
-      iconColor: '#4a90e2',
+      iconColor: '#0056ff',
       largeIcon: `notif_face_${item.face}`,
       attachments: [{ id: item.face, url: `res:///notif/${item.face}.png` }],
       extra: { badge: i + 1 },

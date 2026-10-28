@@ -26,8 +26,8 @@ const QUESTIONS = 9;
 type Climate = 'hot' | 'mild' | 'cold';
 const CLIMATES: Record<Climate, { label: string; icon: string; extra: number }> = {
   hot: { label: 'Халуун', icon: '<circle cx="16" cy="16" r="6.5" fill="#ffb300"/><g stroke="#ffb300" stroke-width="2.4" stroke-linecap="round"><path d="M16 2.5v4M16 25.5v4M2.5 16h4M25.5 16h4M6.5 6.5l2.8 2.8M22.7 22.7l2.8 2.8M6.5 25.5l2.8-2.8M22.7 9.3l2.8-2.8"/></g>', extra: 500 },
-  mild: { label: 'Дунд зэрэг', icon: '<circle cx="12" cy="12" r="5.5" fill="#ffb300"/><g stroke="#ffb300" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v3M2 12h3M4.9 4.9l2.1 2.1M19.1 4.9 17 7"/></g><path d="M10 27a5 5 0 0 1 .6-10A7 7 0 0 1 24 15.5a5.8 5.8 0 0 1 .5 11.5z" fill="#cfe6fd" stroke="#9fd0fb" stroke-width="1.2"/>', extra: 0 },
-  cold: { label: 'Хүйтэн', icon: '<g stroke="#369fff" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M16 3v26M4.7 9.5l22.6 13M4.7 22.5l22.6-13"/><path d="M12.5 5.5 16 8.5l3.5-3M12.5 26.5 16 23.5l3.5 3M4.5 14l4.4-1-1.3-4.4M27.5 18l-4.4 1 1.3 4.4M4.5 18l4.4 1-1.3 4.4M27.5 14l-4.4-1 1.3-4.4"/></g>', extra: 0 },
+  mild: { label: 'Дунд зэрэг', icon: '<circle cx="12" cy="12" r="5.5" fill="#ffb300"/><g stroke="#ffb300" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v3M2 12h3M4.9 4.9l2.1 2.1M19.1 4.9 17 7"/></g><path d="M10 27a5 5 0 0 1 .6-10A7 7 0 0 1 24 15.5a5.8 5.8 0 0 1 .5 11.5z" fill="#cfdcff" stroke="#99b9ff" stroke-width="1.2"/>', extra: 0 },
+  cold: { label: 'Хүйтэн', icon: '<g stroke="#0056ff" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M16 3v26M4.7 9.5l22.6 13M4.7 22.5l22.6-13"/><path d="M12.5 5.5 16 8.5l3.5-3M12.5 26.5 16 23.5l3.5 3M4.5 14l4.4-1-1.3-4.4M27.5 18l-4.4 1 1.3 4.4M4.5 18l4.4 1-1.3 4.4M27.5 14l-4.4-1 1.3-4.4"/></g>', extra: 0 },
 };
 // The result in the unit picked on the last screen (kit 19).
 const UNITS = { ml: { label: 'мл', per: 1, digits: 0 }, l: { label: 'л', per: 1000, digits: 2 }, us: { label: 'US oz', per: 29.5735, digits: 0 }, uk: { label: 'UK oz', per: 28.4131, digits: 0 } } as const;
@@ -165,11 +165,11 @@ const MOCK = `<svg class="ob-mock" viewBox="0 0 220 300" aria-hidden="true">
   <text x="110" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#212121">Нүүр</text>
   <rect x="24" y="76" width="172" height="190" rx="12" fill="#fff"/>
   <path d="M60 210 A62 62 0 1 1 160 210" fill="none" stroke="#eeeeee" stroke-width="12" stroke-linecap="round"/>
-  <path d="M60 210 A62 62 0 0 1 150 112" fill="none" stroke="#369fff" stroke-width="12" stroke-linecap="round"/>
+  <path d="M60 210 A62 62 0 0 1 150 112" fill="none" stroke="#0056ff" stroke-width="12" stroke-linecap="round"/>
   <path d="M110 120c-14 18-22 28-22 40a22 22 0 0 0 44 0c0-12-8-22-22-40z" fill="#f5f5f5"/>
-  <path d="M90 162a20 20 0 0 0 40 0c0-4-1-7-2-10-12 4-24 4-38 10z" fill="#197fff"/>
+  <path d="M90 162a20 20 0 0 0 40 0c0-4-1-7-2-10-12 4-24 4-38 10z" fill="#1769ff"/>
   <text x="110" y="208" text-anchor="middle" font-size="20" font-weight="800" fill="#212121">1650</text>
-  <rect x="64" y="228" width="72" height="22" rx="11" fill="#369fff"/><text x="100" y="243" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">Уух (300 мл)</text>
+  <rect x="64" y="228" width="72" height="22" rx="11" fill="#0056ff"/><text x="100" y="243" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">Уух (300 мл)</text>
   <circle cx="152" cy="239" r="11" fill="#fff" stroke="#eeeeee"/>
 </svg>`;
 
@@ -312,7 +312,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       const shown = (plan.ml / u.per).toFixed(u.digits);
       return `<div class="ob-ready"><h2 id="onb-title">${plan.mode === 'limit' ? 'Таны өдрийн хязгаар' : 'Таны өдрийн зорилт'}</h2>
         <div class="ob-units wide" role="radiogroup" aria-label="Нэгж">${(Object.keys(UNITS) as Unit[]).map(k => `<button type="button" role="radio" aria-checked="${k === unit}" class="${k === unit ? 'on' : ''}" data-unit="${k}">${UNITS[k].label}</button>`).join('')}</div>
-        <span class="ob-glass" aria-hidden="true">${petPic(pics, 'joyful', 'ob-ready-pet', '<svg viewBox="0 0 48 64"><path d="M6 4h36l-4 56H10z" fill="#e3f0fd"/><path d="M8.6 22h30.8l-2.8 38H11.4z" fill="#369fff"/><circle cx="20" cy="40" r="2" fill="#fff"/><circle cx="28" cy="50" r="1.6" fill="#fff"/></svg>')}</span>
+        <span class="ob-glass" aria-hidden="true">${petPic(pics, 'joyful', 'ob-ready-pet', '<svg viewBox="0 0 48 64"><path d="M6 4h36l-4 56H10z" fill="#e3f0fd"/><path d="M8.6 22h30.8l-2.8 38H11.4z" fill="#0056ff"/><circle cx="20" cy="40" r="2" fill="#fff"/><circle cx="28" cy="50" r="1.6" fill="#fff"/></svg>')}</span>
         <p class="ob-result">${unit === 'ml' ? number(plan.ml) : shown}<span>${u.label}</span></p>
         ${plan.mode === 'limit' ? '' : '<button type="button" class="ob-adjust" data-adjust>✎ Тохируулах</button>'}
         <p class="ob-lead small">${escape(plan.how)}</p>

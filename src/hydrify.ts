@@ -28,14 +28,14 @@ export function writeCupKind(kind: Kind | undefined): void {
 
 // Small blue cup drawings: a cup for small amounts, glasses in the middle, a mug for the large ones.
 export function cupIcon(ml: number): string {
-  if (ml <= 150) return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 11h18l-2 11a3 3 0 0 1-3 2.5h-8A3 3 0 0 1 7 22z" fill="#369fff"/><path d="M23 13h2a3 3 0 0 1 0 6h-2.6" fill="none" stroke="#369fff" stroke-width="2"/><path d="M8 11h12v3H8z" fill="#9fd0fb"/></svg>';
-  if (ml <= 350) return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 4h14l-1.6 24H10.6z" fill="#cfe6fd"/><path d="M9.7 12h12.6l-1 16H10.7z" fill="#369fff"/><circle cx="16" cy="20" r="1.2" fill="#fff"/><circle cx="18" cy="24" r="1" fill="#fff"/></svg>';
-  return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 6h17v18a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z" fill="#369fff"/><path d="M5 10h17M5 15h17M5 20h17" stroke="#9fd0fb" stroke-width="2"/><path d="M22 10h3a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3h-3" fill="none" stroke="#369fff" stroke-width="2.4"/></svg>';
+  if (ml <= 150) return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 11h18l-2 11a3 3 0 0 1-3 2.5h-8A3 3 0 0 1 7 22z" fill="#0056ff"/><path d="M23 13h2a3 3 0 0 1 0 6h-2.6" fill="none" stroke="#0056ff" stroke-width="2"/><path d="M8 11h12v3H8z" fill="#99b9ff"/></svg>';
+  if (ml <= 350) return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 4h14l-1.6 24H10.6z" fill="#cfdcff"/><path d="M9.7 12h12.6l-1 16H10.7z" fill="#0056ff"/><circle cx="16" cy="20" r="1.2" fill="#fff"/><circle cx="18" cy="24" r="1" fill="#fff"/></svg>';
+  return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 6h17v18a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z" fill="#0056ff"/><path d="M5 10h17M5 15h17M5 20h17" stroke="#99b9ff" stroke-width="2"/><path d="M22 10h3a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3h-3" fill="none" stroke="#0056ff" stroke-width="2.4"/></svg>';
 }
 
 // "My cups" (kit 59–62): the sizes the cup sheet offers, each with one of the icons below.
 // Kept on this phone; until edited, the ten default sizes with their default icons.
-const B = '#369fff', L = '#9fd0fb', P = '#cfe6fd';
+const B = '#0056ff', L = '#99b9ff', P = '#cfdcff';
 const i32 = (body: string) => `<svg viewBox="0 0 32 32" aria-hidden="true">${body}</svg>`;
 export const CUP_ICONS = [
   i32(`<path d="M4 12h24c0 7-5 12-12 12S4 19 4 12z" fill="${B}"/><path d="M4 12h24" stroke="${L}" stroke-width="3"/>`),

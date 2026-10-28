@@ -21,8 +21,8 @@ function takeLimitNote(): boolean {
   try { if (localStorage.getItem(NOTE_KEY)) return false; localStorage.setItem(NOTE_KEY, '1'); return true; } catch { return false; }
 }
 
-const WATER = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 5h14l-1.6 23H10.6z" fill="#eef6fe"/><path d="M9.8 13h12.4l-1 15H10.8z" fill="#569df8"/></svg>';
-const SPARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" fill="#569df8"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" fill="#9cc6fb"/></svg>';
+const WATER = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 5h14l-1.6 23H10.6z" fill="#eef3ff"/><path d="M9.8 13h12.4l-1 15H10.8z" fill="#1769ff"/></svg>';
+const SPARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" fill="#1769ff"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" fill="#9cc6fb"/></svg>';
 const MIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>';
 const SEND = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
 const WARN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 21h20Z" fill="#f2a33a"/><path d="M12 10v5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="18" r="1.3" fill="#fff"/></svg>';

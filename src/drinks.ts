@@ -46,7 +46,7 @@ const RENAMED: Record<string, Kind> = { wine: 'alcohol', beer: 'alcohol', liquor
 const LEGACY: Record<string, { name: string; icon: string }> = {
   coconut: { name: 'Наргил', icon: svg('<circle cx="16" cy="18" r="10" fill="#8bc34a"/><path d="M16 4v8" stroke="#5d4037" stroke-width="2"/>') },
   smoothie: { name: 'Смүүти', icon: glass('#26c6da') },
-  sport: { name: 'Спорт ундаа', icon: bottle('#369fff') },
+  sport: { name: 'Спорт ундаа', icon: bottle('#0056ff') },
 };
 
 function readMap(): Record<string, string> {

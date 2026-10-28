@@ -69,7 +69,7 @@ export async function planWeekend(state: Pick<AppState, 'goal' | 'mode'>, ask = 
         id: WEEKEND_ID, title: text.title, body: text.body,
         // Capacitor counts weekdays from Sunday = 1.
         schedule: { on: { weekday: (gap.from % 7) + 1, hour: 19, minute: 0 }, allowWhileIdle: true },
-        smallIcon: 'ic_stat_drop', iconColor: '#4a90e2', extra: { weekend: true },
+        smallIcon: 'ic_stat_drop', iconColor: '#0056ff', extra: { weekend: true },
       }],
     });
   } catch { /* tried again on the next change */ }

@@ -64,7 +64,7 @@ const BRAND: Record<string, string> = {
   mastercard: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#111"/><circle cx="16" cy="20" r="7" fill="#eb001b"/><circle cx="24" cy="20" r="7" fill="#f79e1b" opacity=".9"/></svg>',
   visa: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#1a1f71"/><text x="20" y="24" text-anchor="middle" font-size="11" font-weight="900" font-style="italic" fill="#fff">VISA</text></svg>',
   amex: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#2e77bc"/><text x="20" y="23.5" text-anchor="middle" font-size="7.5" font-weight="900" fill="#fff">AMEX</text></svg>',
-  card: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#369fff"/><rect x="11" y="14" width="18" height="12" rx="2" fill="#fff"/><path d="M11 18h18" stroke="#369fff" stroke-width="2"/></svg>',
+  card: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#0056ff"/><rect x="11" y="14" width="18" height="12" rx="2" fill="#fff"/><path d="M11 18h18" stroke="#0056ff" stroke-width="2"/></svg>',
 };
 const brand = (m: PayMethod) => `<span class="ac-brand" aria-hidden="true">${BRAND[m.brand] ?? BRAND.card}</span>`;
 const method = (m: PayMethod, right: string) => `<span class="ac-pay">${brand(m)}<span class="ac-label">${escape(m.name)}<small>${escape(m.detail)}</small></span>${right}</span>`;
