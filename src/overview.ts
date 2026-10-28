@@ -24,6 +24,7 @@ import { askAi, checkAi } from './api';
 import { guardPlan } from '../shared/plan';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, startReminders } from './schedule';
+import { bindDoctorCard, doctorCard } from './doctor-card';
 import { startAppIcon } from './app-icon';
 import { feedWaiting, markFeed } from './feed-alert';
 import { homeFeel, homePetDrank, placeHomePet } from './home-pet';
@@ -462,6 +463,7 @@ function render() {
         ${weatherChip(state.mode)}
         ${hxGauge(drink, goal, state.mode, readCup(), drinking)}
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
+        ${doctorCard()}
         ${watchCard()}
         ${familySection()}
         ${ScalePanel()}
@@ -482,6 +484,13 @@ function render() {
   document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render(), state.mode === 'limit'));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
+  bindDoctorCard(render, async (ml, mode) => {
+    const result = await save({ ...state, goal: ml, mode });
+    await reload();
+    source = 'doctor'; draft = null;
+    render();
+    return result === 'saved';
+  });
   bindWeatherChip();
   scale.shareToday(drink, false, { goal, mode: state.mode });  // the base's screen shows the same total
   bindDevicePanel(() => {});  // the base panel redraws itself on each reading
