@@ -6,6 +6,8 @@ import { readSnapshot, applySnapshot } from './sync.js';
 import { PlanError, suggestPlan } from './plan.js';
 import { suggestInsight } from './insight.js';
 import { readDoctorNote } from './doctor.js';
+import { parseDrink } from './drink.js';
+import { rateLimit } from './rate-limit.js';
 import { weatherAdjust } from './weather.js';
 
 import { CONTRACT_VERSION, ContractError, validateId, validateSettings, validateEntry, validateEventPatch } from '../../shared/contracts.ts';
@@ -40,9 +42,12 @@ async function route(request, env) {
 
   if (pathname === '/api/health') return json({ ok: true, ai: Boolean(env.ANTHROPIC_API_KEY), contractVersion: CONTRACT_VERSION });
 
-  if (pathname === '/api/plan' && method === 'POST') return json(await suggestPlan(await readJson(request), env));
-  if (pathname === '/api/doctor' && method === 'POST') return json(await readDoctorNote(await readJson(request), env));
-  if (pathname === '/api/insight' && method === 'POST') return json(await suggestInsight(await readJson(request), env));
+  // The AI endpoints, each limited per caller per hour (rate-limit.js).
+  const ai = { '/api/plan': suggestPlan, '/api/doctor': readDoctorNote, '/api/insight': suggestInsight, '/api/drink-parse': parseDrink }[pathname];
+  if (ai && method === 'POST') {
+    await rateLimit(db, request, pathname);
+    return json(await ai(await readJson(request), env));
+  }
   if (pathname === '/api/weather' && method === 'GET') return json(await weatherAdjust(searchParams, env));
 
   if (pathname === '/api/devices' && method === 'GET') return json(await listDevices(db));

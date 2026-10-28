@@ -1,8 +1,9 @@
 import type { AppState } from './data';
 import { escape, number } from './format';
 import { CUP_ICONS, readCups, writeCups, readCup, writeCup, type Cup } from './hydrify';
-import { chooseManySheet, chooseSheet, confirmSheet, openAmountSheet, pickTime } from './hx-edit';
-import { WEEKDAY_LONG, WEEK_ORDER, dialysisLabel, readDialysisDays, writeDialysisDays } from './progress-data';
+import { chooseSheet, confirmSheet, openAmountSheet, pickTime } from './hx-edit';
+import { WEEKDAY_SHORT, readDialysis, writeDialysis } from './progress-data';
+import { RULES, readRules, writeRules, type Rule } from './drink-flags';
 import { readSettings, writeSettings } from './schedule';
 import { ACTIVITIES, readProfile, writeProfile, type Activity } from './plan';
 import { readMember } from './member';
@@ -123,6 +124,7 @@ const TERMS = `<h3>Хүчинтэй огноо: 2026 оны 10-р сарын 1</
 
 const LANGUAGES: [string, string][] = [['mn', 'Монгол'], ['en', 'English'], ['ru', 'Русский'], ['zh', '中文'], ['ko', '한국어'], ['ja', '日本語'], ['de', 'Deutsch'], ['fr', 'Français'], ['es', 'Español']];
 
+let goalBack = 'preferences';
 export function accountViews(ctx: Ctx): (key: string) => View | undefined {
   const cupsList = (): string => `<section class="hx-card ac-menu ac-cups-list"><ul>${readCups().map((c, i) => `<li><span class="ac-row">
       <span class="ac-grip" aria-hidden="true">⠿</span><span class="ac-cup-icon" aria-hidden="true">${CUP_ICONS[c.icon]}</span><span class="ac-label">${number(c.ml)} мл</span>
@@ -163,7 +165,6 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
       { label: 'Жин', value: `${p.weight} кг`, act: 'weight' }, { label: 'Нас', value: `${p.age} нас`, act: 'age' },
       { label: 'Сэрэх цаг', value: s.wake, act: 'wake' }, { label: 'Унтах цаг', value: s.sleep, act: 'sleep' },
       { label: 'Хөдөлгөөн', value: ACTIVITIES[p.activity].label, act: 'activity' }, { label: 'Уур амьсгал', value: CLIMATE[a.climate], act: 'climate' },
-      { label: 'Диализын өдрүүд', value: dialysisLabel(readDialysisDays()) || 'Сонгоогүй', act: 'dialysis' },
     ]) + rows([{ label: 'Биеийн онцлог, төлөвлөгөө', desc: 'Онош, эмчийн хязгаар, AI тооцоо', href: '#profile' }]);
   };
   const saveProfile = (patch: Partial<ReturnType<typeof readProfile>>) => {
@@ -229,16 +230,54 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
         age: () => openAmountSheet('Нас', '🎂', readProfile().age, v => (v >= 4 ? saveProfile({ age: v }) : notify('Нас 4–110 байна.')), 'нас', 110),
         wake: () => setTime('wake', 'Сэрэх цаг'),
         sleep: () => setTime('sleep', 'Унтах цаг'),
-        // Used by «Явц» and the nurse's report (progress-data.ts); kept on this phone only.
-        dialysis: () => chooseManySheet('Диализын өдрүүд', WEEK_ORDER.map(d => [String(d), WEEKDAY_LONG[d]]), readDialysisDays().map(String), v => { writeDialysisDays(v.map(Number)); ctx.redraw(); }),
         activity: () => chooseSheet('Хөдөлгөөн', (Object.keys(ACTIVITIES) as Activity[]).map(a => [a, `${ACTIVITIES[a].label} · ${ACTIVITIES[a].hint}`]), readProfile().activity, v => saveProfile({ activity: v as Activity })),
       }),
     },
     profile: { title: 'Биеийн онцлог', back: 'personal', body: ctx.profilePanel },
+    // «Эмчийн зөвлөмж»: the doctor's daily limit (changed only through «Засах», never by the AI), what the
+    // doctor ruled out, and the dialysis days and time (home card, «Явц», the nurse's report).
+    doctor: {
+      title: 'Эмчийн зөвлөмж', back: '',
+      body: () => {
+        const s = ctx.state(), d = readDialysis();
+        const chip = (n: number) => `<button type="button" class="dr-chip" data-dday="${n}" aria-pressed="${d.days.includes(n)}">${WEEKDAY_SHORT[n % 7]}</button>`;
+        return `<section class="hx-card dr-limit">
+            <span class="dr-lock" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg></span>
+            <div><small>${s.mode === 'limit' ? 'Өдрийн шингэний хязгаар' : 'Өдрийн зорилт'}</small><b>${number(s.goal)} мл</b><small>Эмчийн тогтоосноор · AI өөрчлөхгүй</small></div>
+            <a href="#goal">Засах</a>
+          </section>
+          <section class="hx-card dr-rules" aria-labelledby="dr-rules-title">
+            <h2 id="dr-rules-title">Эмч хориглосон</h2>
+            <p>Тэмдэглэсэн ундаа сонгох үед улаан «Эмч хориглосон» гэж харагдана.</p>
+            <ul>${RULES.map(r => `<li><label class="dr-rule"><input type="checkbox" data-rule="${r.id}" ${readRules().includes(r.id) ? 'checked' : ''}/><span><b>${r.name}</b><small>${r.sub}</small></span></label></li>`).join('')}</ul>
+          </section>
+          <section class="hx-card dr-days" aria-labelledby="dr-days-title">
+            <h2 id="dr-days-title">Диализын өдрүүд</h2><small>Тайлан, жингийн тооцоонд ашиглана</small>
+            <div class="dr-chips" role="group" aria-labelledby="dr-days-title">${[1, 2, 3, 4, 5, 6, 7].map(chip).join('')}</div>
+            <button type="button" class="dr-time" data-act="dtime"><span>Эхлэх цаг</span><b>${d.time}</b></button>
+          </section>`;
+      },
+      foot: '<p class="dr-foot">Эмчийнхээ хэлснээр тэмдэглээрэй. Дусал эмчилгээний шийдвэр гаргахгүй.</p>',
+      bind: root => {
+        root.querySelectorAll<HTMLButtonElement>('[data-dday]').forEach(b => b.addEventListener('click', () => {
+          const d = readDialysis(), n = Number(b.dataset.dday);
+          writeDialysis({ ...d, days: d.days.includes(n) ? d.days.filter(x => x !== n) : [...d.days, n] });
+          ctx.redraw();
+          document.querySelector<HTMLButtonElement>(`[data-dday="${n}"]`)?.focus();
+        }));
+        root.querySelector('a[href="#goal"]')!.addEventListener('click', () => { goalBack = 'doctor'; });
+        root.querySelectorAll<HTMLInputElement>('[data-rule]').forEach(i => i.addEventListener('change', () => {
+          const rules = readRules().filter(r => r !== i.dataset.rule);
+          writeRules(i.checked ? [...rules, i.dataset.rule as Rule] : rules);
+        }));
+        on(root, { dtime: () => pickTime(asDate(readDialysis().time), t => { writeDialysis({ ...readDialysis(), time: hhmm(t) }); ctx.redraw(); }, 'Диализ эхлэх цаг') });
+      },
+    },
     widgets: { title: 'Нүүр дэлгэцийн widget', back: '', body: widgetsBody, bind: bindWidgets },
     preferences: {
       title: 'Тохиргоо', back: '',
       body: () => {
+        goalBack = 'preferences';
         const v = p(), st = ctx.state();
         return rows([
           { label: st.mode === 'limit' ? 'Өдрийн хязгаар' : 'Өдрийн зорилт', value: `${number(st.goal)} мл`, href: '#goal' },
@@ -259,7 +298,8 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
         restart: () => confirmSheet('Шинээр эхлүүлэх', 'Бүх усны бүртгэл устна. Үргэлжлүүлэх үү?', 'Тийм, устгах', ctx.restart),
       }, { achievements: v => prefs.write({ achievements: v }), haptics: v => prefs.write({ haptics: v }) }),
     },
-    goal: { title: 'Өдрийн зорилт', back: 'preferences', body: ctx.goalSection },
+    // Opened from «Тохиргоо» or from «Эмчийн зөвлөмж» › Засах; back goes where it came from.
+    goal: { title: 'Өдрийн зорилт', get back() { return goalBack; }, body: ctx.goalSection },
     security: {
       title: 'Бүртгэл ба аюулгүй байдал', back: '',
       body: () => { const s = security.read(); return rows([
