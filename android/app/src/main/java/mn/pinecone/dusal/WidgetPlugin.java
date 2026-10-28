@@ -1,6 +1,10 @@
 package mn.pinecone.dusal;
 
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.Context;
+import android.os.Build;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -37,5 +41,26 @@ public class WidgetPlugin extends Plugin {
             .apply();
         DrinkWidget.refreshAll(getContext());
         call.resolve();
+    }
+
+    // Puts a widget on the home screen from the app (src/widgets-view.ts): the launcher asks the person to
+    // place it. { pinned: false } where the launcher cannot, so the app shows the steps to do it by hand.
+    @PluginMethod
+    public void pin(PluginCall call) {
+        Class<?> widget;
+        switch (call.getString("kind", "")) {
+            case "water": widget = DrinkWidget.class; break;
+            case "left": widget = LimitWidget.class; break;
+            case "ring": widget = RingWidget.class; break;
+            case "mix": widget = MixWidget.class; break;
+            case "gauges": widget = GaugeWidget.class; break;
+            default: call.reject("unknown widget"); return;
+        }
+        AppWidgetManager manager = AppWidgetManager.getInstance(getContext());
+        boolean pinned = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && manager.isRequestPinAppWidgetSupported()
+            && manager.requestPinAppWidget(new ComponentName(getContext(), widget), null, null);
+        JSObject result = new JSObject();
+        result.put("pinned", pinned);
+        call.resolve(result);
     }
 }

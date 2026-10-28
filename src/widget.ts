@@ -8,9 +8,19 @@ import { KINDS, kindOf } from './drinks';
 // today's numbers; the widgets pick their words and colours from them and the clock by themselves.
 interface WidgetPlugin {
   update(options: { drunk: number; goal: number; mode: 'goal' | 'limit'; day: string; streak: number; broke: boolean; count: number; kinds: string; week: number; yesterday: number }): Promise<void>;
+  pin(options: { kind: WidgetKind }): Promise<{ pinned: boolean }>;
 }
 const Widget = registerPlugin<WidgetPlugin>('DusalWidget');
 const enabled = Capacitor.getPlatform() === 'android';
+
+// The home screen widgets one can pick (WidgetPlugin.pin), as in the launcher's widget list.
+export type WidgetKind = 'water' | 'left' | 'ring' | 'mix' | 'gauges';
+export const widgetsAvailable = enabled;
+// Asks the launcher to place the widget; false where it cannot (then the steps are shown instead).
+export async function pinWidget(kind: WidgetKind): Promise<boolean> {
+  if (!enabled) return false;
+  return (await Widget.pin({ kind }).catch(() => ({ pinned: false }))).pinned;
+}
 
 // Last sent, so re-rendering the home doesn't wake the widget for nothing.
 let sent = '';

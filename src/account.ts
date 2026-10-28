@@ -7,6 +7,7 @@ import { ACTIVITIES, readProfile, writeProfile, type Activity } from './plan';
 import { readMember } from './member';
 import { about, analytics, applyTheme, linked, look, prefs, reminder, security, type PayMethod } from './prefs';
 import { notify } from './components/Toast';
+import { bindWidgets, widgetsBody } from './widgets-view';
 
 // Account sub-screens, Hydrify layout (kit 52–84). Each is a #hash view: a title, the parent it goes
 // back to, an optional header button and a bottom button. Payments, sign-in options and languages
@@ -230,6 +231,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
       }),
     },
     profile: { title: 'Биеийн онцлог', back: 'personal', body: ctx.profilePanel },
+    widgets: { title: 'Нүүр дэлгэцийн widget', back: '', body: widgetsBody, bind: bindWidgets },
     preferences: {
       title: 'Тохиргоо', back: '',
       body: () => {
