@@ -12,7 +12,9 @@ import { ScalePanel } from './components/DevicePanel';
 // means everywhere (cupsText, the quick-add tiles, the drink sheet). The base itself is linked from here
 // too, and once linked its bottles, tare and resets sit under the cups (DevicePanel.ts).
 const STILL_G = 5, STILL_MS = 2000;
-let step: 1 | 2 | 3 = 1;
+// 4: all three done and the cup saved; every step shows its check until «Өөр аяга хэмжих».
+let step: 1 | 2 | 3 | 4 = 1;
+let savedName = '';
 let tare: number | null = null;
 let measured: number | null = null;
 let samples: { at: number; g: number }[] = [];
@@ -26,7 +28,7 @@ function still(now = Date.now()): boolean {
   const recent = samples.filter(s => now - s.at <= STILL_MS).map(s => s.g);
   return recent.length > 1 && Math.max(...recent) - Math.min(...recent) < STILL_G;
 }
-export function resetCalibration(): void { step = 1; tare = null; measured = null; samples = []; pendingTare = false; }
+export function resetCalibration(): void { step = 1; tare = null; measured = null; samples = []; pendingTare = false; savedName = ''; }
 
 const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 function steps(): string {
@@ -38,9 +40,9 @@ function steps(): string {
   return `<section class="hx-card cc-steps" aria-label="Алхмууд"><ol>
       ${row(1, 'Хоосон аягаа суурин дээр тавь', step > 1 ? 'Жинг нь тэглэлээ' : linked() || scale.phase === 'unsupported' ? 'Тавиад «Тэглэх»-ийг дарна' : 'Тавиад «Тэглэх»-ийг дарна, суурь холбогдоно', `<button type="button" class="hx-blue cc-act" data-act="tare" ${scale.phase === 'unsupported' || pendingTare ? 'disabled' : ''}>${pendingTare ? 'Тэглэж байна…' : 'Тэглэх'}</button>`)}
       ${row(2, 'Аягаа ердийнхөөрөө дүүргээд тавь', step > 2 ? `${number(measured ?? 0)} мл` : 'Хэмжиж байна…')}
-      ${row(3, 'Нэр өгөөд хадгал', 'Жишээ: «Миний аяга»', `<form class="cc-name" data-name-form><input id="cc-name" maxlength="24" placeholder="Миний аяга" autocomplete="off" aria-label="Аяганы нэр"><button type="submit" class="hx-blue">Хадгалах</button></form>
+      ${row(3, 'Нэр өгөөд хадгал', step > 3 ? `«${escape(savedName)}» хадгалагдлаа` : 'Жишээ: «Миний аяга»', `<form class="cc-name" data-name-form><input id="cc-name" maxlength="24" placeholder="Миний аяга" autocomplete="off" aria-label="Аяганы нэр"><button type="submit" class="hx-blue">Хадгалах</button></form>
         <button type="button" class="hl-text cc-again" data-act="again">Дахин хэмжих</button>`)}
-    </ol></section>`;
+    </ol>${step === 4 ? '<p class="cc-done" role="status">Бүх алхам дууслаа ✓</p><button type="button" class="hl-text cc-again" data-act="again" data-focus>Өөр аяга хэмжих</button>' : ''}</section>`;
 }
 
 const linkLabel = () => scale.phase === 'connecting' ? 'Холбогдож байна…' : scale.saved ? 'Дахин холбох' : 'Суурь холбох';
@@ -52,9 +54,9 @@ function liveBox(): string {
       <form class="cc-manual" data-manual-form novalidate><label class="visually-hidden" for="cc-ml">Хэмжээ, мл</label><input id="cc-ml" type="number" inputmode="numeric" min="10" max="3000" placeholder="220"><span>мл</span>
         <label class="visually-hidden" for="cc-manual-name">Нэр</label><input id="cc-manual-name" maxlength="24" placeholder="Миний аяга" autocomplete="off"><button type="submit" class="hx-blue">Хадгалах</button></form></section>`;
   }
-  const ml = step === 3 ? measured : step === 2 ? liveMl() : null;
+  const ml = step >= 3 ? measured : step === 2 ? liveMl() : null;
   return `<section class="hx-card cc-live" aria-live="polite"><small>Суурь хэмжиж байна</small><b data-live>${ml === null ? '—' : `${number(ml)} мл`}</b>
-      <span data-live-hint>${step === 3 ? 'Хэмжлээ ✓' : scale.status ? 'Тогтвортой болтол 2 секунд хүлээнэ үү' : 'Суурийн жинг уншиж байна…'}</span></section>`;
+      <span data-live-hint>${step === 4 ? 'Хадгалагдлаа ✓' : step === 3 ? 'Хэмжлээ ✓' : scale.status ? 'Тогтвортой болтол 2 секунд хүлээнэ үү' : 'Суурийн жинг уншиж байна…'}</span></section>`;
 }
 
 function list(): string {
@@ -68,13 +70,15 @@ function list(): string {
 
 export const calibrateBody = (): string => `${steps()}${liveBox()}${list()}${linked() ? ScalePanel() : ''}<p class="cc-foot">Үлдсэн хэмжээг «мл»-ээс гадна таны аягаар харуулна.</p>`;
 
-function save(ml: number, name: string, redraw: () => void): void {
+// From the base the steps stay checked; typed in by hand they were not used.
+function save(ml: number, name: string, redraw: () => void, measuredOnBase = false): void {
   const cups = savedCups() ?? [];
   const cup: Cup = { ml, icon: defaultIcon(ml), ...(name.trim() ? { name: name.trim().slice(0, 24) } : {}), ...(cups.some(c => c.main) ? {} : { main: true }) };
   writeCups([...cups, cup]);
   notify(`«${cup.name ?? 'Аяга'}» ${number(ml)} мл хадгалагдлаа.`);
-  resetCalibration();
+  if (measuredOnBase) { step = 4; savedName = cup.name ?? 'Аяга'; } else resetCalibration();
   redraw();
+  if (measuredOnBase) document.querySelector<HTMLElement>('.cc-steps [data-focus]')?.focus();
 }
 
 function remove(i: number, redraw: () => void): void {
@@ -132,7 +136,7 @@ export function bindCalibrate(root: HTMLElement, redraw: () => void): void {
   root.querySelector('[data-act="again"]')?.addEventListener('click', () => { resetCalibration(); redraw(); });
   root.querySelector<HTMLFormElement>('[data-name-form]')?.addEventListener('submit', e => {
     e.preventDefault();
-    if (measured) save(measured, root.querySelector<HTMLInputElement>('#cc-name')!.value, redraw);
+    if (measured) save(measured, root.querySelector<HTMLInputElement>('#cc-name')!.value, redraw, true);
   });
   root.querySelector<HTMLFormElement>('[data-manual-form]')?.addEventListener('submit', e => {
     e.preventDefault();

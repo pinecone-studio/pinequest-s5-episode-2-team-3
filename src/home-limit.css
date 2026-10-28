@@ -272,3 +272,11 @@ html[data-theme="dark"] :is(.cc-name, .cc-manual) input { background: #1f222a; b
 html[data-theme="dark"] :is(.cc-cup, .dr-switch) { border-color: #35383f; }
 html[data-theme="dark"] .cc-num { background: #2a2d36; }
 html[data-theme="dark"] :is(.wk-body, .wk-note) { color: #bdbdbd; }
+
+/* Calibration finished: every step keeps its check, the checks pop in as each step is done. */
+html .cc-done { margin: 16px 0 0; padding: 10px 14px; border-radius: 12px; background: #e8f6ee; font-size: 14px; font-weight: 700; color: #1f7a45; }
+html .cc-steps > .cc-again { display: block; margin: 8px auto 0; }
+@keyframes cc-pop { from { transform: scale(.3); opacity: 0; } }
+html .cc-step.done .cc-num svg { animation: cc-pop .35s cubic-bezier(.3, 1.6, .5, 1); }
+@media (prefers-reduced-motion: reduce) { html .cc-step.done .cc-num svg { animation: none; } }
+html[data-theme="dark"] .cc-done { background: #16301f; color: #7ee2a4; }
