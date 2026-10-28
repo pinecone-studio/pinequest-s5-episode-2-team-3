@@ -34,7 +34,9 @@ public class DrinkWidget extends AppWidgetProvider {
         LAST(R.drawable.widget_bg_last, R.drawable.notif_face_crying, "Сүүлийн боломж!", true),
         DONE(R.drawable.widget_bg_done, R.drawable.notif_face_happy, "Гайхалтай! Биеллээ", false),
         RESET(R.drawable.widget_bg_reset, R.drawable.notif_face_crying, "Дахин эхэлье", false),
-        LIMIT(R.drawable.widget_bg_limit, R.drawable.notif_face_happy, "", false);
+        LIMIT(R.drawable.widget_bg_limit, R.drawable.notif_face_happy, "", false),
+        LIMIT_NEAR(R.drawable.widget_bg_limit_near, R.drawable.notif_face_worried, "", false),
+        LIMIT_OVER(R.drawable.widget_bg_limit_over, R.drawable.notif_face_crying, "", false);
 
         final int background;
         final int face;
@@ -53,11 +55,12 @@ public class DrinkWidget extends AppWidgetProvider {
     static final int DAY_START = 8;
     static final int DAY_END = 22;
 
-    // Under a doctor's limit there is nothing to chase: always calm. Otherwise: goal met → done;
+    // Under a doctor's limit there is nothing to chase, only how much of it is left: calm, careful from
+    // 80% of it, and a stop once it is passed. Otherwise: goal met → done;
     // a streak that broke yesterday → start again; late evening → save the streak; then by how far
     // behind the even pace through the waking day the person is.
     static Stage stage(int drunk, int goal, boolean limit, int streak, boolean broke, int hour) {
-        if (limit) return Stage.LIMIT;
+        if (limit) return drunk > goal ? Stage.LIMIT_OVER : drunk * 10 >= goal * 8 ? Stage.LIMIT_NEAR : Stage.LIMIT;
         if (drunk >= goal) return Stage.DONE;
         if (streak == 0 && broke) return Stage.RESET;
         if (hour >= DAY_END) return Stage.LAST;
@@ -67,6 +70,28 @@ public class DrinkWidget extends AppWidgetProvider {
         boolean behind = goal * passed - drunk > goal / 4.0;
         if (behind) return hour >= 15 ? Stage.LATE : Stage.THIRSTY;
         return hour < 11 ? Stage.MORNING : Stage.ON_TRACK;
+    }
+
+    static String ml(int value) { return String.format(Locale.US, "%,d", value); }
+
+    // Today's coming drinking times as the app sent them ("08:00=300,12:00=300"): the first one not yet
+    // passed, so the line moves on through the day even while the app stays closed.
+    static String next(String times) {
+        String now = new SimpleDateFormat("HH:mm", Locale.US).format(new Date());
+        for (String slot : times.split(",")) {
+            String[] p = slot.split("=");
+            if (p.length == 2 && p[0].compareTo(now) >= 0) return "Дараагийн: " + p[0] + " · " + p[1] + " мл";
+        }
+        return null;
+    }
+
+    // A drink the base counted while the app was closed (ScaleWatchService), so the widget does not wait for the app.
+    static void addDrunk(Context context, int amount) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        boolean sameDay = today().equals(prefs.getString("day", ""));
+        prefs.edit().putString("day", today()).putInt("drunk", (sameDay ? prefs.getInt("drunk", 0) : 0) + amount).apply();
+        if (!sameDay) prefs.edit().remove("next").apply();
+        refreshAll(context);
     }
 
     @Override
@@ -102,9 +127,22 @@ public class DrinkWidget extends AppWidgetProvider {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_drink);
         views.setInt(R.id.widget_root, "setBackgroundResource", s.background);
         views.setImageViewResource(R.id.widget_face, s.face);
-        views.setTextViewText(R.id.widget_streak, limit ? "✓" : String.valueOf(streak));
         views.setViewVisibility(R.id.widget_alert, s.alert && streak > 0 ? View.VISIBLE : View.GONE);
-        views.setTextViewText(R.id.widget_say, limit ? String.format(Locale.US, "%,d / %,d мл", drunk, goal) : s.say);
+        if (limit && drunk > goal) {
+            views.setTextViewText(R.id.widget_streak, "!");
+            views.setTextViewText(R.id.widget_say, "+" + ml(drunk - goal) + " мл хэтэрлээ");
+        } else if (limit) {
+            // The big number is what is left of the limit; that is what matters through the day.
+            views.setTextViewText(R.id.widget_streak, ml(goal - drunk));
+            views.setTextViewText(R.id.widget_say, "мл үлдсэн · " + ml(goal) + " хүртэл");
+        } else {
+            views.setTextViewText(R.id.widget_streak, String.valueOf(streak));
+            views.setTextViewText(R.id.widget_say, s.say);
+        }
+        // Nothing more to drink is suggested once a limit is reached or the goal is met.
+        String next = s == Stage.LIMIT_OVER || s == Stage.DONE || (limit && drunk >= goal) ? null : next(sameDay ? prefs.getString("next", "") : "");
+        views.setViewVisibility(R.id.widget_next, next == null ? View.GONE : View.VISIBLE);
+        if (next != null) views.setTextViewText(R.id.widget_next, next);
 
         Intent open = new Intent(context, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getActivity(

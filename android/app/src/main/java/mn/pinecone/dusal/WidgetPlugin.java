@@ -28,6 +28,7 @@ public class WidgetPlugin extends Plugin {
             .putString("day", day)
             .putInt("streak", call.getInt("streak", 0))
             .putBoolean("broke", call.getBoolean("broke", false))
+            .putString("next", call.getString("next", ""))
             .apply();
         DrinkWidget.refreshAll(getContext());
         call.resolve();

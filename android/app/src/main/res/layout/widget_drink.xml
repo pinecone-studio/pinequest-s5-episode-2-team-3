@@ -68,12 +68,27 @@
             android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:textStyle="bold" />
+
+        <!-- The next drinking time from the schedule (the doctor's times when set). -->
+        <TextView
+            android:id="@+id/widget_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:alpha="0.9"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <ImageView
         android:id="@+id/widget_face"
-        android:layout_width="84dp"
-        android:layout_height="84dp"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="6dp"
         android:contentDescription="@string/widget_face"
