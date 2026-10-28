@@ -3,12 +3,14 @@ import { CUP_ICONS, defaultIcon, savedCups, writeCups, type Cup } from './hydrif
 import { scale } from './scale';
 import { confirmSheet } from './hx-edit';
 import { notify } from './components/Toast';
+import { ScalePanel } from './components/DevicePanel';
 
-// «Аягаа хэмжүүлэх» (Профайл › Миний савнууд): the cups the person drinks from, measured on the base.
+// «Аягаа хэмжүүлэх» (Профайл › Суурь ба савнууд): the cups the person drinks from, measured on the base.
 // 1) the empty cup goes on and its weight is taken as zero (here in the app: the base's own bottle is
 // left alone), 2) filled as usual, the water is read once it holds still (under 5 g for 2 s; 1 g = 1 ml,
 // to 10 ml), 3) it gets a name. Without the base the ml is typed in. The main cup is what «1 аяга»
-// means everywhere (cupsText, the quick-add tiles, the drink sheet).
+// means everywhere (cupsText, the quick-add tiles, the drink sheet). The base itself is linked from here
+// too, and once linked its bottles, tare and resets sit under the cups (DevicePanel.ts).
 const STILL_G = 5, STILL_MS = 2000;
 let step: 1 | 2 | 3 = 1;
 let tare: number | null = null;
@@ -39,10 +41,12 @@ function steps(): string {
     </ol></section>`;
 }
 
+const linkLabel = () => scale.phase === 'connecting' ? 'Холбогдож байна…' : scale.saved ? 'Дахин холбох' : 'Суурь холбох';
 function liveBox(): string {
   if (!connected()) {
     return `<section class="hx-card cc-live off" aria-labelledby="cc-off-title"><b id="cc-off-title">Суурь холбогдоогүй байна</b>
-      <small>Аяганы хэмжээг гараар оруулна уу.</small>
+      ${scale.phase === 'unsupported' ? '' : `<button type="button" class="hx-blue cc-link" data-act="link">${linkLabel()}</button>`}
+      <small>Эсвэл аяганы хэмжээг гараар оруулна уу.</small>
       <form class="cc-manual" data-manual-form novalidate><label class="visually-hidden" for="cc-ml">Хэмжээ, мл</label><input id="cc-ml" type="number" inputmode="numeric" min="10" max="3000" placeholder="220"><span>мл</span>
         <label class="visually-hidden" for="cc-manual-name">Нэр</label><input id="cc-manual-name" maxlength="24" placeholder="Миний аяга" autocomplete="off"><button type="submit" class="hx-blue">Хадгалах</button></form></section>`;
   }
@@ -60,7 +64,7 @@ function list(): string {
     </section>`;
 }
 
-export const calibrateBody = (): string => `${steps()}${liveBox()}${list()}<p class="cc-foot">Үлдсэн хэмжээг «мл»-ээс гадна таны аягаар харуулна.</p>`;
+export const calibrateBody = (): string => `${steps()}${liveBox()}${list()}${connected() ? ScalePanel() : ''}<p class="cc-foot">Үлдсэн хэмжээг «мл»-ээс гадна таны аягаар харуулна.</p>`;
 
 function save(ml: number, name: string, redraw: () => void): void {
   const cups = savedCups() ?? [];
@@ -91,6 +95,8 @@ export function bindCalibrate(root: HTMLElement, redraw: () => void): void {
       const box = document.querySelector<HTMLElement>('.cc-live');
       if (!box) return;
       if (!!box.classList.contains('off') === connected()) { redraw(); return; }  // connected or lost
+      const link = box.querySelector<HTMLButtonElement>('[data-act="link"]');
+      if (link) { link.textContent = linkLabel(); link.disabled = scale.phase === 'connecting'; }
       if (scale.status) samples = [...samples.filter(s => Date.now() - s.at <= STILL_MS * 2), { at: Date.now(), g: scale.status.weightG }];
       const ml = liveMl();
       if (step === 2 && ml !== null && ml >= 10 && still()) { measured = ml; step = 3; redraw(); document.querySelector<HTMLInputElement>('#cc-name')?.focus(); return; }
@@ -100,6 +106,12 @@ export function bindCalibrate(root: HTMLElement, redraw: () => void): void {
   root.querySelector('[data-act="tare"]')?.addEventListener('click', () => {
     if (!scale.status) return;
     tare = scale.status.weightG; samples = []; step = 2; redraw();
+  });
+  // A remembered base reconnects; otherwise the system's device picker opens.
+  root.querySelector<HTMLButtonElement>('[data-act="link"]')?.addEventListener('click', async () => {
+    if (scale.saved) { scale.reconnect(); return; }
+    try { await scale.pair(); }
+    catch (error) { if (!(error instanceof Error && /cancel/i.test(`${error.name} ${error.message}`))) notify('Bluetooth асаалттай, апп Bluetooth ашиглах зөвшөөрөлтэй эсэхийг шалгана уу.'); }
   });
   root.querySelector('[data-act="again"]')?.addEventListener('click', () => { resetCalibration(); redraw(); });
   root.querySelector<HTMLFormElement>('[data-name-form]')?.addEventListener('submit', e => {

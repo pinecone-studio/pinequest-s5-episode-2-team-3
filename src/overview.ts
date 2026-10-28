@@ -497,7 +497,7 @@ function render() {
         <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
         ${limit ? '' : doctorCard() + watchCard()}
         ${familySection()}
-        ${ScalePanel(limit)}
+        ${ScalePanel(true)}
       </div>
       <footer class="home-footer hx-footer">${limit && !demo ? '' : `<button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button>`}<p><a href="/history.html">Бүх бүртгэл</a> · <a href="/settings.html#linked">Холболт, нөөц ба тохиргоо</a></p></footer>
     </div>

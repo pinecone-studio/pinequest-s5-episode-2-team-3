@@ -42,10 +42,12 @@ html .hl-dialysis.empty i { font-style: normal; font-size: 24px; color: var(--mu
 
 /* The base, connected: one row. */
 html .device-panel.compact { padding: 12px 16px; border: 0; border-radius: 16px; background: #fff; box-shadow: var(--card-lift); }
-html .scale-row { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+html .scale-row { display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: none; }
 html .scale-row i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #2e9e5b; }
 html .scale-row span { flex: 1; }
 html .scale-row small { font-size: 13px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+html .scale-row svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+html .scale-row:focus-visible { outline: 2px solid var(--sky); outline-offset: 4px; border-radius: 8px; }
 
 /* Bottom sheets: 26px corners and a grab handle. */
 html .hx-bottom.hl-sheet { display: flex; flex-direction: column; gap: 14px; padding: 10px 16px max(24px, env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; text-align: left; }
@@ -220,6 +222,9 @@ html .cc-live [data-live-hint] { font-size: 13px; color: #0b3a9e; }
 html .cc-live.off { justify-items: stretch; text-align: left; }
 html .cc-live.off > b { font-size: 16px; color: var(--ink); } html .cc-live.off > small { text-transform: none; font-weight: 500; color: var(--muted); }
 html .cc-manual input[type="number"] { flex: 0 1 90px; } html .cc-manual > span { align-self: center; font-size: 14px; color: var(--muted); }
+html .cc-link { justify-self: start; min-height: 44px; margin: 6px 0 4px; padding: 0 20px; font-size: 14px; }
+html .cc-live ~ .device-panel, html .cc-list ~ .device-panel { width: 100%; margin: 0; }
+html .cc-list ~ .device-panel .bottle-add button { flex: none; white-space: nowrap; }
 html .cc-list { padding-bottom: 8px; }
 html .cc-list h2 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: var(--ink); }
 html .cc-list ul { margin: 0; padding: 0; list-style: none; }

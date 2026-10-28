@@ -160,7 +160,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
     chooseSheet(title, opts.map(o => [o, o]), String(p()[key]), v => { prefs.write({ [key]: v }); ctx.redraw(); });
 
   const VIEWS: Record<string, View> = {
-    // «Миний савнууд»: measure a cup on the base, the saved cups and the main one (cup-calibrate.ts).
+    // «Суурь ба савнууд»: link the base, measure a cup on the base, the saved cups and the main one (cup-calibrate.ts).
     cups: { title: 'Аягаа хэмжүүлэх', back: '', body: calibrateBody, bind: root => bindCalibrate(root, ctx.redraw) },
     reminder: {
       title: 'Уух сануулга', back: '', body: reminderBody,
