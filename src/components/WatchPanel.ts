@@ -1,5 +1,6 @@
 import { health, healthSupported } from '../health';
 import { escape, number } from '../format';
+import { openWatchConnect } from '../watch-connect';
 import './device-panel.css';
 
 // Settings card for a smartwatch read through Health Connect. Linking works only in the Android app;
@@ -67,7 +68,7 @@ function renderWatch(): void {
       alert.textContent = 'Health Connect-тэй холбогдож чадсангүй. Дахин оролдоно уу.';
     } finally { host.querySelectorAll<HTMLButtonElement>('button').forEach(b => { b.disabled = false; }); }
   };
-  host.querySelector('[data-watch-on]')?.addEventListener('click', () => void act(() => health.connect()));
+  host.querySelector('[data-watch-on]')?.addEventListener('click', openWatchConnect);
   host.querySelector('[data-watch-refresh]')?.addEventListener('click', () => void act(() => health.refresh()));
   host.querySelector('[data-watch-off]')?.addEventListener('click', () => void act(() => health.disconnect()));
 }
