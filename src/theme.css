@@ -1256,3 +1256,40 @@ html .doctor-card .doc-error { background: #fdecec; color: #b4232a; }
 html .doctor-card .doc-done { margin: 10px 0 0; color: #1f9e6a; font-weight: 600; font-size: 14px; }
 html .doctor-card .doc-actions { display: flex; gap: 8px; margin-top: 10px; }
 html .doctor-card .doc-actions button { flex: 1; min-height: 44px; }
+
+/* "Цаг холбох" card over the home (watch-connect.ts). */
+html .wt-dim { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; background: rgba(15, 30, 50, .45); }
+html .wt-pop { display: grid; justify-items: center; gap: 10px; width: 100%; max-width: 360px; padding: 28px 22px 22px; border-radius: 28px; background: #fff; box-shadow: 0 24px 60px rgba(20, 50, 90, .25); text-align: center; }
+html .wt-pop h2 { margin: 6px 0 0; font-size: 22px; font-weight: 800; color: var(--ink); }
+html .wt-pop p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted); }
+html .wt-badge { display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; background: var(--sky-soft); color: var(--sky); }
+html .wt-badge svg { width: 40px; height: 40px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html .wt-badge.busy { box-shadow: 0 0 0 0 rgba(54, 159, 255, .4); animation: wt-pulse 1.4s ease-out infinite; }
+html .wt-badge.ok { background: #e7f8ee; color: #22c55e; }
+html .wt-badge.ok svg { stroke-width: 2.6; }
+html .wt-badge.warn { background: #fff4e5; color: #f59e0b; }
+html .wt-badge.warn svg { stroke-width: 2.6; }
+@keyframes wt-pulse { to { box-shadow: 0 0 0 18px rgba(54, 159, 255, 0); } }
+@media (prefers-reduced-motion: reduce) { html .wt-badge.busy { animation: none; } }
+html .wt-steps { display: grid; gap: 10px; margin: 6px 0 0; padding: 0; list-style: none; counter-reset: wt; text-align: left; }
+html .wt-steps li { position: relative; padding-left: 36px; font-size: 15px; line-height: 1.45; color: #424242; counter-increment: wt; }
+html .wt-steps li::before { content: counter(wt); position: absolute; left: 0; top: -1px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--sky-soft); color: var(--sky); font-size: 13px; font-weight: 800; }
+html .wt-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; margin-top: 6px; }
+html .wt-tiles div { display: grid; gap: 2px; padding: 12px 4px; border-radius: 16px; background: var(--sky-soft); }
+html .wt-tiles b { font-size: 20px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+html .wt-tiles small { font-size: 12px; color: var(--muted); }
+html .wt-pop .wt-note { font-size: 13px; }
+html .wt-actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; width: 100%; margin-top: 10px; }
+html .wt-primary, html .wt-ghost { display: grid; place-items: center; min-height: 50px; border: 0; border-radius: 999px; font: inherit; font-size: 16px; font-weight: 700; text-decoration: none; }
+html .wt-primary { background: var(--sky); color: #fff; }
+html .wt-ghost { background: var(--sky-soft); color: var(--sky); }
+html[data-theme="dark"] .wt-pop { background: #1f222a; }
+html[data-theme="dark"] .wt-tiles div { background: #2a2d36; }
+html[data-theme="dark"] .wt-steps li { color: #e0e0e0; }
+html .wt-dots { display: flex; gap: 6px; margin: 0 0 4px; padding: 0; list-style: none; }
+html .wt-dots li { width: 8px; height: 8px; border-radius: 4px; background: #e0e0e0; transition: width .2s, background .2s; }
+html .wt-dots li.on { width: 28px; background: var(--sky); }
+html .wt-dots li.done { background: #22c55e; }
+html .wt-badge.pop { animation: wt-pop .45s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes wt-pop { from { transform: scale(.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { html .wt-badge.pop { animation: none; } }

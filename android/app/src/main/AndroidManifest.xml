@@ -187,6 +187,8 @@
     <!-- Android 13 and older: lets the app see the Health Connect app to check that it is installed. -->
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
+        <!-- Galaxy Wearable, opened to link a watch (AppLaunchPlugin.java). -->
+        <package android:name="com.samsung.android.app.watchmanager" />
     </queries>
     <!-- Google sign-in (social-login) pulls in the Facebook SDK, which adds the advertising ID; the app does not use it. -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />

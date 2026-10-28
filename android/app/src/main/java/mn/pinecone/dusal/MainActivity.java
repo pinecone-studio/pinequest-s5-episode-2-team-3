@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppIconPlugin.class);
         registerPlugin(WidgetPlugin.class);
         registerPlugin(ScaleWatchPlugin.class);
+        registerPlugin(AppLaunchPlugin.class);
         super.onCreate(savedInstanceState);
     }
 

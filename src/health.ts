@@ -42,13 +42,18 @@ export class HealthLink {
       if (this.phase === 'on') await this.refresh();
       document.addEventListener('visibilitychange', () => { if (!document.hidden && this.phase === 'on') void this.refresh(); });
     } catch {
-      this.phase = 'missing';
+      // A failed call is not a missing Health Connect: keep the link button and try again next time.
+      this.started = false;
+      this.phase = 'off';
+      this.message = 'Health Connect-тэй холбогдож чадсангүй. Аппаа шинэчлээд дахин оролдоно уу.';
       this.changed();
     }
   }
 
   // Opens Health Connect's permission sheet. Any one granted type is enough to show something.
   async connect(): Promise<void> {
+    const { available } = await Health.isAvailable();
+    if (!available) { this.phase = 'missing'; this.message = ''; this.changed(); return; }
     const status = await Health.requestAuthorization({ read: READ });
     const on = status.readAuthorized.length > 0;
     writeLinked(on);
