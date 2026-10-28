@@ -83,7 +83,8 @@ if (embedded) {
   document.addEventListener('click', event => {
     const link = (event.target as Element).closest?.('a[href]') as HTMLAnchorElement | null;
     if (!link || event.defaultPrevented || link.origin !== location.origin || !isTab(link.pathname)) return;
-    if (link.hash && link.pathname === location.pathname) return;
+    // A bare "#" (the profile's back link) has an empty hash, so the written href is checked too.
+    if ((link.hash || link.getAttribute('href') === '#') && link.pathname === location.pathname) return;
     event.preventDefault();
     toHost({ type: 'go', tab: rank(link.pathname) });
   });
