@@ -262,7 +262,10 @@ public class ScaleWatchService extends Service {
         long ago = b.getInt(10) & 0xFFFFFFFFL;
         String id = baseId + "-e-" + boot + "-" + n;
         // A drink is confirmed only once it is kept here; a resend of one already kept is just confirmed again.
-        if (keep(this, baseId, id, boot, n, amount, ago == 0xFFFFFFFFL ? -1 : ago)) notifyDrink(id, amount);
+        if (keep(this, baseId, id, boot, n, amount, ago == 0xFFFFFFFFL ? -1 : ago)) {
+            notifyDrink(id, amount);
+            DrinkWidget.addDrunk(this, amount);
+        }
         write(ACK, ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putInt((int) boot).putInt((int) n).array());
     }
 

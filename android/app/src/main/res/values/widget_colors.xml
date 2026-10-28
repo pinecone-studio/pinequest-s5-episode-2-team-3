@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home screen widget (DrinkWidget): a plain card, neutral text, and colour only on the bar and the
+     status dot. Light here, dark in values-night. -->
+<resources>
+    <color name="widget_card">#FFFFFF</color>
+    <color name="widget_text">#111827</color>
+    <color name="widget_muted">#6B7280</color>
+    <color name="widget_accent">#369FFF</color>
+    <color name="widget_track">#E5E7EB</color>
+    <color name="widget_warn">#F59E0B</color>
+    <color name="widget_over">#DC2626</color>
+</resources>
