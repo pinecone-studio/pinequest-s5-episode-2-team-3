@@ -9,6 +9,20 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(AppIconPlugin.class);
         registerPlugin(WidgetPlugin.class);
+        registerPlugin(ScaleWatchPlugin.class);
         super.onCreate(savedInstanceState);
+    }
+
+    // While the app is on screen its own Bluetooth link handles the base's drinks (ScaleWatchService).
+    @Override
+    public void onResume() {
+        super.onResume();
+        ScaleWatchService.appVisible = true;
+    }
+
+    @Override
+    public void onPause() {
+        ScaleWatchService.appVisible = false;
+        super.onPause();
     }
 }
