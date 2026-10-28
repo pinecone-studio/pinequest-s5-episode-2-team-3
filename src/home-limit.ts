@@ -50,9 +50,9 @@ export function limitGauge(drink: number, goal: number, cup: number): string {
 
 const svg = (body: string) => `<svg viewBox="0 0 32 32" aria-hidden="true">${body}</svg>`;
 const TILE_ICONS = {
-  water: svg('<path d="M9 5h14l-1.6 23H10.6z" fill="#eef6fe"/><path d="M9.8 13h12.4l-1 15H10.8z" fill="#569df8"/>'),
-  pill: svg('<rect x="9" y="8" width="14" height="18" rx="4" fill="#eef6fe" stroke="#569df8" stroke-width="1.6"/><rect x="11" y="4" width="10" height="5" rx="1.5" fill="#569df8"/><path d="M13 17h6" stroke="#569df8" stroke-width="2" stroke-linecap="round"/>'),
-  more: svg('<circle cx="16" cy="16" r="12" fill="#eef6fe" stroke="#569df8" stroke-width="1.6"/><path d="M10.5 16h11M16 10.5v11" stroke="#569df8" stroke-width="2.2" stroke-linecap="round"/>'),
+  water: svg('<path d="M9 5h14l-1.6 23H10.6z" fill="#eef3ff"/><path d="M9.8 13h12.4l-1 15H10.8z" fill="#1769ff"/>'),
+  pill: svg('<rect x="9" y="8" width="14" height="18" rx="4" fill="#eef3ff" stroke="#1769ff" stroke-width="1.6"/><rect x="11" y="4" width="10" height="5" rx="1.5" fill="#1769ff"/><path d="M13 17h6" stroke="#1769ff" stroke-width="2" stroke-linecap="round"/>'),
+  more: svg('<circle cx="16" cy="16" r="12" fill="#eef3ff" stroke="#1769ff" stroke-width="1.6"/><path d="M10.5 16h11M16 10.5v11" stroke="#1769ff" stroke-width="2.2" stroke-linecap="round"/>'),
 };
 const DROP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 4.2 6 7.4 6 11a6 6 0 0 1-12 0c0-3.6 3-6.8 6-11Z"/><path d="M9 14h6"/></svg>';
 
@@ -100,7 +100,7 @@ export function dialysisCard(now = new Date()): string {
 }
 
 // A bottom sheet with a grab handle; Escape or a tap outside closes it and focus goes back.
-function sheet(className: string, html: string, label: string): { box: HTMLElement; close: () => void } {
+export function sheet(className: string, html: string, label: string): { box: HTMLElement; close: () => void } {
   const back = document.activeElement as HTMLElement | null;
   const box = document.createElement('div');
   box.className = 'hx-dim';

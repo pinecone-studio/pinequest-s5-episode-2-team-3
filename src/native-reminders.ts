@@ -5,9 +5,10 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 // The web keeps its own once-a-minute check in schedule.ts.
 export const nativeReminders = Capacitor.isNativePlatform();
 
-// Our notifications use ids from 4100 up, so cancelling them never touches anything else.
+// The water reminders use ids 4100–4199 (a week of slots fits), so cancelling them never touches
+// anything else; the weekend reminder before the long dialysis gap is 4200 (weekend.ts).
 const BASE_ID = 4100;
-const LAST_ID = 4999;
+const LAST_ID = 4199;
 
 export async function askPermission(): Promise<boolean> {
   const current = await LocalNotifications.checkPermissions();
@@ -42,7 +43,7 @@ export async function scheduleNative(items: readonly NativeReminder[]): Promise<
       body: item.body,
       schedule: { at: item.at, allowWhileIdle: true },
       smallIcon: 'ic_stat_drop',
-      iconColor: '#4a90e2',
+      iconColor: '#0056ff',
       largeIcon: `notif_face_${item.face}`,
       attachments: [{ id: item.face, url: `res:///notif/${item.face}.png` }],
       extra: { badge: i + 1 },
