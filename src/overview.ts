@@ -5,11 +5,12 @@ import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
 import { bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
-import { bindGaugeDrag, hxGauge, hxHeader, mainCup, openCupSheet, readCup, readCupKind } from './hydrify';
+import { bindGaugeDrag, hxGauge, hxHeader, mainCup, readCup, readCupKind, writeCup, writeCupKind } from './hydrify';
+import { openDrinkSheet } from './drink-sheet';
 import { bindLimitHome, dialysisCard, limitGauge, quickAdd } from './home-limit';
 import { Toast, notify } from './components/Toast';
 import type { Kind } from './drinks';
-import { setKind } from './drinks';
+import { setKind, setSalty } from './drinks';
 import { bindWatchCard, loadInsight, watchCard } from './watch-card';
 import { health } from './health';
 import { startSync } from './sync';
@@ -365,9 +366,10 @@ function bindPlan() {
 
 let drinking = false;
 // The limit home names the drink itself; elsewhere it is the drink the cup button pours.
-async function addDrink(ml: number, kind: Kind | undefined = readCupKind()) {
+async function addDrink(ml: number, kind: Kind | undefined = readCupKind(), salty = false) {
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
   setKind(entry.id, kind);
+  setSalty(entry.id, salty);
   drinking = true; render(); // "Ууж байна..." while it saves and the gauge fills (kit screen 30)
   const result = await save({ ...state, events: [...state.events, entry] });
   setTimeout(() => { drinking = false; render(); }, 900);
@@ -495,9 +497,13 @@ function render() {
   void reportFamily(state, drink);
   bindFamily();
   bindHydration(drink, addDrink, render);
-  if (limit) bindLimitHome({ drink, goal, cup, add: (ml, kind) => void addDrink(ml, kind) });
+  if (limit) bindLimitHome({ drink, goal, limit, cup, add: (ml, kind, salty) => void addDrink(ml, kind, salty) });
   else bindGaugeDrag(addDrink);
-  document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render(), state.mode === 'limit'));
+  // The goal home's cup button opens the drink sheet; what it adds becomes what «Уух» pours next.
+  document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openDrinkSheet({
+    drink, goal, limit: false, cup: readCup(),
+    add: (ml, kind, salty) => { writeCup(ml); writeCupKind(kind); void addDrink(ml, kind, salty); },
+  }, { kind: readCupKind() }));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
   if (!limit) bindDoctorCard(render, async (ml, mode) => {

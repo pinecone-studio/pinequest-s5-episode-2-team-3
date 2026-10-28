@@ -1,7 +1,7 @@
 import { dayKey, type WaterEntry } from './data';
 import { escape, number } from './format';
 import { pourButton, pourPanel } from './hydration';
-import { FOOD_KINDS, KINDS, SERVING, entryIcon, entryName, type Kind } from './drinks';
+import { KINDS, entryIcon, entryName, type Kind } from './drinks';
 
 // Home screen in the "Hydrify" layout (demo): a title bar, a card with an arc gauge around a water
 // drop and a "drink" button with the current cup, a card with today's drinks, and a cup picker.
@@ -22,7 +22,7 @@ const KIND_KEY = 'dusal-cup-kind-v1';
 export function readCupKind(): Kind | undefined {
   try { const k = localStorage.getItem(KIND_KEY); return k && k in KINDS ? (k as Kind) : undefined; } catch { return undefined; }
 }
-function writeCupKind(kind: Kind | undefined): void {
+export function writeCupKind(kind: Kind | undefined): void {
   try { if (kind) localStorage.setItem(KIND_KEY, kind); else localStorage.removeItem(KIND_KEY); } catch { /* water next time */ }
 }
 
@@ -50,7 +50,7 @@ export const CUP_ICONS = [
   i32(`<path d="M8 8h14v16a4 4 0 0 1-4 4h-6a4 4 0 0 1-4-4z" fill="${B}"/><path d="M22 11h2a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3h-2" fill="none" stroke="${B}" stroke-width="2.4"/><path d="M8 8h14v4H8z" fill="${L}"/>`),
   i32(`<path d="M12 2h8v4l3 4v18a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V10l3-4z" fill="${B}"/><path d="M9 14h14v6H9z" fill="${L}"/>`),
 ];
-export interface Cup { ml: number; icon: number; main?: boolean }
+export interface Cup { ml: number; icon: number; main?: boolean; name?: string }
 const CUPS_KEY = 'dusal-cups-v1';
 const defaultIcon = (ml: number) => (ml <= 125 ? 0 : ml <= 150 ? 2 : ml <= 200 ? 1 : ml <= 250 ? 4 : ml <= 350 ? 5 : ml <= 400 ? 7 : ml <= 500 ? 8 : 9);
 export function readCups(): Cup[] {
@@ -210,46 +210,4 @@ export function hxHistory(events: readonly WaterEntry[], limit = 3): string {
       <a class="hx-row-more" href="/history.html" aria-label="Засах"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></a>
     </li>`).join('')}</ul>` : '<p class="hx-empty">Өнөөдөр хараахан уугаагүй байна.</p>'}
   </section>`;
-}
-
-// "Аяга солих" (kit screen 28): water cup sizes and "Нэмэх" (own size), then the drinks; a drink
-// or "Нэмэх" asks the amount on the keypad (screen 35). Picking sets what the drink button pours.
-// Under a doctor's limit the fluids in food come first, since they count toward it as well.
-// With `onAdd` (the limit home) a pick is added at once instead of only setting the cup, and with
-// `onDial` an «Өөр хэмжээ…» option opens the dial sheet.
-export function openCupSheet(current: number, onPick: (ml: number) => void, limit = false, onAdd?: (ml: number, kind: Kind | undefined) => void, onDial?: () => void): void {
-  const kind = readCupKind();
-  const box = document.createElement('div');
-  box.className = 'hx-sheet';
-  box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-modal', 'true');
-  box.setAttribute('aria-labelledby', 'hx-sheet-title');
-  const opt = (attrs: string, on: boolean, icon: string, label: string) => `<button type="button" role="radio" aria-checked="${on}" class="hx-cup-opt${on ? ' on' : ''}" ${attrs}><span>${icon}</span>${label}</button>`;
-  const drinks = (Object.keys(KINDS) as Kind[]).filter(k => !FOOD_KINDS.includes(k));
-  const food = `<p class="hx-cups-sep">Хоол доторх шингэн</p>
-    ${limit ? '<p class="hx-cups-note">Эмчийн хязгаарт бүх шингэн орно: шөл, сүү, цай, зайрмаг, мөс, жимс.</p>' : ''}
-    <div class="hx-cups" role="radiogroup" aria-label="Хоол доторх шингэн">${FOOD_KINDS.map(k => opt(`data-kind="${k}"`, kind === k, KINDS[k].icon, KINDS[k].name)).join('')}</div>`;
-  box.innerHTML = `<div class="hx-sheet-top"><button type="button" class="hx-close" aria-label="Хаах">✕</button><h2 id="hx-sheet-title">Аяга солих</h2><span></span></div>
-    <div class="hx-cups" role="radiogroup" aria-label="Усны аяга">${readCups().map(c => opt(`data-cup="${c.ml}"`, !kind && c.ml === current, CUP_ICONS[c.icon], `${number(c.ml)} мл`)).join('')}
-      ${opt('data-custom', !onAdd && !kind && !readCups().some(c => c.ml === current), '<b class="hx-plus" aria-hidden="true">+</b>', 'Нэмэх')}
-      ${onDial ? opt('data-dial', false, '<b class="hx-plus" aria-hidden="true">◔</b>', 'Өөр хэмжээ…') : ''}</div>
-    ${limit ? food : ''}
-    <p class="hx-cups-sep">Эсвэл ундаа</p>
-    <div class="hx-cups" role="radiogroup" aria-label="Ундаа">${drinks.map(k => opt(`data-kind="${k}"`, kind === k, KINDS[k].icon, KINDS[k].name)).join('')}</div>
-    ${limit ? '' : food}`;
-  document.body.append(box);
-  const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.hx-dim')) close(); };
-  document.addEventListener('keydown', onKey);
-  const done = (ml: number, k: Kind | undefined) => { writeCup(ml); writeCupKind(k); close(); if (onAdd) onAdd(ml, k); else onPick(ml); };
-  box.querySelector('.hx-close')!.addEventListener('click', close);
-  box.querySelectorAll<HTMLButtonElement>('[data-cup]').forEach(b => b.addEventListener('click', () => done(Number(b.dataset.cup), undefined)));
-  box.querySelector('[data-dial]')?.addEventListener('click', () => { close(); onDial!(); });
-  box.querySelector('[data-custom]')!.addEventListener('click', () =>
-    void import('./hx-edit').then(m => m.openAmountSheet('Өөрийн аяга', cupIcon(current), current, ml => done(ml, undefined))));
-  box.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach(b => b.addEventListener('click', () => {
-    const k = b.dataset.kind as Kind;
-    void import('./hx-edit').then(m => m.openAmountSheet(KINDS[k].name, KINDS[k].icon, SERVING[k] ?? 200, ml => done(ml, k)));
-  }));
-  box.querySelector<HTMLButtonElement>('.hx-cup-opt.on, .hx-cup-opt')!.focus();
 }
