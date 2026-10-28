@@ -106,6 +106,12 @@
                 android:resource="@xml/widget_drink_info" />
         </receiver>
 
+        <!-- Keeps the link to the smart base while the app is closed, so each drink is a notification (ScaleWatchService.java). -->
+        <service
+            android:name=".ScaleWatchService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -128,6 +134,9 @@
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="s" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
     <!-- Android 13 and older: lets the app see the Health Connect app to check that it is installed. -->
     <queries>
