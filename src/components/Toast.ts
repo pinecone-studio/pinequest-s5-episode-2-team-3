@@ -7,7 +7,8 @@ export function Toast(): string {
   </div>`;
 }
 
-export function notify(message: string, undo?: () => void): void {
+// The toast stays 5 s, or 10 s with «Буцаах»; `ms` sets it otherwise.
+export function notify(message: string, undo?: () => void, ms?: number): void {
   clearTimeout(undoTimer);
   undoAction = undo;
   const toast = document.querySelector<HTMLDivElement>('#toast')!;
@@ -23,5 +24,5 @@ export function notify(message: string, undo?: () => void): void {
   undoTimer = setTimeout(() => {
     toast.classList.remove('visible');
     undoAction = undefined;
-  }, undo ? 10000 : 5000);
+  }, ms ?? (undo ? 10000 : 5000));
 }

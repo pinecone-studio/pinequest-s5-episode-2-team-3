@@ -5,8 +5,9 @@ import { escape, number } from '../format';
 import './device-panel.css';
 
 // Just the Bluetooth base (its bottles, tare and resets) for the home, next to what it counts.
-export function ScalePanel(): string {
-  return '<section class="device-panel" aria-labelledby="scale-title" data-scale-panel></section>';
+// `compact` (the limit home): once connected it folds to one row with the bottle's water.
+export function ScalePanel(compact = false): string {
+  return `<section class="device-panel" aria-labelledby="scale-title" data-scale-panel${compact ? ' data-compact' : ''}></section>`;
 }
 
 export function DevicePanel(): string {
@@ -69,6 +70,17 @@ function bottlesBlock(): string {
 function renderScale(): void {
   const host = document.querySelector<HTMLElement>('[data-scale-panel]');
   if (!host) return;
+  const compact = host.hasAttribute('data-compact') && scale.phase === 'connected';
+  host.classList.toggle('compact', compact);
+  if (compact) {
+    if (host.dataset.key !== 'compact') {
+      host.dataset.key = 'compact';
+      host.innerHTML = `<h2 id="scale-title" class="visually-hidden">Bluetooth суурь</h2><p class="scale-row"><i aria-hidden="true"></i><span>Ухаалаг суурь холбогдсон</span><small data-scale-live></small></p>`;
+    }
+    const ml = scale.status?.remainingMl;
+    host.querySelector('[data-scale-live]')!.textContent = ml != null ? `Сав: ${number(ml)} мл` : '';
+    return;
+  }
   const key = [scale.phase, scale.saved, scale.name, scale.message, scale.result, JSON.stringify(savedBottles())].join('|');
   // Do not wipe a bottle name while it is being typed.
   if (host.dataset.key !== key && document.activeElement !== host.querySelector('#bottle-name')) {

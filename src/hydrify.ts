@@ -50,7 +50,7 @@ export const CUP_ICONS = [
   i32(`<path d="M8 8h14v16a4 4 0 0 1-4 4h-6a4 4 0 0 1-4-4z" fill="${B}"/><path d="M22 11h2a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3h-2" fill="none" stroke="${B}" stroke-width="2.4"/><path d="M8 8h14v4H8z" fill="${L}"/>`),
   i32(`<path d="M12 2h8v4l3 4v18a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V10l3-4z" fill="${B}"/><path d="M9 14h14v6H9z" fill="${L}"/>`),
 ];
-export interface Cup { ml: number; icon: number }
+export interface Cup { ml: number; icon: number; main?: boolean }
 const CUPS_KEY = 'dusal-cups-v1';
 const defaultIcon = (ml: number) => (ml <= 125 ? 0 : ml <= 150 ? 2 : ml <= 200 ? 1 : ml <= 250 ? 4 : ml <= 350 ? 5 : ml <= 400 ? 7 : ml <= 500 ? 8 : 9);
 export function readCups(): Cup[] {
@@ -63,6 +63,8 @@ export function readCups(): Cup[] {
 export function writeCups(cups: Cup[]): void {
   try { localStorage.setItem(CUPS_KEY, JSON.stringify(cups)); } catch { /* defaults next time */ }
 }
+// The cup «1 аяга» means: the one marked main, else 250 мл.
+export const mainCup = (): number => readCups().find(c => c.main)?.ml ?? 250;
 export const iconFor = (ml: number): string => CUP_ICONS[readCups().find(c => c.ml === ml)?.icon ?? defaultIcon(ml)];
 export { writeCup };
 
@@ -86,6 +88,22 @@ function knobAt(frac: number): string {
   return `left: ${(((150 + 122 * Math.cos(a)) / 300) * 100).toFixed(2)}%; top: ${(((150 + 122 * Math.sin(a)) / 270) * 100).toFixed(2)}%`;
 }
 
+// A point on the screen → where it is on a 270° arc centred at (150, 150) in the SVG's own units:
+// `frac` 0 at 135° (bottom left) round to 1 at 45° (bottom right), the gap below snapping to the
+// nearer end, and `r` its distance from the centre. Shared by the home gauge and the dial sheet.
+export function arcAt(svg: SVGSVGElement, x: number, y: number): { frac: number; r: number } | null {
+  const m = svg.getScreenCTM();
+  if (!m) return null;
+  const p = new DOMPoint(x, y).matrixTransform(m.inverse());
+  const deg = ((Math.atan2(p.y - 150, p.x - 150) * 180) / Math.PI + 360 - 135) % 360;
+  return { frac: deg <= 270 ? deg / 270 : deg < 315 ? 1 : 0, r: Math.hypot(p.x - 150, p.y - 150) };
+}
+// The point at `frac` of that arc, `r` from the centre.
+export const arcPoint = (frac: number, r: number): [number, number] => {
+  const a = ((135 + frac * 270) * Math.PI) / 180;
+  return [150 + r * Math.cos(a), 150 + r * Math.sin(a)];
+};
+
 // Drag the arc (finger or mouse) round to a new total: the water, the arc, the knob and the number
 // follow, "+350 мл" shows what will be added, and letting go adds it. Starting on the knob or
 // anywhere on the ring works; dragging back to today's total adds nothing. The arc ends at the goal
@@ -94,7 +112,7 @@ function knobAt(frac: number): string {
 export function bindGaugeDrag(add: (ml: number) => unknown): void {
   const gauge = document.querySelector<HTMLElement>('.hx-gauge');
   if (!gauge) return;
-  const svg = gauge.querySelector('svg')!, knob = gauge.querySelector<HTMLElement>('.hx-knob')!;
+  const svg = gauge.querySelector<SVGSVGElement>('svg')!, knob = gauge.querySelector<HTMLElement>('.hx-knob')!;
   const label = gauge.querySelector<HTMLElement>('.hx-drag-add')!, amount = gauge.querySelector<HTMLElement>('#today-drink')!;
   const arc = gauge.querySelector('.hx-progress')!, water = gauge.querySelector<SVGGElement>('.hx-water')!;
   const goal = Number(gauge.dataset.goal), drink = Number(gauge.dataset.drinkNow);
@@ -113,21 +131,8 @@ export function bindGaugeDrag(add: (ml: number) => unknown): void {
   };
   const reset = () => { dragging = false; show(drink); gauge.classList.remove('dragging'); };
   const commit = () => { const extra = target - drink; dragging = false; gauge.classList.remove('dragging'); if (extra >= 10) add(extra); else reset(); };
-  // Pointer → share of the arc: angle from the centre, 135° (start, bottom left) round to 45°.
-  const fracAt = (e: PointerEvent): number | null => {
-    const m = svg.getScreenCTM();
-    if (!m) return null;
-    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
-    const deg = ((Math.atan2(p.y - 150, p.x - 150) * 180) / Math.PI + 360 - 135) % 360;
-    return deg <= 270 ? deg / 270 : deg < 315 ? 1 : 0;
-  };
-  const onRing = (e: PointerEvent) => {
-    const m = svg.getScreenCTM();
-    if (!m) return false;
-    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
-    const r = Math.hypot(p.x - 150, p.y - 150);
-    return r > 92 && r < 152;
-  };
+  const fracAt = (e: PointerEvent) => arcAt(svg, e.clientX, e.clientY)?.frac ?? null;
+  const onRing = (e: PointerEvent) => { const at = arcAt(svg, e.clientX, e.clientY); return !!at && at.r > 92 && at.r < 152; };
   gauge.addEventListener('pointerdown', e => {
     if ((e.target as Element).closest('button')) return;
     if (e.target !== knob && !onRing(e)) return;
@@ -210,7 +215,9 @@ export function hxHistory(events: readonly WaterEntry[], limit = 3): string {
 // "Аяга солих" (kit screen 28): water cup sizes and "Нэмэх" (own size), then the drinks; a drink
 // or "Нэмэх" asks the amount on the keypad (screen 35). Picking sets what the drink button pours.
 // Under a doctor's limit the fluids in food come first, since they count toward it as well.
-export function openCupSheet(current: number, onPick: (ml: number) => void, limit = false): void {
+// With `onAdd` (the limit home) a pick is added at once instead of only setting the cup, and with
+// `onDial` an «Өөр хэмжээ…» option opens the dial sheet.
+export function openCupSheet(current: number, onPick: (ml: number) => void, limit = false, onAdd?: (ml: number, kind: Kind | undefined) => void, onDial?: () => void): void {
   const kind = readCupKind();
   const box = document.createElement('div');
   box.className = 'hx-sheet';
@@ -224,7 +231,8 @@ export function openCupSheet(current: number, onPick: (ml: number) => void, limi
     <div class="hx-cups" role="radiogroup" aria-label="Хоол доторх шингэн">${FOOD_KINDS.map(k => opt(`data-kind="${k}"`, kind === k, KINDS[k].icon, KINDS[k].name)).join('')}</div>`;
   box.innerHTML = `<div class="hx-sheet-top"><button type="button" class="hx-close" aria-label="Хаах">✕</button><h2 id="hx-sheet-title">Аяга солих</h2><span></span></div>
     <div class="hx-cups" role="radiogroup" aria-label="Усны аяга">${readCups().map(c => opt(`data-cup="${c.ml}"`, !kind && c.ml === current, CUP_ICONS[c.icon], `${number(c.ml)} мл`)).join('')}
-      ${opt('data-custom', !kind && !readCups().some(c => c.ml === current), '<b class="hx-plus" aria-hidden="true">+</b>', 'Нэмэх')}</div>
+      ${opt('data-custom', !onAdd && !kind && !readCups().some(c => c.ml === current), '<b class="hx-plus" aria-hidden="true">+</b>', 'Нэмэх')}
+      ${onDial ? opt('data-dial', false, '<b class="hx-plus" aria-hidden="true">◔</b>', 'Өөр хэмжээ…') : ''}</div>
     ${limit ? food : ''}
     <p class="hx-cups-sep">Эсвэл ундаа</p>
     <div class="hx-cups" role="radiogroup" aria-label="Ундаа">${drinks.map(k => opt(`data-kind="${k}"`, kind === k, KINDS[k].icon, KINDS[k].name)).join('')}</div>
@@ -233,9 +241,10 @@ export function openCupSheet(current: number, onPick: (ml: number) => void, limi
   const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.hx-dim')) close(); };
   document.addEventListener('keydown', onKey);
-  const done = (ml: number, k: Kind | undefined) => { writeCup(ml); writeCupKind(k); close(); onPick(ml); };
+  const done = (ml: number, k: Kind | undefined) => { writeCup(ml); writeCupKind(k); close(); if (onAdd) onAdd(ml, k); else onPick(ml); };
   box.querySelector('.hx-close')!.addEventListener('click', close);
   box.querySelectorAll<HTMLButtonElement>('[data-cup]').forEach(b => b.addEventListener('click', () => done(Number(b.dataset.cup), undefined)));
+  box.querySelector('[data-dial]')?.addEventListener('click', () => { close(); onDial!(); });
   box.querySelector('[data-custom]')!.addEventListener('click', () =>
     void import('./hx-edit').then(m => m.openAmountSheet('Өөрийн аяга', cupIcon(current), current, ml => done(ml, undefined))));
   box.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach(b => b.addEventListener('click', () => {

@@ -41,16 +41,27 @@ export const WEEKDAY_SHORT = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', '�
 export const WEEKDAY_LONG = ['Ням', 'Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба'];
 export const weekday = (key: string) => new Date(`${key}T12:00`).getDay();
 
-const DAYS_KEY = 'dusal-dialysis-days-v1';
-export function readDialysisDays(): number[] {
+// Dialysis weekdays and the usual start time, set on «Эмчийн зөвлөмж» (account.ts). Stored as
+// 1 = Monday … 7 = Sunday; read here as getDay() numbers. The first version kept only getDay() days.
+const DIALYSIS_KEY = 'dusal-dialysis-v1';
+const OLD_DAYS_KEY = 'dusal-dialysis-days-v1';
+export interface Dialysis { days: number[]; time: string }
+export function readDialysis(): Dialysis {
   try {
-    const v = JSON.parse(localStorage.getItem(DAYS_KEY) ?? '[]') as unknown;
-    return Array.isArray(v) ? WEEK_ORDER.filter(d => v.includes(d)) : [];
-  } catch { return []; }
+    const v = JSON.parse(localStorage.getItem(DIALYSIS_KEY) ?? 'null') as Partial<Dialysis> | null;
+    if (v && Array.isArray(v.days)) {
+      return { days: [1, 2, 3, 4, 5, 6, 7].filter(d => v.days!.includes(d)), time: typeof v.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.time) ? v.time : '08:00' };
+    }
+    const old = JSON.parse(localStorage.getItem(OLD_DAYS_KEY) ?? '[]') as unknown;
+    if (Array.isArray(old)) return { days: WEEK_ORDER.filter(d => old.includes(d)).map(d => d || 7), time: '08:00' };
+  } catch { /* none set */ }
+  return { days: [], time: '08:00' };
 }
-export function writeDialysisDays(days: readonly number[]): void {
-  try { localStorage.setItem(DAYS_KEY, JSON.stringify(WEEK_ORDER.filter(d => days.includes(d)))); } catch { /* this visit only */ }
+export function writeDialysis(next: Dialysis): void {
+  try { localStorage.setItem(DIALYSIS_KEY, JSON.stringify({ days: [1, 2, 3, 4, 5, 6, 7].filter(d => next.days.includes(d)), time: next.time })); } catch { /* this visit only */ }
 }
+// The dialysis weekdays as getDay() numbers, Monday first.
+export const readDialysisDays = (): number[] => readDialysis().days.map(d => d % 7);
 export const dialysisLabel = (days: readonly number[]) => days.map(d => WEEKDAY_SHORT[d]).join(', ');
 
 // The weight the patient enters before and after each dialysis session, one of each per day.
@@ -105,3 +116,17 @@ export function keptGainDiff(list: readonly Gain[], events: readonly WaterEntry[
 
 export const kg = (n: number) => n.toFixed(1);
 export const md = (key: string) => { const [, m, d] = key.split('-').map(Number); return `${m}/${d}`; };
+
+// «Цангаж байна» opened: one row per time, for the nurse's report. Kept apart from the water log,
+// so it never counts toward the day's total.
+export interface Thirst { type: 'thirst'; at: string }
+const THIRST_KEY = 'dusal-thirst-v1';
+export function readThirst(): Thirst[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(THIRST_KEY) ?? '[]') as unknown;
+    return Array.isArray(v) ? v.filter((t): t is Thirst => t?.type === 'thirst' && typeof t.at === 'string' && Number.isFinite(Date.parse(t.at))) : [];
+  } catch { return []; }
+}
+export function logThirst(at = new Date()): void {
+  try { localStorage.setItem(THIRST_KEY, JSON.stringify(readThirst().concat({ type: 'thirst', at: at.toISOString() }).slice(-500))); } catch { /* not counted */ }
+}

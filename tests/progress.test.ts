@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { addWeight, dayKept, gains, keptGainDiff, readDialysisDays, readWeights, streaks, writeDialysisDays, type Weight } from '../src/progress-data';
+import { addWeight, dayKept, gains, keptGainDiff, readDialysis, readDialysisDays, readWeights, streaks, writeDialysis, type Weight } from '../src/progress-data';
 import type { WaterEntry } from '../src/data';
 
 const store = new Map<string, string>();
@@ -64,7 +64,12 @@ describe('weights and gains', () => {
   });
 });
 
-test('dialysis days are kept Monday first', () => {
-  writeDialysisDays([5, 1, 3]);
-  expect(readDialysisDays()).toEqual([1, 3, 5]);
+test('dialysis days: 1 = Monday … 7 = Sunday, read back as getDay() numbers', () => {
+  writeDialysis({ days: [7, 5, 1, 3], time: '07:30' });
+  expect(readDialysis()).toEqual({ days: [1, 3, 5, 7], time: '07:30' });
+  expect(readDialysisDays()).toEqual([1, 3, 5, 0]);
+});
+test('dialysis days saved by the first version still load', () => {
+  localStorage.setItem('dusal-dialysis-days-v1', JSON.stringify([5, 1, 3]));
+  expect(readDialysis()).toEqual({ days: [1, 3, 5], time: '08:00' });
 });

@@ -73,7 +73,7 @@ if (embedded) {
     if (!link || event.defaultPrevented || link.origin !== location.origin || !isTab(link.pathname)) return;
     if (link.hash && link.pathname === location.pathname) return;
     event.preventDefault();
-    toHost({ type: 'go', tab: rank(link.pathname) });
+    toHost({ type: 'go', tab: rank(link.pathname), hash: link.hash });
   });
   // Horizontal swipes are passed to the host, which moves the frames with the finger. Screen
   // coordinates, because the frame itself moves under the finger while dragging.
