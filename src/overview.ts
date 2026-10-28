@@ -25,6 +25,7 @@ import { guardPlan } from '../shared/plan';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, startReminders } from './schedule';
 import { startAppIcon } from './app-icon';
+import { feedWaiting, markFeed } from './feed-alert';
 import { homeFeel, homePetDrank, placeHomePet } from './home-pet';
 import { petState } from './pet';
 import { dateLabel, escape, number } from './format';
@@ -465,6 +466,7 @@ function render() {
   bindFamily();
   bindHydration(drink, addDrink, render);
   bindGaugeDrag(addDrink);
+  markFeed(feedWaiting(state));
   placeHomePet(homeFeel(petState(state.events, state.goal, state.mode).mood, drink / goal, state.mode === 'limit'), drink / goal);
   document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
   bindStreakCalendar(state.events, state.goal, state.mode);

@@ -1,4 +1,5 @@
 import { applyTheme } from './prefs';
+import { dayKey } from './data';
 type Page = 'home' | 'history' | 'report' | 'achievements' | 'settings';
 type Item = Page;
 
@@ -10,6 +11,17 @@ const ICONS: Record<Item, string> = {
   settings: '<circle cx="12" cy="8" r="4"/><path d="M4 20.5c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',
 };
 export { ICONS as NAV_ICONS };
+
+// A red dot on the «Амжилт» tab while today's bowl waits for the pet (feed-alert.ts sets the day).
+// Kept to a localStorage read here, since every page and the app's tab bar load this file.
+export const FEED_KEY = 'dusal-feed-waiting-v1';
+export function showFeedDot(): void {
+  let day: string | null = null;
+  try { day = localStorage.getItem(FEED_KEY); } catch { /* no dot */ }
+  document.documentElement.classList.toggle('feed-waiting', day === dayKey());
+}
+showFeedDot();
+addEventListener('storage', e => { if (e.key === FEED_KEY) showFeedDot(); });
 
 // One menu for every page, Hydrify style: home, history, report, achievements and the account
 // (settings). On phones it becomes a bottom tab bar (shell.css, theme.css).

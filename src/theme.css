@@ -43,6 +43,9 @@ html .app-top { position: relative; z-index: 40; }
 html main.home-app .app-top .site-nav, html .app-top .site-nav { border-color: var(--hair); box-shadow: 0 -4px 20px rgba(70, 140, 200, .1); }
 html .app-top .site-nav a[aria-current="page"], html main.home-app .app-top .site-nav a[aria-current="page"] { color: var(--sky-deep); background: none; }
 html .site-nav a[aria-current="page"] .nav-icon { color: var(--sky-deep); }
+/* Today's bowl waits for the pet (feed-alert.ts, nav.ts). */
+html .site-nav a[href="/achievements.html"] { position: relative; }
+html.feed-waiting .site-nav a[href="/achievements.html"]::after { content: ""; position: absolute; top: 4px; left: calc(50% + 8px); width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: #ff4d4f; }
 
 /* Buttons: one sky-blue pill style everywhere. */
 html .dark-button, html .plan-save, html .thirst-cta, html .onb-next, html .primary-button {
@@ -463,7 +466,19 @@ html .pet-name-input { box-sizing: border-box; width: min(240px, 80%); min-heigh
 html .pet-streak { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; margin-top: 4px; padding: 0 14px; border-radius: 999px; background: rgba(255, 255, 255, .18); color: #fff; font-size: 14px; font-weight: 700; }
 html .pet-streak.hot { background: #fff; color: #f97316; }
 html .pet-streak:not(.hot) span { filter: grayscale(1); opacity: .6; }
-html .pet-line { max-width: 32ch; margin: 6px 0 0; font-size: 15px; font-weight: 600; line-height: 1.4; text-align: center; }
+/* Under the pet: the name, small tags (stage, level, shine), then one card with how it is and the bowl. */
+html .pg-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
+html .pg-meta li { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px; background: rgba(255, 255, 255, .16); font-size: 13px; font-weight: 700; }
+html .pg-meta li span { font-size: 13px; line-height: 1; }
+html .pg-status { display: grid; justify-items: center; gap: 12px; width: min(100%, 360px); margin-top: 12px; padding: 14px 16px; border-radius: 20px; background: rgba(255, 255, 255, .14); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18); }
+html .pet-line { display: grid; gap: 3px; margin: 0; text-align: center; }
+html .pet-line b { font-size: 17px; font-weight: 800; line-height: 1.3; }
+html .pet-line small { font-size: 14px; font-weight: 500; line-height: 1.4; opacity: .9; }
+html .pg-status .pg-feed { display: inline-flex; align-items: center; gap: 8px; min-height: 50px; padding: 0 28px; font-size: 17px; background: #fff; color: var(--sky-deep); box-shadow: 0 8px 22px rgba(0, 40, 120, .25); }
+html .pg-status .pg-feed svg { width: 28px; height: 28px; }
+html .pg-feed-hint { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding-top: 10px; width: 100%; justify-content: center; border-top: 1px solid rgba(255, 255, 255, .2); font-size: 13px; font-weight: 700; opacity: .9; }
+html .pg-feed-hint svg { width: 22px; height: 22px; }
+html .pg-feed-hint.done { color: #d4ffe4; }
 html .pet-stage { width: min(300px, 100%); margin-top: 8px; }
 html .pet-stage p { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 6px; font-size: 13px; }
 html .pet-stage p span { opacity: .9; }
@@ -498,8 +513,21 @@ html .pg-stage { position: relative; display: flex; justify-content: center; wid
 html .pg-stage::after { content: ""; position: absolute; left: 50%; bottom: 6px; width: 200px; height: 26px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(rgba(255, 255, 255, .28), transparent 70%); }
 html .pg-stage.has3d { width: calc(100% + 32px); margin: 0 -16px; height: 290px; }
 /* Pou-style gauges either side of the pet, the feed button under it and a «?» for the rules. */
-html .pg-orbs { position: absolute; top: 18px; z-index: 3; display: grid; gap: 18px; }
-html .pg-orbs.left { left: 18px; } html .pg-orbs.right { right: 18px; }
+html .pg-orbs { position: absolute; top: 14px; left: 16px; z-index: 3; display: grid; justify-items: center; gap: 10px; }
+/* One button with the four gauges' colours; open, they drop down under it on a frosted strip. */
+html .pg-orb-toggle { position: relative; display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .94); box-shadow: 0 6px 16px rgba(0, 40, 120, .25); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform .15s ease; }
+html .pg-orb-toggle > svg:first-child { width: 26px; height: 26px; }
+html .pg-orb-chev { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; padding: 2px; border-radius: 50%; background: var(--sky); fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s ease; }
+html .pg-orbs.open .pg-orb-chev { transform: rotate(180deg); }
+html .pg-orb-toggle:active { transform: scale(.92); }
+html .pg-orb-toggle:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+html .pg-orb-list { display: grid; justify-items: center; gap: 8px; padding: 10px 6px; border-radius: 32px; background: rgba(255, 255, 255, .16); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transform-origin: top center; transform: translateY(-12px) scaleY(.6); opacity: 0; visibility: hidden; transition: transform .25s ease, opacity .2s ease, visibility 0s .25s; }
+html .pg-orbs.open .pg-orb-list { transform: none; opacity: 1; visibility: visible; transition: transform .3s cubic-bezier(.3, 1.3, .5, 1), opacity .2s ease, visibility 0s; }
+html .pg-orb-list .pg-orb { width: 50px; }
+html .pg-orb-list .pg-orb-ring { width: 50px; height: 50px; }
+html .pg-orb-list .pg-orb-ic { top: 10px; width: 30px; height: 30px; }
+html .pg-orb-list .pg-orb b { font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { html .pg-orb-list, html .pg-orb-chev { transition: none !important; } }
 html .pg-orb { position: relative; display: grid; justify-items: center; gap: 2px; width: 58px; padding: 0; border: 0; background: none; color: #fff; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 html .pg-orb-ring { width: 58px; height: 58px; transform: rotate(-90deg); filter: drop-shadow(0 4px 10px rgba(0, 40, 120, .25)); }
 html .pg-orb-ring .bg { fill: rgba(255, 255, 255, .92); stroke: rgba(255, 255, 255, .45); stroke-width: 6; }
@@ -510,10 +538,6 @@ html .pg-orb b { font-size: 13px; font-weight: 800; text-shadow: 0 1px 4px rgba(
 html .pg-orb:active .pg-orb-ring { transform: rotate(-90deg) scale(.92); }
 html .pg-orb:focus-visible { outline: 3px solid #fff; outline-offset: 2px; border-radius: 16px; }
 html .pg-tip { position: absolute; z-index: 4; max-width: 230px; padding: 10px 12px; border-radius: 14px; background: #fff; color: var(--ink); font-size: 13px; line-height: 1.35; text-align: left; box-shadow: 0 10px 30px rgba(0, 40, 120, .25); animation: pg-pop .25s ease; }
-html .ach-top > .pg-feed { margin: 4px 0 6px; min-height: 52px; padding: 0 28px; display: inline-flex; align-items: center; gap: 8px; font-size: 17px; background: #fff; color: var(--sky-deep); box-shadow: 0 8px 22px rgba(0, 40, 120, .25); }
-html .ach-top > .pg-feed svg { width: 28px; height: 28px; }
-html .ach-top > .pg-feed:disabled { background: rgba(255, 255, 255, .2); color: #fff; font-size: 14px; }
-html .ach-top > .pg-feed.done { background: #e7f8ee; color: #1f9d55; }
 html .pg-help { width: 36px; height: 36px; justify-self: end; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .22); color: #fff; font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; }
 html .pg-locked .pg-loop { margin-bottom: 8px; box-shadow: none; }
 html .pg-stage.has3d .pg-roam { display: none; }
@@ -540,7 +564,6 @@ html .pg-dish svg { width: 100%; }
 @keyframes pg-cheer { 0%, 50%, 100% { transform: translateY(0); } 20% { transform: translateY(-22px) rotate(-4deg); } 35% { transform: translateY(0) scale(1.05, .95); } }
 @keyframes pg-chomp { 50% { transform: scale(1.06, .9) translateY(6px); } }
 @keyframes pg-dish { 0% { transform: translate(120px, 0); opacity: 0; } 20% { transform: translate(-50%, 0); opacity: 1; } 80% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, 8px) scale(.9); opacity: 0; } }
-html .pg-meta { margin: 2px 0 0; font-size: 14px; font-weight: 700; opacity: .92; }
 html .pg-bar { height: 10px; overflow: hidden; border-radius: 999px; background: #e4f0fd; }
 html .pg-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #5cb4ff, var(--sky-deep)); transition: width .8s cubic-bezier(.3, 1.2, .5, 1); }
 html .pg-bar.thin { height: 6px; }
