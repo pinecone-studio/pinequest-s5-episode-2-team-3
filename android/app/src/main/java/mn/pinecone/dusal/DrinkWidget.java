@@ -7,6 +7,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.view.View;
 import android.widget.RemoteViews;
 import java.text.SimpleDateFormat;
@@ -14,40 +18,39 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-// Home screen widget, Duolingo style: a square with the streak, a few words and the water drop.
-// As the day goes on without enough water the colour moves from teal through blue and purple to
-// red and the drop gets sadder. The widget works this out itself from the clock and what the app
-// last reported (WidgetPlugin), every 30 minutes, so it changes even while the app stays closed.
-// Tapping it opens the app.
+// Home screen widget in the style of health apps: a card with a progress ring and the number inside.
+// For a goal the ring fills toward it and goes from blue through orange to red as the day runs on
+// without enough water; under a doctor's limit the number is what is left of it, the ring turns amber
+// at 80% and red once it is passed. The line under the ring is the next drinking time, or a few words.
+// The widget works this out itself from the clock and what the app last reported (WidgetPlugin), every
+// 30 minutes, so it changes even while the app stays closed. Tapping it opens the app.
 public class DrinkWidget extends AppWidgetProvider {
 
     static final String PREFS = "dusal_widget";
 
-    // One look per moment of the day: background, the drop's face, the words, and the "!" on the streak.
+    static final int BLUE = 0xFF369FFF, AMBER = 0xFFF59E0B, ORANGE = 0xFFF97316, RED = 0xFFEF4444, GREEN = 0xFF22C55E, SKY = 0xFF0EA5E9;
+
+    // One look per moment of the day: the ring's colour and the words under it.
     enum Stage {
-        MORNING(R.drawable.widget_bg_morning, R.drawable.notif_face_happy, "Ус уух цаг уу?", false),
-        ON_TRACK(R.drawable.widget_bg_ontrack, R.drawable.notif_face_happy, "Нэг аяга уух уу?", false),
-        THIRSTY(R.drawable.widget_bg_thirsty, R.drawable.notif_face_worried, "Цангаж байна…", false),
-        LATE(R.drawable.widget_bg_late, R.drawable.notif_face_worried, "Ус уух цаг боллоо!", false),
-        DRY(R.drawable.widget_bg_dry, R.drawable.notif_face_sad, "Ширгэж байна…", false),
-        SAVE(R.drawable.widget_bg_save, R.drawable.notif_face_sad, "Streak-ээ авраарай!", true),
-        LAST(R.drawable.widget_bg_last, R.drawable.notif_face_crying, "Сүүлийн боломж!", true),
-        DONE(R.drawable.widget_bg_done, R.drawable.notif_face_happy, "Гайхалтай! Биеллээ", false),
-        RESET(R.drawable.widget_bg_reset, R.drawable.notif_face_crying, "Дахин эхэлье", false),
-        LIMIT(R.drawable.widget_bg_limit, R.drawable.notif_face_happy, "", false),
-        LIMIT_NEAR(R.drawable.widget_bg_limit_near, R.drawable.notif_face_worried, "", false),
-        LIMIT_OVER(R.drawable.widget_bg_limit_over, R.drawable.notif_face_crying, "", false);
+        MORNING(BLUE, "Ус уух цаг уу?"),
+        ON_TRACK(BLUE, "Хэвийн явж байна"),
+        THIRSTY(AMBER, "Цангаж байна…"),
+        LATE(ORANGE, "Ус уух цаг боллоо!"),
+        DRY(RED, "Ширгэж байна…"),
+        SAVE(RED, "Streak-ээ авраарай!"),
+        LAST(RED, "Сүүлийн боломж!"),
+        DONE(GREEN, "Зорилт биеллээ 🎉"),
+        RESET(BLUE, "Дахин эхэлье"),
+        LIMIT(SKY, ""),
+        LIMIT_NEAR(AMBER, "Хязгаарт ойртлоо"),
+        LIMIT_OVER(RED, "Дахиж уухгүй");
 
-        final int background;
-        final int face;
+        final int ring;
         final String say;
-        final boolean alert;
 
-        Stage(int background, int face, String say, boolean alert) {
-            this.background = background;
-            this.face = face;
+        Stage(int ring, String say) {
+            this.ring = ring;
             this.say = say;
-            this.alert = alert;
         }
     }
 
@@ -72,6 +75,27 @@ public class DrinkWidget extends AppWidgetProvider {
         return hour < 11 ? Stage.MORNING : Stage.ON_TRACK;
     }
 
+    // The progress ring, drawn here since a widget's layout cannot draw an arc: a faint track and the
+    // share done in the stage's colour, starting at the top.
+    static Bitmap ring(float done, int color) {
+        int size = 240;
+        float stroke = 22, inset = stroke / 2 + 2;
+        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(stroke);
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        RectF box = new RectF(inset, inset, size - inset, size - inset);
+        paint.setColor(0x3394A3B8);
+        canvas.drawArc(box, 0, 360, false, paint);
+        if (done > 0) {
+            paint.setColor(color);
+            canvas.drawArc(box, -90, Math.max(2, done * 360), false, paint);
+        }
+        return bitmap;
+    }
+
     static String ml(int value) { return String.format(Locale.US, "%,d", value); }
 
     // Today's coming drinking times as the app sent them ("08:00=300,12:00=300"): the first one not yet
@@ -80,7 +104,7 @@ public class DrinkWidget extends AppWidgetProvider {
         String now = new SimpleDateFormat("HH:mm", Locale.US).format(new Date());
         for (String slot : times.split(",")) {
             String[] p = slot.split("=");
-            if (p.length == 2 && p[0].compareTo(now) >= 0) return "Дараагийн: " + p[0] + " · " + p[1] + " мл";
+            if (p.length == 2 && p[0].compareTo(now) >= 0) return "⏰ " + p[0] + " · " + p[1] + " мл";
         }
         return null;
     }
@@ -125,24 +149,27 @@ public class DrinkWidget extends AppWidgetProvider {
         Stage s = stage(drunk, goal, limit, streak, broke, Calendar.getInstance().get(Calendar.HOUR_OF_DAY));
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_drink);
-        views.setInt(R.id.widget_root, "setBackgroundResource", s.background);
-        views.setImageViewResource(R.id.widget_face, s.face);
-        views.setViewVisibility(R.id.widget_alert, s.alert && streak > 0 ? View.VISIBLE : View.GONE);
-        if (limit && drunk > goal) {
-            views.setTextViewText(R.id.widget_streak, "!");
-            views.setTextViewText(R.id.widget_say, "+" + ml(drunk - goal) + " мл хэтэрлээ");
+        boolean over = limit && drunk > goal;
+        views.setImageViewBitmap(R.id.widget_ring, ring(over ? 1 : Math.min(1f, drunk / (float) goal), s.ring));
+        if (over) {
+            views.setTextViewText(R.id.widget_big, "+" + ml(drunk - goal));
+            views.setTextColor(R.id.widget_big, RED);
+            views.setTextViewText(R.id.widget_unit, "мл хэтэрсэн");
         } else if (limit) {
-            // The big number is what is left of the limit; that is what matters through the day.
-            views.setTextViewText(R.id.widget_streak, ml(goal - drunk));
-            views.setTextViewText(R.id.widget_say, "мл үлдсэн · " + ml(goal) + " хүртэл");
+            // What is left of the limit is what matters through the day.
+            views.setTextViewText(R.id.widget_big, ml(goal - drunk));
+            views.setTextViewText(R.id.widget_unit, "мл үлдсэн");
         } else {
-            views.setTextViewText(R.id.widget_streak, String.valueOf(streak));
-            views.setTextViewText(R.id.widget_say, s.say);
+            views.setTextViewText(R.id.widget_big, ml(drunk));
+            views.setTextViewText(R.id.widget_unit, "/ " + ml(goal) + " мл");
         }
+        views.setViewVisibility(R.id.widget_streak, !limit && streak > 0 ? View.VISIBLE : View.GONE);
+        views.setTextViewText(R.id.widget_streak, "🔥 " + streak);
         // Nothing more to drink is suggested once a limit is reached or the goal is met.
-        String next = s == Stage.LIMIT_OVER || s == Stage.DONE || (limit && drunk >= goal) ? null : next(sameDay ? prefs.getString("next", "") : "");
-        views.setViewVisibility(R.id.widget_next, next == null ? View.GONE : View.VISIBLE);
-        if (next != null) views.setTextViewText(R.id.widget_next, next);
+        String next = s == Stage.DONE || (limit && drunk >= goal) ? null : next(sameDay ? prefs.getString("next", "") : "");
+        String line = next != null ? next : !s.say.isEmpty() ? s.say : ml(drunk) + " / " + ml(goal) + " мл";
+        views.setTextViewText(R.id.widget_line, line);
+        if (next == null && s.ring != BLUE && s.ring != SKY) views.setTextColor(R.id.widget_line, s.ring);
 
         Intent open = new Intent(context, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getActivity(

@@ -1,97 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Duolingo-style square widget (DrinkWidget.java): the streak with a drop, a few words, and the
-     water drop sitting at the bottom. The background and face are set per stage of the day. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Health-app style card (DrinkWidget.java): a small title, a progress ring with the number inside, and one
+     line under it. Everything is centred, so a taller or wider widget only adds space around the ring. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_bg_morning">
+    android:background="@drawable/widget_card"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|center_horizontal"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:paddingTop="12dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:text="💧 Дусал"
+            android:textColor="@color/widget_muted"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <!-- The streak (goal days in a row); hidden under a doctor's limit. -->
+        <TextView
+            android:id="@+id/widget_streak"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#F97316"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:layout_weight="1">
+
+        <ImageView
+            android:id="@+id/widget_ring"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <FrameLayout
-                android:layout_width="24dp"
-                android:layout_height="26dp"
-                android:layout_marginEnd="4dp">
-
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:layout_gravity="top|start"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_widget_drop" />
-
-                <TextView
-                    android:id="@+id/widget_alert"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
-                    android:layout_gravity="bottom|end"
-                    android:background="@drawable/widget_alert"
-                    android:gravity="center"
-                    android:text="!"
-                    android:textColor="#FFFFFF"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-            </FrameLayout>
+            android:layout_gravity="center"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
 
             <TextView
-                android:id="@+id/widget_streak"
+                android:id="@+id/widget_big"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#FFFFFF"
-                android:textSize="28sp"
+                android:maxLines="1"
+                android:textColor="@color/widget_text"
+                android:textSize="20sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_unit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_muted"
+                android:textSize="10sp" />
         </LinearLayout>
+    </FrameLayout>
 
-        <TextView
-            android:id="@+id/widget_say"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:gravity="center"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <!-- The next drinking time from the schedule (the doctor's times when set). -->
-        <TextView
-            android:id="@+id/widget_next"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:alpha="0.9"
-            android:gravity="center"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <ImageView
-        android:id="@+id/widget_face"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="6dp"
-        android:contentDescription="@string/widget_face"
-        android:scaleType="fitCenter"
-        android:src="@drawable/notif_face_happy" />
-</FrameLayout>
+    <TextView
+        android:id="@+id/widget_line"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="1"
+        android:textColor="@color/widget_text"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+</LinearLayout>
