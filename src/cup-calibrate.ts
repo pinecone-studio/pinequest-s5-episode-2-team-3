@@ -17,14 +17,16 @@ let tare: number | null = null;
 let measured: number | null = null;
 let samples: { at: number; g: number }[] = [];
 
-const connected = () => scale.phase === 'connected' && !!scale.status;
+const linked = () => scale.phase === 'connected';
+// «Тэглэх» pressed before the base was linked or had sent a reading: the tare is taken on the first one.
+let pendingTare = false;
 const liveMl = () => (tare === null || !scale.status ? null : Math.max(0, Math.round((scale.status.weightG - tare) / 10) * 10));
 function still(now = Date.now()): boolean {
   if (!samples.length || now - samples[0].at < STILL_MS) return false;
   const recent = samples.filter(s => now - s.at <= STILL_MS).map(s => s.g);
   return recent.length > 1 && Math.max(...recent) - Math.min(...recent) < STILL_G;
 }
-export function resetCalibration(): void { step = 1; tare = null; measured = null; samples = []; }
+export function resetCalibration(): void { step = 1; tare = null; measured = null; samples = []; pendingTare = false; }
 
 const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 function steps(): string {
@@ -34,7 +36,7 @@ function steps(): string {
       <span class="visually-hidden">${state === 'done' ? 'хийгдсэн' : state === 'now' ? 'одоо' : 'дараа'}</span></li>`;
   };
   return `<section class="hx-card cc-steps" aria-label="Алхмууд"><ol>
-      ${row(1, 'Хоосон аягаа суурин дээр тавь', step > 1 ? 'Жинг нь тэглэлээ' : 'Тавиад «Тэглэх»-ийг дарна', `<button type="button" class="hx-blue cc-act" data-act="tare" ${connected() ? '' : 'disabled'}>Тэглэх</button>`)}
+      ${row(1, 'Хоосон аягаа суурин дээр тавь', step > 1 ? 'Жинг нь тэглэлээ' : linked() || scale.phase === 'unsupported' ? 'Тавиад «Тэглэх»-ийг дарна' : 'Тавиад «Тэглэх»-ийг дарна, суурь холбогдоно', `<button type="button" class="hx-blue cc-act" data-act="tare" ${scale.phase === 'unsupported' || pendingTare ? 'disabled' : ''}>${pendingTare ? 'Тэглэж байна…' : 'Тэглэх'}</button>`)}
       ${row(2, 'Аягаа ердийнхөөрөө дүүргээд тавь', step > 2 ? `${number(measured ?? 0)} мл` : 'Хэмжиж байна…')}
       ${row(3, 'Нэр өгөөд хадгал', 'Жишээ: «Миний аяга»', `<form class="cc-name" data-name-form><input id="cc-name" maxlength="24" placeholder="Миний аяга" autocomplete="off" aria-label="Аяганы нэр"><button type="submit" class="hx-blue">Хадгалах</button></form>
         <button type="button" class="hl-text cc-again" data-act="again">Дахин хэмжих</button>`)}
@@ -43,7 +45,7 @@ function steps(): string {
 
 const linkLabel = () => scale.phase === 'connecting' ? 'Холбогдож байна…' : scale.saved ? 'Дахин холбох' : 'Суурь холбох';
 function liveBox(): string {
-  if (!connected()) {
+  if (!linked()) {
     return `<section class="hx-card cc-live off" aria-labelledby="cc-off-title"><b id="cc-off-title">Суурь холбогдоогүй байна</b>
       ${scale.phase === 'unsupported' ? '' : `<button type="button" class="hx-blue cc-link" data-act="link">${linkLabel()}</button>`}
       <small>Эсвэл аяганы хэмжээг гараар оруулна уу.</small>
@@ -52,7 +54,7 @@ function liveBox(): string {
   }
   const ml = step === 3 ? measured : step === 2 ? liveMl() : null;
   return `<section class="hx-card cc-live" aria-live="polite"><small>Суурь хэмжиж байна</small><b data-live>${ml === null ? '—' : `${number(ml)} мл`}</b>
-      <span data-live-hint>${step === 3 ? 'Хэмжлээ ✓' : 'Тогтвортой болтол 2 секунд хүлээнэ үү'}</span></section>`;
+      <span data-live-hint>${step === 3 ? 'Хэмжлээ ✓' : scale.status ? 'Тогтвортой болтол 2 секунд хүлээнэ үү' : 'Суурийн жинг уншиж байна…'}</span></section>`;
 }
 
 function list(): string {
@@ -64,7 +66,7 @@ function list(): string {
     </section>`;
 }
 
-export const calibrateBody = (): string => `${steps()}${liveBox()}${list()}${connected() ? ScalePanel() : ''}<p class="cc-foot">Үлдсэн хэмжээг «мл»-ээс гадна таны аягаар харуулна.</p>`;
+export const calibrateBody = (): string => `${steps()}${liveBox()}${list()}${linked() ? ScalePanel() : ''}<p class="cc-foot">Үлдсэн хэмжээг «мл»-ээс гадна таны аягаар харуулна.</p>`;
 
 function save(ml: number, name: string, redraw: () => void): void {
   const cups = savedCups() ?? [];
@@ -86,6 +88,20 @@ function remove(i: number, redraw: () => void): void {
   });
 }
 
+function takeTare(redraw: () => void): void {
+  tare = scale.status!.weightG; samples = []; step = 2; pendingTare = false;
+  redraw();
+}
+// A remembered base reconnects; otherwise the system's device picker opens.
+async function link(redraw: () => void): Promise<void> {
+  if (scale.saved) { scale.reconnect(); return; }
+  try { await scale.pair(); }
+  catch (error) {
+    if (pendingTare) { pendingTare = false; redraw(); }
+    if (!(error instanceof Error && /cancel/i.test(`${error.name} ${error.message}`))) notify('Bluetooth асаалттай, апп Bluetooth ашиглах зөвшөөрөлтэй эсэхийг шалгана уу.');
+  }
+}
+
 // Readings arrive about once a second; the number updates in place, and step 2 moves on once still.
 let listening = false;
 export function bindCalibrate(root: HTMLElement, redraw: () => void): void {
@@ -94,7 +110,9 @@ export function bindCalibrate(root: HTMLElement, redraw: () => void): void {
     window.addEventListener('dusal-scale', () => {
       const box = document.querySelector<HTMLElement>('.cc-live');
       if (!box) return;
-      if (!!box.classList.contains('off') === connected()) { redraw(); return; }  // connected or lost
+      if (pendingTare && linked() && scale.status && step === 1) { takeTare(redraw); return; }
+      if (pendingTare && scale.phase === 'off') { pendingTare = false; redraw(); return; }  // linking failed
+      if (!!box.classList.contains('off') === linked()) { redraw(); return; }  // connected or lost
       const link = box.querySelector<HTMLButtonElement>('[data-act="link"]');
       if (link) { link.textContent = linkLabel(); link.disabled = scale.phase === 'connecting'; }
       if (scale.status) samples = [...samples.filter(s => Date.now() - s.at <= STILL_MS * 2), { at: Date.now(), g: scale.status.weightG }];
@@ -103,16 +121,14 @@ export function bindCalibrate(root: HTMLElement, redraw: () => void): void {
       if (step === 2) box.querySelector('[data-live]')!.textContent = ml === null ? '—' : `${number(ml)} мл`;
     });
   }
+  // Without a link yet, «Тэглэх» links the base first and tares on its first reading.
   root.querySelector('[data-act="tare"]')?.addEventListener('click', () => {
-    if (!scale.status) return;
-    tare = scale.status.weightG; samples = []; step = 2; redraw();
+    if (linked() && scale.status) { takeTare(redraw); return; }
+    pendingTare = true;
+    redraw();
+    if (!linked()) void link(redraw);
   });
-  // A remembered base reconnects; otherwise the system's device picker opens.
-  root.querySelector<HTMLButtonElement>('[data-act="link"]')?.addEventListener('click', async () => {
-    if (scale.saved) { scale.reconnect(); return; }
-    try { await scale.pair(); }
-    catch (error) { if (!(error instanceof Error && /cancel/i.test(`${error.name} ${error.message}`))) notify('Bluetooth асаалттай, апп Bluetooth ашиглах зөвшөөрөлтэй эсэхийг шалгана уу.'); }
-  });
+  root.querySelector<HTMLButtonElement>('[data-act="link"]')?.addEventListener('click', () => void link(redraw));
   root.querySelector('[data-act="again"]')?.addEventListener('click', () => { resetCalibration(); redraw(); });
   root.querySelector<HTMLFormElement>('[data-name-form]')?.addEventListener('submit', e => {
     e.preventDefault();
