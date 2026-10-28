@@ -29,6 +29,13 @@ const isTab = (path: string) => ORDER.includes(clean(path));
 // In the phone app every tab lives in its own frame inside tabs.html, which owns the tab bar and the
 // slide (tabs.ts). A page that finds itself there hides its own menu and hands tab moves to the host.
 export const embedded = window.parent !== window && new URLSearchParams(location.search).has('embed');
+// A tab page opened on its own (a browser, a bookmark) moves into the tab host too: each page load would
+// otherwise drop the browser's Bluetooth link to the base (scale.ts), which lives only as long as the page.
+if (window.parent === window && isTab(location.pathname)) {
+  const params = new URLSearchParams(location.search);
+  params.set('tab', String(rank(location.pathname)));
+  location.replace(`/tabs.html?${params}${location.hash}`);
+}
 if (embedded) document.documentElement.classList.add('embedded');
 // Capacitor on Android runs plugins only for the main frame ("Plugin execution is allowed in Main Frame only"),
 // so a tab's frame sends its plugin calls (notifications, widget, app icon, health...) through the host's bridge.

@@ -54,9 +54,19 @@ const BREAKER = `<svg class="sea" viewBox="0 0 800 40" preserveAspectRatio="none
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
 let index = 0;
 try { index = Math.min(TABS.length - 1, Math.max(0, Number(sessionStorage.getItem(LAST_TAB)) || 0)); } catch { /* first tab */ }
+// Sent here from a tab page opened on its own (nav.ts): that tab opens first, with its own query and part.
+const opened = new URLSearchParams(location.search);
+const openTab = opened.get('tab');
+opened.delete('tab');
+const query = opened.toString();
+const extra = openTab !== null ? `${query ? `&${query}` : ''}${/^#[\w-]*$/.test(location.hash) ? location.hash : ''}` : '';
+if (openTab !== null) {
+  index = Math.min(TABS.length - 1, Math.max(0, Number(openTab) || 0));
+  history.replaceState(null, '', '/tabs.html');
+}
 
 root.innerHTML = `
-  <div class="tabs-track">${TABS.map((tab, i) => `<iframe title="${LABELS[i]}" data-src="${tab}?embed=1"></iframe>`).join('')}</div>
+  <div class="tabs-track">${TABS.map((tab, i) => `<iframe title="${LABELS[i]}" data-src="${tab}?embed=1${i === index ? extra : ''}"></iframe>`).join('')}</div>
   <div class="breaker">${BREAKER}</div>
   <nav class="tabs-bar" aria-label="Хэсгүүд" style="--i:${index}">
     ${TABS.map((tab, i) => `<a href="${tab}" data-tab="${i}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">${NAV_ICONS[KEYS[i]]}</svg><span>${LABELS[i]}</span></a>`).join('')}
