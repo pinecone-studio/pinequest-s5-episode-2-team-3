@@ -100,7 +100,7 @@ export function dialysisCard(now = new Date()): string {
 }
 
 // A bottom sheet with a grab handle; Escape or a tap outside closes it and focus goes back.
-function sheet(className: string, html: string, label: string): { box: HTMLElement; close: () => void } {
+export function sheet(className: string, html: string, label: string): { box: HTMLElement; close: () => void } {
   const back = document.activeElement as HTMLElement | null;
   const box = document.createElement('div');
   box.className = 'hx-dim';

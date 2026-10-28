@@ -7,7 +7,8 @@ import { load, save, saveMessage, onExternalChange } from './storage';
 import { bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
 import { bindGaugeDrag, hxGauge, hxHeader, mainCup, readCup, readCupKind, writeCup, writeCupKind } from './hydrify';
 import { openDrinkSheet } from './drink-sheet';
-import { bindLimitHome, dialysisCard, limitGauge, quickAdd } from './home-limit';
+import { bindLimitHome, dialysisCard, limitGauge, quickAdd, sheet } from './home-limit';
+import { WEEKEND_OPEN_KEY, planWeekend, weekendSheet } from './weekend';
 import { Toast, notify } from './components/Toast';
 import type { Kind } from './drinks';
 import { setKind, setSalty } from './drinks';
@@ -396,6 +397,18 @@ async function removeEntry(id: string) {
   if (result === 'saved') notify('Буцаалаа.');
 }
 
+// The weekend reminder was tapped (tabs.ts sets the key; «/?weekend» opens it on the web too).
+function openWeekend(): void {
+  let asked = new URLSearchParams(location.search).has('weekend');
+  try { asked ||= localStorage.getItem(WEEKEND_OPEN_KEY) === '1'; localStorage.removeItem(WEEKEND_OPEN_KEY); } catch { /* nothing waiting */ }
+  if (!asked || document.querySelector('.wk-sheet')) return;
+  const html = weekendSheet(state);
+  if (!html) return;
+  const { box, close } = sheet('wk-sheet', html, 'Амралтын өдрүүд');
+  box.querySelector('[data-ok]')!.addEventListener('click', close);
+}
+window.addEventListener('storage', event => { if (event.key === WEEKEND_OPEN_KEY && event.newValue === '1') openWeekend(); });
+
 // The demo reset shows in a dev build or with ?demo=1; under a limit only then.
 const demo = import.meta.env.DEV || new URLSearchParams(location.search).has('demo');
 
@@ -494,6 +507,7 @@ function render() {
   </main>
   ${limit ? Toast() : ''}`;
   pushWidget(state, drink);
+  void planWeekend(state);  // only re-plans when the mode, limit or dialysis days changed
   void reportFamily(state, drink);
   bindFamily();
   bindHydration(drink, addDrink, render);
@@ -570,6 +584,7 @@ void reload().then(() => {
   void health.start();
   window.addEventListener('dusal-family', render);
   startReminders(() => state);
+  openWeekend();
   startAppIcon(() => state);
   // First visit: ask a few questions and start with the computed daily amount.
   // "/?onboard" shows it again from the start (for demos); the water log is kept.

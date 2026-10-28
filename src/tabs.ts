@@ -2,6 +2,9 @@ import './tabs.css';
 import { NAV_ICONS, TABS } from './nav';
 // Created here first, so every tab frame shares this one Bluetooth link to the base (src/scale.ts).
 import './scale';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { nativeReminders } from './native-reminders';
+import { WEEKEND_ID, WEEKEND_OPEN_KEY } from './weekend';
 
 // Phone app start page (capacitor.config.ts → server.appStartPath). Home, history, progress and the account each
 // load once in their own frame, side by side; switching tabs slides the strip instead of loading a
@@ -143,6 +146,15 @@ window.addEventListener('message', event => {
     go(to);
   }
 });
+
+// The weekend reminder (weekend.ts) was tapped: home shows its sheet (it listens for the key).
+if (nativeReminders) {
+  void LocalNotifications.addListener('localNotificationActionPerformed', action => {
+    if (action.notification.id !== WEEKEND_ID) return;
+    try { localStorage.setItem(WEEKEND_OPEN_KEY, '1'); } catch { /* no sheet this time */ }
+    go(0);
+  });
+}
 
 addEventListener('resize', () => place());
 load(index);

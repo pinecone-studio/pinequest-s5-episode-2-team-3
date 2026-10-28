@@ -52,13 +52,20 @@ export const CUP_ICONS = [
 ];
 export interface Cup { ml: number; icon: number; main?: boolean; name?: string }
 const CUPS_KEY = 'dusal-cups-v1';
-const defaultIcon = (ml: number) => (ml <= 125 ? 0 : ml <= 150 ? 2 : ml <= 200 ? 1 : ml <= 250 ? 4 : ml <= 350 ? 5 : ml <= 400 ? 7 : ml <= 500 ? 8 : 9);
-export function readCups(): Cup[] {
+export const defaultIcon = (ml: number) => (ml <= 125 ? 0 : ml <= 150 ? 2 : ml <= 200 ? 1 : ml <= 250 ? 4 : ml <= 350 ? 5 : ml <= 400 ? 7 : ml <= 500 ? 8 : 9);
+// The cups the person saved («Миний савнууд»), or null before any; cups saved before names and the
+// main cup existed still load.
+export function savedCups(): Cup[] | null {
   try {
     const list = JSON.parse(localStorage.getItem(CUPS_KEY) ?? 'null');
-    if (Array.isArray(list) && list.every(c => Number.isInteger(c?.ml) && c.ml >= 10 && c.ml <= 3000 && Number.isInteger(c.icon) && c.icon >= 0 && c.icon < CUP_ICONS.length)) return list;
-  } catch { /* defaults */ }
-  return CUP_SIZES.map(ml => ({ ml, icon: defaultIcon(ml) }));
+    if (Array.isArray(list) && list.length && list.every(c => Number.isInteger(c?.ml) && c.ml >= 10 && c.ml <= 3000 && Number.isInteger(c.icon) && c.icon >= 0 && c.icon < CUP_ICONS.length)) {
+      return list.map(c => ({ ml: c.ml, icon: c.icon, ...(c.main === true ? { main: true } : {}), ...(typeof c.name === 'string' && c.name.trim() ? { name: c.name.trim().slice(0, 24) } : {}) }));
+    }
+  } catch { /* none */ }
+  return null;
+}
+export function readCups(): Cup[] {
+  return savedCups() ?? CUP_SIZES.map(ml => ({ ml, icon: defaultIcon(ml) }));
 }
 export function writeCups(cups: Cup[]): void {
   try { localStorage.setItem(CUPS_KEY, JSON.stringify(cups)); } catch { /* defaults next time */ }
