@@ -17,7 +17,8 @@ interface ScaleWatchPlugin {
 }
 const watch = Capacitor.getPlatform() === 'android' ? registerPlugin<ScaleWatchPlugin>('DusalScaleWatch') : null;
 
-// Remembered so the Android app reconnects by itself; a browser has to ask the user every time.
+// Remembered so the app reconnects by itself. A browser (Chrome) only reconnects to a base it still
+// has permission for (navigator.bluetooth.getDevices); otherwise it has to ask the user again.
 const SAVED_KEY = 'dusal-scale-v1';
 const RETRY_MS = 5000;
 
@@ -112,7 +113,7 @@ export class ScaleLink {
     await this.init();
     const device = await BleClient.requestDevice({ services: [SCALE_SERVICE] });
     const saved = { bleId: device.deviceId, name: device.name ?? 'Dusal' };
-    if (Capacitor.isNativePlatform()) writeSaved(saved);
+    writeSaved(saved);
     await this.connect(saved);
   }
   async forget(): Promise<void> {
@@ -132,6 +133,13 @@ export class ScaleLink {
     this.changed();
     try {
       await this.init();
+      // After a reload the browser has to be told about the base again; without permission it is forgotten.
+      if (!Capacitor.isNativePlatform() && !(await this.allowedInBrowser(bleId))) {
+        writeSaved(null);
+        this.phase = 'off';
+        this.changed();
+        return;
+      }
       await BleClient.connect(bleId, () => this.lost(bleId));
       this.bleId = bleId;
       this.baseId = deviceIdFrom(await BleClient.read(bleId, SCALE_SERVICE, ID_CHAR));
@@ -154,6 +162,9 @@ export class ScaleLink {
       this.changed();
       this.later();
     }
+  }
+  private async allowedInBrowser(bleId: string): Promise<boolean> {
+    try { return (await BleClient.getDevices([bleId])).length > 0; } catch { return false; }
   }
   private lost(bleId: string): void {
     if (this.bleId !== bleId) return;
