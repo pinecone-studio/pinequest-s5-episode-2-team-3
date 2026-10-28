@@ -9,7 +9,7 @@ import { openAmountSheet, openNumberSheet } from './hx-edit';
 import { about } from './prefs';
 import { climateOf, fetchWeather } from './weather';
 
-// First visit, Hydrify layout (demo): three walkthrough slides, a sign-up form (name kept on this
+// First visit, Hydrify layout (demo): two walkthrough slides, a sign-up form (name kept on this
 // phone; email and password are not sent anywhere), nine one-question steps with a progress bar
 // (sex, height, weight, age, wake-up, bedtime, activity, climate, condition), a "making your plan"
 // ring, then the daily amount from calcPlan (+500 мл in a hot climate), shown in the unit picked.
@@ -154,8 +154,7 @@ const FOR_WOMEN: Condition[] = ['pregnant', 'breastfeeding'];
 const ACT_ICONS = { low: 'weekend', medium: 'directions_walk', high: 'directions_run' } as const satisfies Record<Activity, string>;
 
 const SLIDES = [
-  { title: 'Дусал – таны усны туслах!', text: 'Эрүүл байж, усны зорилтоо биелүүлээрэй. Уусан усаа бүртгэж, сануулга тавьж, амжилтаа нээгээрэй.' },
-  { title: 'Ус дутвал бие тань мэдэрнэ', text: 'Биеийн жингийн 1–2%-ийн ус алдахад л ядаргаа, толгой өвдөлт эхэлдэг. Цангах мэдрэмж хоцорч ирдэг.' },
+  { title: 'Дусал – таны усны туслах!', text: 'Биеийн жингийн 1–2%-ийн ус алдахад л ядаргаа, толгой өвдөлт эхэлдэг. Усаа бүртгэж, зорилтоо биелүүлээрэй.' },
   { title: 'Ухаалаг суурь өөрөө тоолно', text: 'Саваа суурин дээр тавихад уусан усыг тань автоматаар бүртгэнэ. Эмч хязгаар тогтоосон бол тэр хязгаарыг дагана.' },
 ];
 
@@ -179,7 +178,6 @@ const MOCK = `<svg class="ob-mock" viewBox="0 0 220 300" aria-hidden="true">
 type PetPics = typeof import('./pet3d');
 const CAST: [import('./pet').Kind, import('./pet').PetMood][][] = [
   [['cat', 'good'], ['drop', 'joyful'], ['bunny', 'good']],
-  [['penguin', 'thirsty'], ['drop', 'thirsty'], ['frog', 'thirsty']],
   [['bear', 'joyful'], ['dragon', 'joyful'], ['unicorn', 'joyful']],
 ];
 function cast(pics: PetPics | null, slide: number): string {
