@@ -173,30 +173,54 @@ const MOCK = `<svg class="ob-mock" viewBox="0 0 220 300" aria-hidden="true">
   <circle cx="152" cy="239" r="11" fill="#fff" stroke="#eeeeee"/>
 </svg>`;
 
-// The walkthrough pictures: the 3D pets from the achievements page (pet3d.ts, loaded on demand), three
-// per slide, floating among bubbles. Until three.js arrives, or without WebGL, the phone mockup shows.
-type PetPics = typeof import('./pet3d');
-const CAST: [import('./pet').Kind, import('./pet').PetMood][][] = [
-  [['cat', 'good'], ['drop', 'joyful'], ['bunny', 'good']],
-  [['bear', 'joyful'], ['dragon', 'joyful'], ['unicorn', 'joyful']],
-];
-function cast(pics: PetPics | null, slide: number): string {
-  if (!pics) return MOCK;
-  try {
-    const img = (kind: import('./pet').Kind, mood: import('./pet').PetMood, cls: string) =>
-      `<img class="ob-pet ${cls}" src="${pics.petImage({ kind, mood, stage: 'big', shine: cls === 'mid' ? 2 : 0 }, 320)}" alt="">`;
-    const [a, b, c] = CAST[slide];
-    return `<div class="ob-pets" aria-hidden="true">${img(a[0], a[1], 'side l')}${img(c[0], c[1], 'side r')}${img(b[0], b[1], 'mid')}
-      ${Array.from({ length: 9 }, (_, i) => `<span class="ob-bubble" style="--x:${(i * 37) % 100}%;--d:${(i % 4) * 0.9}s;--s:${8 + (i % 3) * 6}px"></span>`).join('')}</div>`;
-  } catch { return MOCK; }
+// The smart base slide: a glass on the base, its weight going to the phone as a logged drink, held
+// against the doctor's limit.
+function baseArt(): string {
+  const glass = 'M158 112 H242 L233 232 Q200 240 167 232 Z';
+  return `<div class="ob-pets ob-base" aria-hidden="true">
+    <svg class="ob-base-art" viewBox="0 0 360 300">
+      <defs>
+        <clipPath id="ob-glass"><path d="${glass}"/></clipPath>
+        <linearGradient id="ob-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ad6ff"/><stop offset="1" stop-color="#1f8bff"/></linearGradient>
+        <linearGradient id="ob-puck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf4ff"/><stop offset="1" stop-color="#bcdcfb"/></linearGradient>
+      </defs>
+      <ellipse cx="200" cy="270" rx="112" ry="12" fill="#468cc8" opacity=".18"/>
+      <path d="M110 236 V250 A90 16 0 0 0 290 250 V236 Z" fill="url(#ob-puck)"/>
+      <ellipse cx="200" cy="236" rx="90" ry="16" fill="#fff" stroke="#d4e8fc" stroke-width="1.5"/>
+      <ellipse cx="200" cy="236" rx="68" ry="11" fill="none" stroke="#5cb4ff" stroke-width="3"/>
+      <circle cx="200" cy="255" r="3" fill="#369fff"/>
+      <path d="${glass}" fill="#fff" opacity=".8"/>
+      <g clip-path="url(#ob-glass)">
+        <path d="M150 160 q12 -7 25 0 t25 0 t25 0 t25 0 V250 H150 Z" fill="url(#ob-water)"/>
+        <g fill="#0b3a75"><circle cx="186" cy="192" r="5"/><circle cx="214" cy="192" r="5"/></g>
+        <path d="M190 204 Q200 213 210 204" fill="none" stroke="#0b3a75" stroke-width="3" stroke-linecap="round"/>
+        <g fill="#ff8fb1" opacity=".7"><ellipse cx="177" cy="204" rx="6" ry="3.5"/><ellipse cx="223" cy="204" rx="6" ry="3.5"/></g>
+      </g>
+      <path d="${glass}" fill="none" stroke="#a8d4fd" stroke-width="3.5" stroke-linejoin="round"/>
+      <rect x="170" y="124" width="6" height="84" rx="3" fill="#fff" opacity=".7"/>
+      <g fill="none" stroke="#369fff" stroke-width="4" stroke-linecap="round">
+        <path d="M250 138 A12 12 0 0 1 262 150"/>
+        <path d="M250 128 A22 22 0 0 1 272 150"/>
+        <path d="M250 118 A32 32 0 0 1 282 150"/>
+      </g>
+      <g>
+        <rect x="236" y="14" width="118" height="98" rx="18" fill="#fff"/>
+        <circle cx="258" cy="38" r="13" fill="#eef6fe"/>
+        <path d="M258 29c-5 6-7 9-7 12a7 7 0 0 0 14 0c0-3-2-6-7-12z" fill="#369fff"/>
+        <text x="277" y="36" font-size="15" font-weight="800" fill="#212121">+250 мл</text>
+        <text x="277" y="50" font-size="9.5" fill="#757575">автоматаар</text>
+        <rect x="250" y="66" width="90" height="8" rx="4" fill="#eef6fe"/>
+        <rect x="250" y="66" width="58" height="8" rx="4" fill="#369fff"/>
+        <path d="M326 61 V79" stroke="#ff9f43" stroke-width="2.5" stroke-linecap="round"/>
+        <text x="250" y="96" font-size="9.5" font-weight="700" fill="#ff9f43">Хязгаар 1500 мл</text>
+        <circle cx="350" cy="18" r="11" fill="#22c55e"/>
+        <path d="M345 18 l3.5 3.5 6-7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </svg></div>`;
 }
-const petPic = (pics: PetPics | null, mood: import('./pet').PetMood, cls: string, fallback: string) => {
-  if (!pics) return fallback;
-  try { return `<img class="${cls}" src="${pics.petImage({ kind: 'drop', mood, stage: 'big', shine: 2 }, 320)}" alt="">`; } catch { return fallback; }
-};
+const cast = (slide: number) => slide === 1 ? baseArt() : MOCK;
 
 export function showOnboarding(onDone: (plan: Plan) => void): void {
-  let pics: PetPics | null = null;
   const p: Profile = { ...readProfile() };
   const times = readSettings();
   let sex: Sex | null = null;
@@ -283,7 +307,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   function view(): string {
     if (screen === 'walk') {
       const s = SLIDES[slide];
-      return `<div class="ob-walk"><div class="ob-hero">${cast(pics, slide)}</div>
+      return `<div class="ob-walk"><div class="ob-hero">${cast(slide)}</div>
         <div class="ob-walk-text"><h2 id="onb-title">${s.title}</h2><p>${s.text}</p>
           <ol class="ob-dots" aria-label="${slide + 1} / ${SLIDES.length}">${SLIDES.map((_, i) => `<li class="${i === slide ? 'on' : ''}"></li>`).join('')}</ol></div>
         <div class="ob-actions"><button type="button" class="ob-ghost" data-skip>Алгасах</button><button type="button" class="ob-primary" data-next>Үргэлжлүүлэх</button></div></div>`;
@@ -303,7 +327,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     }
     if (screen === 'making') {
       return `<div class="ob-making"><h2 id="onb-title">Таны усны төлөвлөгөөг гаргаж байна…</h2><p class="ob-lead">Түр хүлээнэ үү.</p>
-        ${petPic(pics, 'good', 'ob-making-pet', '')}<div class="ob-ring" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="bg"/><circle cx="60" cy="60" r="52" class="fg" pathLength="100" stroke-dasharray="0 100"/></svg><b>0%</b></div>
+        <div class="ob-ring" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="bg"/><circle cx="60" cy="60" r="52" class="fg" pathLength="100" stroke-dasharray="0 100"/></svg><b>0%</b></div>
         <p class="ob-lead small">Хэсэг хугацаа шаардана. Усаар дүүрэн аялалдаа бэлдээрэй!</p></div>`;
     }
     if (screen === 'ready') {
@@ -312,7 +336,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       const shown = (plan.ml / u.per).toFixed(u.digits);
       return `<div class="ob-ready"><h2 id="onb-title">${plan.mode === 'limit' ? 'Таны өдрийн хязгаар' : 'Таны өдрийн зорилт'}</h2>
         <div class="ob-units wide" role="radiogroup" aria-label="Нэгж">${(Object.keys(UNITS) as Unit[]).map(k => `<button type="button" role="radio" aria-checked="${k === unit}" class="${k === unit ? 'on' : ''}" data-unit="${k}">${UNITS[k].label}</button>`).join('')}</div>
-        <span class="ob-glass" aria-hidden="true">${petPic(pics, 'joyful', 'ob-ready-pet', '<svg viewBox="0 0 48 64"><path d="M6 4h36l-4 56H10z" fill="#e3f0fd"/><path d="M8.6 22h30.8l-2.8 38H11.4z" fill="#369fff"/><circle cx="20" cy="40" r="2" fill="#fff"/><circle cx="28" cy="50" r="1.6" fill="#fff"/></svg>')}</span>
+        <span class="ob-glass" aria-hidden="true"><svg viewBox="0 0 48 64"><path d="M6 4h36l-4 56H10z" fill="#e3f0fd"/><path d="M8.6 22h30.8l-2.8 38H11.4z" fill="#369fff"/><circle cx="20" cy="40" r="2" fill="#fff"/><circle cx="28" cy="50" r="1.6" fill="#fff"/></svg></span>
         <p class="ob-result">${unit === 'ml' ? number(plan.ml) : shown}<span>${u.label}</span></p>
         ${plan.mode === 'limit' ? '' : '<button type="button" class="ob-adjust" data-adjust>✎ Тохируулах</button>'}
         <p class="ob-lead small">${escape(plan.how)}</p>
@@ -482,5 +506,4 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   }
 
   draw();
-  void import('./pet3d').then(m => { pics = m; if (screen === 'walk' || screen === 'ready') draw(); }).catch(() => { /* keeps the phone mockup */ });
 }

@@ -731,23 +731,12 @@ html .ob-actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr
 html .ob-primary { min-height: 56px; border: 0; border-radius: 999px; background: var(--sky); color: #fff; font-size: 17px; font-weight: 700; }
 html .ob-ghost { min-height: 56px; border: 0; border-radius: 999px; background: var(--sky-soft); color: var(--sky); font-size: 17px; font-weight: 700; }
 /* Walkthrough */
-html .ob-hero { position: relative; display: grid; justify-items: center; height: 430px; padding-top: 40px; background: var(--sky); overflow: hidden; }
+html .ob-hero { position: relative; display: grid; justify-items: center; height: 430px; padding-top: 40px; background: linear-gradient(180deg, var(--sky-soft), #f7fbff); overflow: hidden; }
 html .ob-hero::after { content: ""; position: absolute; left: -20%; right: -20%; bottom: -140px; height: 220px; border-radius: 50%; background: #fff; }
 html .ob-mock { width: 250px; }
-/* Onboarding pictures: three 3D pets floating among bubbles (onboarding.ts, pet3d.ts). */
+/* The smart base slide picture (onboarding.ts). */
 html .ob-pets { position: relative; width: 100%; max-width: 380px; height: 300px; }
-html .ob-pet { position: absolute; bottom: 30px; animation: ob-float 3.2s ease-in-out infinite; filter: drop-shadow(0 14px 18px rgba(0, 40, 120, .3)); }
-html .ob-pet.mid { left: 50%; width: 220px; margin-left: -110px; bottom: 40px; z-index: 2; }
-html .ob-pet.side { width: 140px; opacity: .95; }
-html .ob-pet.l { left: 4%; animation-delay: -1s; transform: rotate(-6deg); }
-html .ob-pet.r { right: 4%; animation-delay: -2s; transform: rotate(6deg); }
-html .ob-bubble { position: absolute; left: var(--x); bottom: 0; width: var(--s); height: var(--s); border: 2px solid rgba(255, 255, 255, .8); border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9) 0 18%, rgba(255, 255, 255, .15) 30%); animation: ob-rise 4.5s linear infinite; animation-delay: var(--d); opacity: 0; }
-@keyframes ob-float { 50% { translate: 0 -12px; } }
-@keyframes ob-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-300px); opacity: 0; } }
-html .ob-ready-pet { width: 150px; height: auto; animation: ob-float 3s ease-in-out infinite; }
-html .ob-glass:has(.ob-ready-pet) svg { display: none; }
-html .ob-making-pet { width: 120px; height: auto; margin-bottom: -40px; animation: ob-float 2.4s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { html .ob-pet, html .ob-bubble, html .ob-ready-pet, html .ob-making-pet { animation: none; } html .ob-bubble { display: none; } }
+html .ob-base-art { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; font-family: inherit; filter: drop-shadow(0 10px 18px rgba(70, 140, 200, .2)); }
 html .ob-walk-text { display: grid; justify-items: center; gap: 4px; padding: 6px 24px 0; }
 html .ob-walk-text p { margin: 8px 0 0; font-size: 16px; line-height: 1.7; text-align: center; color: #424242; }
 html .ob-dots { display: flex; gap: 6px; margin: 18px 0 8px; padding: 0; list-style: none; }
