@@ -110,7 +110,7 @@ const ICONS = {
 function menu(): string {
   const row = (key: keyof typeof ICONS, label: string, href = `#${key}`) => `<li><a href="${href}">${ICON(ICONS[key])}<span>${label}</span><i aria-hidden="true">›</i></a></li>`;
   return `<section class="hx-card ac-menu"><ul>
-      ${row('personal', 'Хувийн мэдээлэл')}${row('doctor', 'Эмчийн зөвлөмж')}${row('reminders', 'Уух сануулга', '#reminder')}${row('cups', 'Миний аяганууд')}${row('widgets', 'Нүүр дэлгэцийн widget')}${row('preferences', 'Тохиргоо')}
+      ${row('personal', 'Хувийн мэдээлэл')}${row('doctor', 'Эмчийн зөвлөмж')}${row('reminders', 'Уух сануулга', '#reminder')}${row('cups', 'Суурь ба савнууд')}${row('widgets', 'Нүүр дэлгэцийн widget')}${row('preferences', 'Тохиргоо')}
     </ul></section>
     <section class="hx-card ac-menu"><ul>
       ${row('security', 'Бүртгэл ба аюулгүй байдал')}${row('linked', 'Холбосон бүртгэл')}

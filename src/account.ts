@@ -1,14 +1,15 @@
 import type { AppState } from './data';
 import { escape, number } from './format';
-import { CUP_ICONS, readCups, writeCups, readCup, writeCup, type Cup } from './hydrify';
 import { chooseSheet, confirmSheet, openAmountSheet, pickTime } from './hx-edit';
 import { WEEKDAY_SHORT, readDialysis, writeDialysis } from './progress-data';
 import { RULES, readRules, writeRules, type Rule } from './drink-flags';
+import { planWeekend, setWeekendOn, weekendOn } from './weekend';
 import { readSettings, writeSettings } from './schedule';
 import { ACTIVITIES, readProfile, writeProfile, type Activity } from './plan';
 import { readMember } from './member';
 import { about, analytics, applyTheme, linked, look, prefs, reminder, security, type PayMethod } from './prefs';
 import { notify } from './components/Toast';
+import { bindCalibrate, calibrateBody } from './cup-calibrate';
 import { bindWidgets, widgetsBody } from './widgets-view';
 
 // Account sub-screens, Hydrify layout (kit 52–84). Each is a #hash view: a title, the parent it goes
@@ -41,8 +42,6 @@ function rows(list: Row[], cls = ''): string {
   }).join('')}</ul></section>`;
 }
 const card = (title: string, html: string) => `<section class="hx-card ac-menu"><h2 class="ac-card-title">${title}</h2>${html}</section>`;
-const blue = (label: string, attrs: string) => `<button type="button" class="hx-blue ac-wide" ${attrs}>${label}</button>`;
-const two = (a: string, b: string) => `<div class="hx-sheet-actions ac-two">${a}${b}</div>`;
 
 // Delegated handlers for one view: [data-act] buttons and [data-toggle] switches.
 function on(root: HTMLElement, acts: Record<string, (el: HTMLElement) => void>, toggles: Record<string, (on: boolean) => void> = {}): void {
@@ -65,22 +64,10 @@ const BRAND: Record<string, string> = {
   mastercard: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#111"/><circle cx="16" cy="20" r="7" fill="#eb001b"/><circle cx="24" cy="20" r="7" fill="#f79e1b" opacity=".9"/></svg>',
   visa: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#1a1f71"/><text x="20" y="24" text-anchor="middle" font-size="11" font-weight="900" font-style="italic" fill="#fff">VISA</text></svg>',
   amex: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#2e77bc"/><text x="20" y="23.5" text-anchor="middle" font-size="7.5" font-weight="900" fill="#fff">AMEX</text></svg>',
-  card: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#369fff"/><rect x="11" y="14" width="18" height="12" rx="2" fill="#fff"/><path d="M11 18h18" stroke="#369fff" stroke-width="2"/></svg>',
+  card: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#0056ff"/><rect x="11" y="14" width="18" height="12" rx="2" fill="#fff"/><path d="M11 18h18" stroke="#0056ff" stroke-width="2"/></svg>',
 };
 const brand = (m: PayMethod) => `<span class="ac-brand" aria-hidden="true">${BRAND[m.brand] ?? BRAND.card}</span>`;
 const method = (m: PayMethod, right: string) => `<span class="ac-pay">${brand(m)}<span class="ac-label">${escape(m.name)}<small>${escape(m.detail)}</small></span>${right}</span>`;
-
-// ---- Cups (kit 59–62) ----
-let editing: { index: number; cup: Cup } | null = null;
-function cupEditor(isNew: boolean): string {
-  const c = editing!.cup;
-  return `<section class="hx-card ac-cup-edit">
-    <span class="ac-cup-big" aria-hidden="true">${CUP_ICONS[c.icon]}</span>
-    <button type="button" class="ac-ml-chip" data-act="ml">${number(c.ml)} мл ✎</button>
-    <p class="ac-small">Аяганы дүрс сонгох</p>
-    <div class="ac-icon-grid" role="radiogroup" aria-label="Аяганы дүрс">${CUP_ICONS.map((svg, i) => `<button type="button" role="radio" aria-checked="${i === c.icon}" aria-label="Дүрс ${i + 1}" class="${i === c.icon ? 'on' : ''}" data-act="icon" data-i="${i}">${svg}</button>`).join('')}</div>
-  </section>${isNew ? '' : ''}`;
-}
 
 // ---- Reminders (kit 63–66) ----
 const minutes = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
@@ -126,11 +113,6 @@ const LANGUAGES: [string, string][] = [['mn', 'Монгол'], ['en', 'English']
 
 let goalBack = 'preferences';
 export function accountViews(ctx: Ctx): (key: string) => View | undefined {
-  const cupsList = (): string => `<section class="hx-card ac-menu ac-cups-list"><ul>${readCups().map((c, i) => `<li><span class="ac-row">
-      <span class="ac-grip" aria-hidden="true">⠿</span><span class="ac-cup-icon" aria-hidden="true">${CUP_ICONS[c.icon]}</span><span class="ac-label">${number(c.ml)} мл</span>
-      <span class="ac-order"><button type="button" data-act="up" data-i="${i}" aria-label="${c.ml} мл дээш" ${i ? '' : 'disabled'}>↑</button></span>
-      <button type="button" class="ac-pen" data-act="edit" data-i="${i}" aria-label="${c.ml} мл засах">✎</button></span></li>`).join('')}</ul></section>`;
-
   const reminderBody = (): string => {
     const s = readSettings(), r = reminder.read(), goal = ctx.state().goal;
     const head = rows([{ label: 'Сануулга', sw: ['on', s.on] }, { label: 'Сануулгын горим', value: MODE_LABEL[r.mode], act: 'mode' }]);
@@ -178,26 +160,8 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
     chooseSheet(title, opts.map(o => [o, o]), String(p()[key]), v => { prefs.write({ [key]: v }); ctx.redraw(); });
 
   const VIEWS: Record<string, View> = {
-    cups: {
-      title: 'Миний аяганууд', back: '', right: '<a class="hx-more ac-head-plus" href="#cup-new" aria-label="Аяга нэмэх">+</a>',
-      body: cupsList,
-      bind: root => on(root, {
-        edit: el => { const i = Number(el.dataset.i); editing = { index: i, cup: { ...readCups()[i] } }; go('cup-edit'); },
-        up: el => { const i = Number(el.dataset.i), list = readCups(); [list[i - 1], list[i]] = [list[i], list[i - 1]]; writeCups(list); ctx.redraw(); },
-      }),
-    },
-    'cup-new': {
-      title: 'Шинэ аяга', back: 'cups',
-      body: () => { if (!editing || editing.index !== -1) editing = { index: -1, cup: { ml: 600, icon: 9 } }; return cupEditor(true); },
-      foot: blue('Нэмэх', 'data-act="save"'),
-      bind: root => bindCup(root),
-    },
-    'cup-edit': {
-      title: 'Аяга засах', back: 'cups', right: '<button type="button" class="hx-more ac-trash" data-act="delete" aria-label="Аяга устгах">🗑</button>',
-      body: () => (editing && editing.index >= 0 ? cupEditor(false) : '<p class="hx-empty">Аяга сонгогдоогүй.</p>'),
-      foot: two('<a class="hx-light ac-btn" href="#cups">Цуцлах</a>', '<button type="button" class="hx-blue" data-act="save">Хадгалах</button>'),
-      bind: root => bindCup(root),
-    },
+    // «Суурь ба савнууд»: link the base, measure a cup on the base, the saved cups and the main one (cup-calibrate.ts).
+    cups: { title: 'Аягаа хэмжүүлэх', back: '', body: calibrateBody, bind: root => bindCalibrate(root, ctx.redraw) },
     reminder: {
       title: 'Уух сануулга', back: '', body: reminderBody,
       bind: root => on(root, {
@@ -255,6 +219,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
             <h2 id="dr-days-title">Диализын өдрүүд</h2><small>Тайлан, жингийн тооцоонд ашиглана</small>
             <div class="dr-chips" role="group" aria-labelledby="dr-days-title">${[1, 2, 3, 4, 5, 6, 7].map(chip).join('')}</div>
             <button type="button" class="dr-time" data-act="dtime"><span>Эхлэх цаг</span><b>${d.time}</b></button>
+            ${s.mode === 'limit' ? `<label class="dr-switch"><span><b>Амралтын өмнөх сануулга</b><small>Хамгийн урт завсрын өмнөх орой 19:00-д</small></span>${toggle('weekend', weekendOn(), 'Амралтын өмнөх сануулга')}</label>` : ''}
           </section>`;
       },
       foot: '<p class="dr-foot">Эмчийнхээ хэлснээр тэмдэглээрэй. Дусал эмчилгээний шийдвэр гаргахгүй.</p>',
@@ -262,6 +227,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
         root.querySelectorAll<HTMLButtonElement>('[data-dday]').forEach(b => b.addEventListener('click', () => {
           const d = readDialysis(), n = Number(b.dataset.dday);
           writeDialysis({ ...d, days: d.days.includes(n) ? d.days.filter(x => x !== n) : [...d.days, n] });
+          void planWeekend(ctx.state(), true);
           ctx.redraw();
           document.querySelector<HTMLButtonElement>(`[data-dday="${n}"]`)?.focus();
         }));
@@ -270,7 +236,8 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
           const rules = readRules().filter(r => r !== i.dataset.rule);
           writeRules(i.checked ? [...rules, i.dataset.rule as Rule] : rules);
         }));
-        on(root, { dtime: () => pickTime(asDate(readDialysis().time), t => { writeDialysis({ ...readDialysis(), time: hhmm(t) }); ctx.redraw(); }, 'Диализ эхлэх цаг') });
+        on(root, { dtime: () => pickTime(asDate(readDialysis().time), t => { writeDialysis({ ...readDialysis(), time: hhmm(t) }); void planWeekend(ctx.state(), true); ctx.redraw(); }, 'Диализ эхлэх цаг') },
+          { weekend: v => { setWeekendOn(v); void planWeekend(ctx.state(), v); } });
       },
     },
     widgets: { title: 'Нүүр дэлгэцийн widget', back: '', body: widgetsBody, bind: bindWidgets },
@@ -373,30 +340,6 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
     privacy: { title: 'Нууцлалын бодлого', back: 'help', body: () => `<article class="ac-doc">${POLICY}</article>` },
     terms: { title: 'Үйлчилгээний нөхцөл', back: 'help', body: () => `<article class="ac-doc">${TERMS}</article>` },
   };
-
-  // Cup add / edit: the amount by keypad, the icon from the grid, save or delete (the last cup stays).
-  function bindCup(root: HTMLElement): void {
-    on(root, {
-      ml: () => openAmountSheet('Аяганы хэмжээ', CUP_ICONS[editing!.cup.icon], editing!.cup.ml, ml => { if (ml < 10) { notify('Хамгийн багадаа 10 мл.'); return; } editing!.cup.ml = ml; ctx.redraw(); }, 'мл', 3000),
-      icon: el => { editing!.cup.icon = Number(el.dataset.i); ctx.redraw(); },
-      save: () => {
-        const list = readCups(), { index, cup } = editing!;
-        if (list.some((c, i) => c.ml === cup.ml && i !== index)) { notify(`${cup.ml} мл аяга аль хэдийн байна.`); return; }
-        if (index === -1) list.push(cup); else list[index] = cup;
-        writeCups(list); editing = null; notify('Аягыг хадгаллаа.'); go('cups');
-      },
-      delete: () => {
-        const list = readCups();
-        if (list.length <= 1) { notify('Дор хаяж нэг аяга үлдэнэ.'); return; }
-        confirmSheet('Аяга устгах', `${editing!.cup.ml} мл аягыг устгах уу?`, 'Тийм, устгах', () => {
-          const removed = list.splice(editing!.index, 1)[0];
-          writeCups(list);
-          if (readCup() === removed.ml) writeCup(list[0].ml);
-          editing = null; go('cups');
-        });
-      },
-    });
-  }
 
   return key => VIEWS[key];
 }

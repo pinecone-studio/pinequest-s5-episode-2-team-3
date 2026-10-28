@@ -17,7 +17,8 @@ interface ScaleWatchPlugin {
 }
 const watch = Capacitor.getPlatform() === 'android' ? registerPlugin<ScaleWatchPlugin>('DusalScaleWatch') : null;
 
-// Remembered so the Android app reconnects by itself; a browser has to ask the user every time.
+// Remembered so the app reconnects by itself. A browser (Chrome) only reconnects to a base it still
+// has permission for (navigator.bluetooth.getDevices); otherwise it has to ask the user again.
 const SAVED_KEY = 'dusal-scale-v1';
 const RETRY_MS = 5000;
 
@@ -66,6 +67,9 @@ export class ScaleLink {
   private retry?: ReturnType<typeof setTimeout>;
   private saving = Promise.resolve();
   private started = false;
+  // Bases the browser's Bluetooth already knows on this page (picked, or found again after a reload).
+  private known = new Set<string>();
+  private checking = false;
   private newBottleName: string | null = null;
   private today = -1;
   private sentToday = -1;
@@ -105,14 +109,25 @@ export class ScaleLink {
   }
   reconnect(): void {
     const saved = readSaved();
-    if (saved && this.phase === 'off') void this.connect(saved);
+    if (!saved || this.phase !== 'off') return;
+    if (Capacitor.isNativePlatform() || this.known.has(saved.bleId)) { void this.connect(saved); return; }
+    // After a reload the browser has to be told about the base again; without permission it is forgotten
+    // and the person picks it once more.
+    if (this.checking) return;
+    this.checking = true;
+    void this.allowedInBrowser(saved.bleId).then(allowed => {
+      this.checking = false;
+      if (allowed) { this.known.add(saved.bleId); if (this.phase === 'off') void this.connect(saved); }
+      else if (this.phase === 'off') { writeSaved(null); this.changed(); }
+    });
   }
   // Asks the user to pick the scale (system dialog), then connects.
   async pair(): Promise<void> {
     await this.init();
     const device = await BleClient.requestDevice({ services: [SCALE_SERVICE] });
     const saved = { bleId: device.deviceId, name: device.name ?? 'Dusal' };
-    if (Capacitor.isNativePlatform()) writeSaved(saved);
+    writeSaved(saved);
+    this.known.add(saved.bleId);
     await this.connect(saved);
   }
   async forget(): Promise<void> {
@@ -154,6 +169,9 @@ export class ScaleLink {
       this.changed();
       this.later();
     }
+  }
+  private async allowedInBrowser(bleId: string): Promise<boolean> {
+    try { await this.init(); return (await BleClient.getDevices([bleId])).length > 0; } catch { return false; }
   }
   private lost(bleId: string): void {
     if (this.bleId !== bleId) return;

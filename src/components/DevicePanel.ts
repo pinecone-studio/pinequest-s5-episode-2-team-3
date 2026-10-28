@@ -4,14 +4,16 @@ import type { ScaleStatus } from '../scale-protocol';
 import { escape, number } from '../format';
 import './device-panel.css';
 
-// Just the Bluetooth base (its bottles, tare and resets) for the home, next to what it counts.
-// `compact` (the limit home): once connected it folds to one row with the bottle's water.
+// The Bluetooth base. In full (the «Аягаа хэмжүүлэх» screen) it has its bottles, tare and resets;
+// `compact` (the home, «Холбосон бүртгэл»): once connected it folds to one row with the bottle's water
+// that opens that screen.
+export const BASE_SCREEN = '/settings.html#cups';
 export function ScalePanel(compact = false): string {
   return `<section class="device-panel" aria-labelledby="scale-title" data-scale-panel${compact ? ' data-compact' : ''}></section>`;
 }
 
 export function DevicePanel(): string {
-  return `<section class="device-panel" aria-labelledby="scale-title" data-scale-panel></section>
+  return `${ScalePanel(true)}
     <section class="device-panel" aria-labelledby="device-title" data-device-panel></section>`;
 }
 let listening = false;
@@ -72,10 +74,13 @@ function renderScale(): void {
   if (!host) return;
   const compact = host.hasAttribute('data-compact') && scale.phase === 'connected';
   host.classList.toggle('compact', compact);
+  // The server's device list only matters while no base is linked over Bluetooth.
+  const cloud = document.querySelector<HTMLElement>('[data-device-panel]');
+  if (cloud) cloud.hidden = scale.phase === 'connected';
   if (compact) {
     if (host.dataset.key !== 'compact') {
       host.dataset.key = 'compact';
-      host.innerHTML = `<h2 id="scale-title" class="visually-hidden">Bluetooth суурь</h2><p class="scale-row"><i aria-hidden="true"></i><span>Ухаалаг суурь холбогдсон</span><small data-scale-live></small></p>`;
+      host.innerHTML = `<h2 id="scale-title" class="visually-hidden">Bluetooth суурь</h2><a class="scale-row" href="${BASE_SCREEN}" aria-label="Ухаалаг суурь холбогдсон. Аягаа хэмжүүлэх, суурийн тохиргоо"><i aria-hidden="true"></i><span>Ухаалаг суурь холбогдсон</span><small data-scale-live></small><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>`;
     }
     const ml = scale.status?.remainingMl;
     host.querySelector('[data-scale-live]')!.textContent = ml != null ? `Сав: ${number(ml)} мл` : '';

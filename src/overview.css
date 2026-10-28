@@ -64,7 +64,7 @@
 .plan-option { display: grid; justify-items: start; gap: 2px; min-height: 86px; padding: 12px; border: 1px solid #e3e7ee; border-radius: 14px; background: #f8fafc; color: var(--ink-2); text-align: left; transition: border-color .15s, background .15s, transform .12s; }
 .plan-option:hover:not(:disabled) { border-color: #c7d4ee; background: #fff; }
 .plan-option:active:not(:disabled) { transform: scale(.98); }
-.plan-option[aria-checked="true"] { border-color: #3b82f6; background: #eef4ff; box-shadow: 0 0 0 3px rgba(59, 130, 246, .15); }
+.plan-option[aria-checked="true"] { border-color: #0056ff; background: #eef4ff; box-shadow: 0 0 0 3px rgba(0, 86, 255, .15); }
 .plan-option:disabled { opacity: .6; cursor: default; }
 .opt-name { font-size: 13px; color: var(--muted-2); }
 .opt-amount { font-size: 22px; font-weight: 700; letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
