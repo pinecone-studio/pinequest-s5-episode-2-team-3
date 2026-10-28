@@ -903,6 +903,7 @@ html .hx-wheel-item.on { font-size: 24px; font-weight: 700; color: var(--sky); }
 
 /* Cup sheet drinks (kit 28) and the "drinking" button (kit 30) */
 html .hx-cups-sep { margin: 22px 0 14px; font-size: 14px; color: var(--muted); text-align: left; }
+html .hx-cups-note { margin: -8px 0 12px; padding: 8px 12px; border-radius: 10px; background: #fff4e5; color: #8a5300; font-size: 13px; text-align: left; }
 html .hx-plus { font-size: 30px; font-weight: 400; color: var(--sky); }
 html .hx-drink.busy { background: #fff; color: var(--sky); box-shadow: inset 0 0 0 2px var(--sky); }
 html .hx-drink:disabled { cursor: default; }

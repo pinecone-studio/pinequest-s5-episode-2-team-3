@@ -479,7 +479,7 @@ function render() {
   bindGaugeDrag(addDrink);
   markFeed(feedWaiting(state));
   placeHomePet(homeFeel(petState(state.events, state.goal, state.mode).mood, drink / goal, state.mode === 'limit'), drink / goal);
-  document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
+  document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render(), state.mode === 'limit'));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
   bindWeatherChip();
