@@ -1048,13 +1048,7 @@ html .big-add { color: var(--sky); }
 html .pour-arrow { color: #9fd0fb; }
 html .ob-locate { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; margin-top: 14px; border: 1.5px dashed var(--sky); border-radius: 14px; background: none; font: inherit; font-size: 15px; font-weight: 700; color: var(--sky); cursor: pointer; }
 html .ob-locate svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
-html .ob-locate + .ob-locate { margin-top: 10px; }
-html .ob-manual { border-style: solid; border-color: var(--sky-line); }
-html .ob-manual span { font-size: 18px; line-height: 1; }
 html .ob-weather { min-height: 20px; margin: 10px 0 0; font-size: 14px; text-align: center; color: var(--muted); }
-html .ob-weather b { color: var(--sky-deep); }
-html[data-theme="dark"] .ob-manual { border-color: #35383f; }
-html[data-theme="dark"] .ob-weather b { color: #7cc0ff; }
 html .hx-weather { margin: -6px 0 0; padding: 10px 14px; border-radius: 12px; background: #fff; font-size: 14px; color: var(--ink); text-align: center; }
 html .hx-weather b { color: var(--sky); }
 html[data-theme="dark"] .hx-weather { background: #1f222a; }
