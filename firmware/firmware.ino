@@ -64,7 +64,7 @@ const uint32_t DRINK_RESEND_MS = 3000;     // the oldest drink is repeated until
 #define ID_UUID      "d05a1004-6c2b-4b8e-9f3a-2f1e0c7a5b01"  // read, ASCII device ID, e.g. "dusal-a1b2"
 // write/notify, ASCII. What BOOT does, for a base whose button is sealed in its case, plus what the app knows:
 //   "tare"          the empty bottle is on the scale: once it has settled, remember its weight -> "tare <g>" or "tare-failed"
-//   "zero"          nothing is on the scale: zero it -> "zero"
+//   "zero"          nothing is on the scale: zero it and forget the bottle -> "zero"
 //   "bottle <g>"    a bottle saved in the app is used now: its empty weight, and a fresh anchor so the swap
 //                   is never a drink or a refill -> "bottle <g>"
 //   "today <ml>"    the app's total for today (also hand-logged drinks, deletions, the demo reset) for the screen
@@ -422,7 +422,7 @@ void runCommand() {
     String line(command);
     commandPending = false;
     if (line == "tare") tareUntil = millis() + 15000;
-    else if (line == "zero") { tare(); answer("zero"); }
+    else if (line == "zero") { tare(); setBottle(0); hasAnchor = false; answer("zero"); }
     else if (line.startsWith("bottle ")) {
       float g = line.substring(7).toFloat();
       if (g > 0 && g < MAX_CHANGE_ML) {
