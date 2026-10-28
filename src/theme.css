@@ -43,9 +43,6 @@ html .app-top { position: relative; z-index: 40; }
 html main.home-app .app-top .site-nav, html .app-top .site-nav { border-color: var(--hair); box-shadow: 0 -4px 20px rgba(70, 140, 200, .1); }
 html .app-top .site-nav a[aria-current="page"], html main.home-app .app-top .site-nav a[aria-current="page"] { color: var(--sky-deep); background: none; }
 html .site-nav a[aria-current="page"] .nav-icon { color: var(--sky-deep); }
-/* Today's bowl waits for the pet (feed-alert.ts, nav.ts). */
-html .site-nav a[href="/achievements.html"] { position: relative; }
-html.feed-waiting .site-nav a[href="/achievements.html"]::after { content: ""; position: absolute; top: 4px; left: calc(50% + 8px); width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: #ff4d4f; }
 
 /* Buttons: one sky-blue pill style everywhere. */
 html .dark-button, html .plan-save, html .thirst-cta, html .onb-next, html .primary-button {
@@ -316,9 +313,10 @@ html .site-nav a.nav-center .nav-icon { width: 22px; height: 22px; padding: 0; m
 html .app-top .site-nav a { color: #9e9e9e; }
 
 /* Generic Hydrify page body (report, achievements, history, account). */
-html .hydro.hx-page { display: flex; flex-direction: column; align-items: stretch; gap: 16px; padding: 0 16px 24px; }
+/* Full width up to .hydro's max-width: its auto margins would otherwise shrink it to its content. */
+html .hydro.hx-page { display: flex; flex-direction: column; align-items: stretch; gap: 16px; width: 100%; padding: 0 16px 24px; }
 
-/* "Тайлан" (src/report.ts). */
+/* "Түүх" period tabs, stepper and bar chart (src/history.ts). */
 html .rp-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 4px; border-radius: 12px; background: #eeeeee; }
 html .rp-tabs button { min-height: 44px; border: 0; border-radius: 10px; background: none; font-size: 16px; font-weight: 600; color: var(--ink); }
 html .rp-tabs button[aria-selected="true"] { background: var(--sky); color: #fff; }
@@ -326,34 +324,46 @@ html .rp-range { display: grid; grid-template-columns: 44px 1fr 44px; align-item
 html .rp-range b { font-size: 17px; font-weight: 700; }
 html .rp-range button { width: 44px; height: 44px; border: 0; background: none; font-size: 26px; color: var(--ink); }
 html .rp-range button:disabled { color: #bdbdbd; }
-html .rp-bars, html .rp-line { display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-template-rows: 200px auto; gap: 6px 4px; margin-top: 16px; }
-html .rp-axis { display: flex; flex-direction: column; justify-content: space-between; font-size: 12px; color: var(--muted); }
-html .rp-plot { position: relative; display: flex; align-items: flex-end; height: 200px; }
-html .rp-bar { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; justify-content: center; height: 100%; padding: 0 3px; border: 0; background: none; }
-html .rp-bar i { display: block; width: 100%; max-width: 32px; border-radius: 999px 999px 0 0; background: #9dcfff; }
-html .rp-bar.on i { background: var(--sky); }
-html .rp-tip { position: absolute; top: -6px; left: 50%; transform: translate(-50%, -100%); padding: 4px 8px; border: 3px solid var(--sky); border-radius: 999px; background: #fff; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
-html .rp-labels { grid-column: 2; display: flex; font-size: 12px; color: var(--muted); }
-html .rp-labels span { flex: 1; text-align: center; }
-html .rp-line .rp-plot { display: block; }
-html .rp-line svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-html .rp-area { fill: #e3f1ff; }
-html .rp-path { fill: none; stroke: var(--sky); stroke-width: 3; stroke-linejoin: round; }
-html .rp-dot { position: absolute; width: 14px; height: 14px; transform: translate(-50%, -50%); border: 3px solid var(--sky); border-radius: 50%; background: #fff; }
-html .rp-tip.line { top: auto; transform: translate(-50%, calc(-100% - 12px)); display: grid; justify-items: center; line-height: 1.1; }
-html .rp-tip small { font-size: 9px; font-weight: 500; color: var(--muted); }
-html .rp-donut { display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: 16px; margin-top: 14px; }
-html .rp-ring { position: relative; }
-html .rp-ring svg { width: 100%; transform: rotate(-90deg); }
-html .rp-ring circle { fill: none; stroke-width: 14; }
-html .rp-ring .hand { stroke: #ffc02d; }
-html .rp-ring .base { stroke: var(--sky); }
-html .rp-ring p { position: absolute; inset: 0; display: grid; place-content: center; margin: 0; text-align: center; line-height: 1.1; }
-html .rp-ring b { font-size: 20px; } html .rp-ring small { font-size: 11px; color: var(--muted); }
-html .rp-legend { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
-html .rp-legend i { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 3px; vertical-align: -1px; }
-html .rp-legend i.base { background: var(--sky); } html .rp-legend i.hand { background: #ffc02d; }
-html #rp-today { margin-top: 14px; }
+html .hx-top { display: grid; gap: 16px; }
+html .rp-bars { display: grid; grid-template-columns: 34px minmax(0, 1fr); grid-template-rows: 180px auto; gap: 10px 6px; margin-top: 14px; }
+/* Axis labels sit on their tick (bottom: N%), so the goal line lines up with the scale. */
+html .rp-axis { position: relative; font-size: 12px; color: var(--muted); }
+html .rp-axis span { position: absolute; left: 0; transform: translateY(50%); line-height: 1; }
+html .rp-plot { position: relative; display: flex; align-items: flex-end; height: 180px; }
+html .rp-bar { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; justify-content: center; height: 100%; padding: 0 4px; border: 0; background: none; cursor: pointer; }
+html .rp-bars.dense .rp-bar { padding: 0 1.5px; }
+html .rp-bar:disabled { cursor: default; }
+html .rp-bar:disabled i { visibility: hidden; }
+html .rp-bar i { position: relative; display: block; width: 100%; max-width: 34px; min-height: 4px; border-radius: 999px 999px 0 0; background: #a8d3ff; }
+html .rp-bar.met i { background: var(--sky); }
+html .rp-bar.over i { background: #e5484d; }
+/* Today, or the tapped bar: a ring with a gap, light blue or (over the limit) light red. */
+html .rp-bar.on i { outline: 3px solid #bfdfff; outline-offset: 3px; }
+html .rp-bar.over.on i { outline-color: #f6c0c2; }
+/* An empty day is only a stub; selected, it turns sky blue instead of getting a ring. */
+html .rp-bar.empty.on i { outline: 0; background: var(--sky); }
+html .rp-bar:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 8px; }
+html .rp-tip { position: absolute; z-index: 2; top: -12px; left: 50%; transform: translate(-50%, -100%); padding: 3px 10px; border: 3px solid var(--sky); border-radius: 999px; background: #fff; font-size: 15px; font-weight: 800; font-style: normal; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+html .rp-tip small { font-size: 11px; font-weight: 600; color: var(--muted); }
+html .rp-bar.over .rp-tip { border-color: #e5484d; }
+html .hx-goal-line { position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #a5acb5; pointer-events: none; }
+html .hx-goal-line span { position: absolute; right: 0; bottom: 3px; padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .9); font-size: 12px; font-weight: 700; color: #5f6877; white-space: nowrap; }
+html .hx-goal-line.below span { top: 3px; bottom: auto; }
+html .hx-goal-line.hide span { display: none; }
+html .rp-labels { grid-column: 2; display: flex; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+html .rp-labels span { flex: 1 1 0; min-width: 0; text-align: center; }
+html .rp-labels span.on { font-weight: 800; color: var(--ink); }
+html .hx-stats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); margin: 16px 0 0; padding-top: 14px; border-top: 1px solid #eeeeee; text-align: center; }
+html .hx-stats p { display: grid; gap: 2px; margin: 0; }
+html .hx-stats b { font-size: 22px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+html .hx-stats b.bad { color: #d92d33; }
+html .hx-stats small { font-size: 13px; line-height: 1.3; color: var(--muted); white-space: nowrap; }
+html .hx-src { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin: 12px 0 0; font-size: 14px; color: var(--muted); }
+html .hx-src span { display: inline-flex; align-items: center; gap: 6px; }
+html .hx-src i { width: 11px; height: 11px; border-radius: 3px; }
+html .hx-src i.base { background: var(--sky); } html .hx-src i.hand { background: #ffc02d; }
+html .hx-day-empty { margin: 14px 0 2px; font-size: 15px; color: var(--muted); }
+html .hx-over { margin: 12px 0 0; padding: 9px 14px; border-radius: 10px; background: #fdecec; font-size: 14px; font-weight: 600; color: #c62828; }
 
 /* "Амжилт" (src/achievements.ts). */
 html .ach-top { display: grid; justify-items: center; gap: 4px; padding: 0 16px 90px; background: linear-gradient(160deg, #369fff, #1f8bff); color: #fff; }
@@ -800,34 +810,10 @@ html .ob-result { margin: 0; font-size: 64px; font-weight: 800; color: var(--sky
 html .ob-result span { margin-left: 6px; font-size: 22px; color: var(--muted); }
 html .ob-warn { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff4e5; color: #8a4b00; font-size: 14px; }
 html .ob-ready .ob-actions { align-self: stretch; margin: auto -24px 0; }
-/* Report: per-card bar/line toggle and pill bars with a pin tooltip (kit 47/48). */
-html .rp-toggle { display: flex; padding: 3px; border-radius: 8px; background: #eeeeee; }
-html .rp-toggle button { display: grid; place-items: center; width: 44px; height: 32px; border: 0; border-radius: 6px; background: none; color: #9e9e9e; }
-html .rp-toggle button[aria-pressed="true"] { background: var(--sky); color: #fff; }
-html .rp-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-html .rp-bar i { position: relative; border-radius: 999px 999px 0 0; }
-html .rp-bar .rp-tip { top: -10px; }
-html .rp-tip { border-radius: 999px; }
-html .rp-tip::after { content: ""; position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--sky); }
-html .rp-area { fill: url(#rp-fill); }
-html .rp-dot { padding: 0; cursor: pointer; }
-html .rp-dot.on { width: 16px; height: 16px; }
-
-/* ---- Hydrify history (kit 38–46): calendar, day cards, row menu, edit + wheel sheets ---- */
-html .hx-cal { position: relative; padding: 14px 10px 30px; }
-html .hx-cal-week, html .hx-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); justify-items: center; }
+/* ---- Hydrify history (kit 38–46): day cards, row menu, edit + wheel sheets ---- */
+/* Week-day heads and month stepper of the home's month sheet (hydration.ts). */
+html .hx-cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); justify-items: center; }
 html .hx-cal-week small { font-size: 14px; color: var(--muted); padding-bottom: 8px; }
-html .hx-cal-grid { row-gap: 8px; }
-html .hx-cal .hx-day { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
-html .hx-cal .hx-day:disabled { opacity: .4; cursor: default; }
-html .hx-cal .hx-day.on { background: var(--sky); }
-html .hx-cal .hx-day.on b { color: #fff; }
-html .hx-cal .hx-day.on .bg { stroke: rgba(255, 255, 255, .35); }
-html .hx-cal .hx-day.on .fg { stroke: #fff; }
-html .hx-cal .hx-day.today:not(.on) b { color: var(--sky); }
-html .hx-cal-toggle { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); display: grid; place-items: center; width: 44px; height: 28px; border: 0; background: none; color: var(--muted); }
-html .hx-cal-toggle svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; transition: transform .2s; }
-html .hx-cal-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
 html .hx-cal-month { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 12px; }
 html .hx-cal-month b { font-size: 18px; color: var(--ink); }
 html .hx-cal-month button { width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; font-size: 26px; color: var(--ink); }
@@ -903,6 +889,7 @@ html .hx-wheel-item.on { font-size: 24px; font-weight: 700; color: var(--sky); }
 
 /* Cup sheet drinks (kit 28) and the "drinking" button (kit 30) */
 html .hx-cups-sep { margin: 22px 0 14px; font-size: 14px; color: var(--muted); text-align: left; }
+html .hx-cups-note { margin: -8px 0 12px; padding: 8px 12px; border-radius: 10px; background: #fff4e5; color: #8a5300; font-size: 13px; text-align: left; }
 html .hx-plus { font-size: 30px; font-weight: 400; color: var(--sky); }
 html .hx-drink.busy { background: #fff; color: var(--sky); box-shadow: inset 0 0 0 2px var(--sky); }
 html .hx-drink:disabled { cursor: default; }
@@ -1141,6 +1128,16 @@ html .hx-daysum-ml b { font-size: 28px; font-weight: 800; color: var(--ink); }
 html .hx-daysum-note { margin: 2px 0 0; font-size: 14px; font-weight: 600; color: var(--sky); }
 html .hx-cal-sheet .hx-list li { grid-template-columns: 40px minmax(0, 1fr) auto 0; }
 html[data-theme="dark"] .hx-cal-stats div { background: #2a2d36; }
+html[data-theme="dark"] .rp-tabs { background: #2a2d36; }
+html[data-theme="dark"] .rp-tip, html[data-theme="dark"] .hx-goal-line span { background: #1f222a; color: #fff; }
+html[data-theme="dark"] .hx-goal-line { border-color: #6b7280; }
+html[data-theme="dark"] .rp-bar:not(.met):not(.over) i { background: #2f5f8f; }
+html[data-theme="dark"] .rp-bar.on i { outline-color: #2d4a6b; }
+html[data-theme="dark"] .rp-bar.empty.on i { background: var(--sky); }
+html[data-theme="dark"] .rp-bar.over.on i { outline-color: #6b2a2d; }
+html[data-theme="dark"] .hx-stats { border-color: #35383f; }
+html[data-theme="dark"] .hx-stats b.bad { color: #ff6b6f; }
+html[data-theme="dark"] .hx-over { background: #3a1f22; color: #ff8a8d; }
 html[data-theme="dark"] .hx-ring .bg { stroke: #35383f; }
 
 /* Watch card on the home: heart rate, steps, calories and the AI tip */
@@ -1237,3 +1234,25 @@ html .hydro .device-panel p { margin: 4px 0 0; font-size: 13px; line-height: 1.4
 html .hydro .device-panel .scale-actions { margin-top: 10px; }
 html .hydro .device-panel .scale-actions button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--sky); color: #fff; font-size: 14px; font-weight: 700; }
 html[data-theme="dark"] .hydro .device-panel { background: #1f222a; }
+
+/* Home: the doctor's instructions, read by the AI (doctor-card.ts) */
+html .doctor-card h2 { margin: 0 0 6px; font-size: 17px; }
+html .doctor-card .doc-intro, html .doctor-card .doc-now { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+html .doctor-card .doc-now { color: var(--ink-2); font-weight: 600; }
+html .doctor-card textarea { width: 100%; box-sizing: border-box; min-height: 76px; padding: 10px 12px; border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; font: inherit; font-size: 15px; resize: vertical; }
+html .doctor-card .doc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+html .doctor-card .doc-photo { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; font-weight: 600; cursor: pointer; }
+html .doctor-card .doc-photo input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+html .doctor-card .doc-photo:focus-within { outline: 2px solid var(--sky); outline-offset: 3px; }
+html .doctor-card .doc-ask { margin-left: auto; min-height: 44px; padding: 0 18px; }
+html .doctor-card .doc-read { margin-top: 12px; padding: 12px; border-radius: 12px; background: #eef4ff; }
+html .doctor-card .doc-amount { margin: 0 0 4px; font-size: 16px; }
+html .doctor-card .doc-summary, html .doctor-card .doc-check { margin: 4px 0; font-size: 13px; color: var(--ink-2); }
+html .doctor-card .doc-check { font-weight: 600; }
+html .doctor-card .doc-times { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; padding: 0; list-style: none; }
+html .doctor-card .doc-times li { display: grid; padding: 6px 10px; border-radius: 10px; background: #fff; font-size: 13px; text-align: center; }
+html .doctor-card .doc-warning, html .doctor-card .doc-error { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: #fff4e5; color: #8a5300; font-size: 13px; }
+html .doctor-card .doc-error { background: #fdecec; color: #b4232a; }
+html .doctor-card .doc-done { margin: 10px 0 0; color: #1f9e6a; font-weight: 600; font-size: 14px; }
+html .doctor-card .doc-actions { display: flex; gap: 8px; margin-top: 10px; }
+html .doctor-card .doc-actions button { flex: 1; min-height: 44px; }

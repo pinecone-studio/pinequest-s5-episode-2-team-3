@@ -13,6 +13,7 @@ export default defineConfig({
         settings: resolve(import.meta.dirname, 'settings.html'),
         report: resolve(import.meta.dirname, 'report.html'),
         achievements: resolve(import.meta.dirname, 'achievements.html'),
+        nurse: resolve(import.meta.dirname, 'nurse.html'),
         tabs: resolve(import.meta.dirname, 'tabs.html'),
       },
     },

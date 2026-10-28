@@ -94,10 +94,12 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Home screen widget (DrinkWidget.java): today's water, the drop's mood and "+250 мл". -->
+        <!-- Home screen widgets to pick from (DrinkWidget.java and its kinds): today's water, what is left,
+             a ring, the drinks, and three gauges. -->
         <receiver
             android:name=".DrinkWidget"
-            android:exported="false">
+            android:exported="false"
+            android:label="@string/widget_drink_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -105,6 +107,56 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_drink_info" />
         </receiver>
+        <receiver
+            android:name=".LimitWidget"
+            android:exported="false"
+            android:label="@string/widget_limit_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_limit_info" />
+        </receiver>
+        <receiver
+            android:name=".RingWidget"
+            android:exported="false"
+            android:label="@string/widget_ring_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_ring_info" />
+        </receiver>
+        <receiver
+            android:name=".MixWidget"
+            android:exported="false"
+            android:label="@string/widget_mix_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_mix_info" />
+        </receiver>
+        <receiver
+            android:name=".GaugeWidget"
+            android:exported="false"
+            android:label="@string/widget_gauges_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_gauges_info" />
+        </receiver>
+
+        <!-- Keeps the link to the smart base while the app is closed, so each drink is a notification (ScaleWatchService.java). -->
+        <service
+            android:name=".ScaleWatchService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -128,6 +180,9 @@
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="s" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
     <!-- Android 13 and older: lets the app see the Health Connect app to check that it is installed. -->
     <queries>
