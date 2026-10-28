@@ -73,6 +73,9 @@ export class ScaleLink {
   private retry?: ReturnType<typeof setTimeout>;
   private saving = Promise.resolve();
   private started = false;
+  // Bases the browser's Bluetooth already knows on this page (picked, or found again after a reload).
+  private known = new Set<string>();
+  private checking = false;
   private newBottleName: string | null = null;
   private today = -1;
   private plan: { goal: number; mode: 'goal' | 'limit' } | null = null;
@@ -113,7 +116,17 @@ export class ScaleLink {
   }
   reconnect(): void {
     const saved = readSaved();
-    if (saved && this.phase === 'off') void this.connect(saved);
+    if (!saved || this.phase !== 'off') return;
+    if (Capacitor.isNativePlatform() || this.known.has(saved.bleId)) { void this.connect(saved); return; }
+    // After a reload the browser has to be told about the base again; without permission it is forgotten
+    // and the person picks it once more.
+    if (this.checking) return;
+    this.checking = true;
+    void this.allowedInBrowser(saved.bleId).then(allowed => {
+      this.checking = false;
+      if (allowed) { this.known.add(saved.bleId); if (this.phase === 'off') void this.connect(saved); }
+      else if (this.phase === 'off') { writeSaved(null); this.changed(); }
+    });
   }
   // Asks the user to pick the scale (system dialog), then connects.
   async pair(): Promise<void> {
@@ -121,6 +134,7 @@ export class ScaleLink {
     const device = await BleClient.requestDevice({ services: [SCALE_SERVICE] });
     const saved = { bleId: device.deviceId, name: device.name ?? 'Dusal' };
     writeSaved(saved);
+    this.known.add(saved.bleId);
     await this.connect(saved);
   }
   async forget(): Promise<void> {
@@ -140,13 +154,6 @@ export class ScaleLink {
     this.changed();
     try {
       await this.init();
-      // After a reload the browser has to be told about the base again; without permission it is forgotten.
-      if (!Capacitor.isNativePlatform() && !(await this.allowedInBrowser(bleId))) {
-        writeSaved(null);
-        this.phase = 'off';
-        this.changed();
-        return;
-      }
       await BleClient.connect(bleId, () => this.lost(bleId));
       this.bleId = bleId;
       this.baseId = deviceIdFrom(await BleClient.read(bleId, SCALE_SERVICE, ID_CHAR));
@@ -171,7 +178,7 @@ export class ScaleLink {
     }
   }
   private async allowedInBrowser(bleId: string): Promise<boolean> {
-    try { return (await BleClient.getDevices([bleId])).length > 0; } catch { return false; }
+    try { await this.init(); return (await BleClient.getDevices([bleId])).length > 0; } catch { return false; }
   }
   private lost(bleId: string): void {
     if (this.bleId !== bleId) return;
