@@ -1,9 +1,19 @@
 import { BleClient } from '@capacitor-community/bluetooth-le';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { dayKey, type WaterEntry } from './data';
 import { announce, store } from './storage';
 import { sync } from './sync';
-import { ACK_CHAR, COMMAND_CHAR, DRINK_CHAR, ID_CHAR, SCALE_SERVICE, STATUS_CHAR, ackBytes, deviceIdFrom, drinkEntry, parseDrink, parseStatus, type ScaleStatus } from './scale-protocol';
+import { ACK_CHAR, COMMAND_CHAR, DRINK_CHAR, ID_CHAR, SCALE_SERVICE, STATUS_CHAR, ackBytes, deviceIdFrom, drinkEntry, parseDrink, parseStatus, type ScaleDrink, type ScaleStatus } from './scale-protocol';
+
+// Android keeps the link to the base while the app is closed and shows each drink as a notification
+// (ScaleWatchService.java); the drinks it kept meanwhile are added to the log when the app opens.
+interface WatchedDrink extends Omit<ScaleDrink, 'secondsAgo'> { baseId: string; secondsAgo: number; receivedAt: number }
+interface ScaleWatchPlugin {
+  start(options: { address: string }): Promise<void>;
+  stop(): Promise<void>;
+  takeDrinks(): Promise<{ drinks: WatchedDrink[] }>;
+}
+const watch = Capacitor.getPlatform() === 'android' ? registerPlugin<ScaleWatchPlugin>('DusalScaleWatch') : null;
 
 // Remembered so the Android app reconnects by itself; a browser has to ask the user every time.
 const SAVED_KEY = 'dusal-scale-v1';
@@ -75,7 +85,21 @@ export class ScaleLink {
     if (this.started || this.phase === 'unsupported') return;
     this.started = true;
     this.reconnect();
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.reconnect(); });
+    void this.takeWatched();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { void this.takeWatched(); this.reconnect(); } });
+  }
+  // Drinks the background watch confirmed to the base while the app was closed.
+  private async takeWatched(): Promise<void> {
+    if (!watch) return;
+    const { drinks } = await watch.takeDrinks().catch(() => ({ drinks: [] as WatchedDrink[] }));
+    const entries = drinks.flatMap(d => { try { return [drinkEntry(d.baseId, { ...d, secondsAgo: d.secondsAgo < 0 ? null : d.secondsAgo }, d.receivedAt)]; } catch { return []; } });
+    if (!entries.length) return;
+    const added = await store.update(record => {
+      const fresh = entries.filter(entry => !record.state.events.some(e => e.id === entry.id));
+      record.state.events.push(...fresh);
+      return fresh.length > 0;
+    });
+    if (added) { announce('sync'); void sync.run(); }
   }
   reconnect(): void {
     const saved = readSaved();
@@ -92,6 +116,7 @@ export class ScaleLink {
   async forget(): Promise<void> {
     clearTimeout(this.retry);
     writeSaved(null);
+    void watch?.stop().catch(() => {});
     const bleId = this.bleId;
     this.bleId = null;
     if (bleId) await BleClient.disconnect(bleId).catch(() => {});
@@ -113,6 +138,7 @@ export class ScaleLink {
       // A base with older firmware has no command channel; it still weighs and counts.
       await BleClient.startNotifications(bleId, SCALE_SERVICE, COMMAND_CHAR, value => this.answered(value)).catch(() => {});
       this.phase = 'connected';
+      if (this.saved) void watch?.start({ address: bleId }).catch(() => {});
       this.sentToday = -1;
       void this.sendToday();
       this.changed();
