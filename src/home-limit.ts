@@ -1,6 +1,7 @@
 import { escape, number } from './format';
-import { KINDS, type Kind } from './drinks';
-import { arcAt, arcPoint, openCupSheet, readCup, readCupKind } from './hydrify';
+import { KINDS, SALTABLE, type Kind } from './drinks';
+import { arcAt, arcPoint } from './hydrify';
+import { openDrinkSheet, readSaltyChoice } from './drink-sheet';
 import { WEEKDAY_LONG, WEEKDAY_SHORT, logThirst, readDialysis, type Dialysis } from './progress-data';
 import './home-limit.css';
 
@@ -20,10 +21,12 @@ export function cupsText(ml: number, cupMl: number, step = 0.5): string {
   return `≈ ${whole || ''}${PARTS[String(cups - whole)] ?? ''} аяга`;
 }
 
-const kindName = (kind: Kind | undefined) => (kind ? KINDS[kind].name : 'Ус');
+export const kindName = (kind: Kind | undefined, salty = false) =>
+  (kind ? `${KINDS[kind].name}${SALTABLE.includes(kind) ? (salty ? ' · давстай' : ' · давсгүй') : ''}` : 'Ус');
 
-// What every sheet needs from the home: today's total, the limit, the main cup and how to add.
-export interface LimitCtx { drink: number; goal: number; cup: number; add: (ml: number, kind: Kind | undefined) => void }
+// What every sheet needs from the home: today's total, the goal or limit, the main cup and how to
+// add. Only under a limit (`limit`) does an add that would pass it stop at the popup first.
+export interface AddCtx { drink: number; goal: number; limit: boolean; cup: number; add: (ml: number, kind: Kind | undefined, salty: boolean) => void }
 
 // The gauge as a display: the arc fills to today's share of the limit and stays full past it.
 const TICKS = Array.from({ length: 9 }, (_, i) => (i + 1) / 10)
@@ -112,19 +115,19 @@ function sheet(className: string, html: string, label: string): { box: HTMLEleme
 }
 
 // Adds unless it would pass the limit; then the popup says by how much first.
-export function addChecked(ctx: LimitCtx, ml: number, kind: Kind | undefined): void {
-  if (ctx.drink + ml <= ctx.goal) ctx.add(ml, kind);
-  else overLimit(ctx, ml, kind);
+export function addChecked(ctx: AddCtx, ml: number, kind: Kind | undefined, salty = false): void {
+  if (!ctx.limit || ctx.drink + ml <= ctx.goal) ctx.add(ml, kind, salty);
+  else overLimit(ctx, ml, kind, salty);
 }
 
 const RED_DROP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 4.2 6 7.4 6 11a6 6 0 0 1-12 0c0-3.6 3-6.8 6-11Z" fill="#e5484d"/><path d="M12 9v4.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.2" fill="#fff"/></svg>';
-function overLimit(ctx: LimitCtx, ml: number, kind: Kind | undefined): void {
+function overLimit(ctx: AddCtx, ml: number, kind: Kind | undefined, salty: boolean): void {
   const total = ctx.drink + ml, over = total - ctx.goal, fits = Math.max(0, ctx.goal - ctx.drink);
   const pct = (v: number) => `${((v / total) * 100).toFixed(2)}%`;
   const { box, close } = sheet('hl-overlimit', `
       <span class="hl-over-icon">${RED_DROP}</span>
       <h2>Хязгаараас ${number(over)} мл хэтэрнэ</h2>
-      <p class="hl-over-text">Өнөөдөр ${number(ctx.drink)} мл уусан. <b>${escape(kindName(kind))} ${number(ml)} мл</b> нэмбэл:</p>
+      <p class="hl-over-text">Өнөөдөр ${number(ctx.drink)} мл уусан. <b>${escape(kindName(kind, salty))} ${number(ml)} мл</b> нэмбэл:</p>
       <div class="hl-over-card">
         <div class="hl-over-head"><b>${number(total)} мл</b><span>хязгаар ${number(ctx.goal)}</span></div>
         <div class="hl-over-bar" role="img" aria-label="${number(ctx.drink)} мл уусан, ${number(fits)} мл багтана, ${number(over)} мл хэтэрнэ"><i class="drunk" style="width: ${pct(Math.min(ctx.drink, total))}"></i><i class="fits" style="width: ${pct(Math.min(fits, ml))}"></i><i class="over" style="width: ${pct(over)}"></i></div>
@@ -133,8 +136,8 @@ function overLimit(ctx: LimitCtx, ml: number, kind: Kind | undefined): void {
       ${fits >= 10 ? `<button type="button" class="hx-blue hl-wide" data-fit data-focus>${number(fits)} мл болгож нэмэх</button>` : ''}
       <button type="button" class="hl-outline hl-wide" data-full>Бүтнээр нь нэмэх (${number(ml)} мл)</button>
       <small class="hl-note">Уусан бол заавал бүртгээрэй. Үнэн бүртгэл сувилагчийн тайланд хэрэгтэй.</small>`, 'Хязгаараас хэтэрнэ');
-  box.querySelector('[data-fit]')?.addEventListener('click', () => { close(); ctx.add(fits, kind); });
-  box.querySelector('[data-full]')!.addEventListener('click', () => { close(); ctx.add(ml, kind); });
+  box.querySelector('[data-fit]')?.addEventListener('click', () => { close(); ctx.add(fits, kind, salty); });
+  box.querySelector('[data-full]')!.addEventListener('click', () => { close(); ctx.add(ml, kind, salty); });
 }
 
 // «Цангаж байна»: ways to ease thirst without drinking; each opening is logged for the report.
@@ -145,7 +148,7 @@ const THIRST_TIPS: [string, string, string][] = [
   ['<rect x="5" y="9" width="14" height="6" rx="3"/>', 'Чихэргүй бохь зажил', 'Шүлс ялгаруулж ам чийглэнэ'],
   ['<path d="M7 20h10"/><path d="M8 20l1-9h6l1 9"/><path d="M10 7h4M12 4v3"/>', 'Давстай хоолоо багасга', 'Давс цангааг ихэсгэнэ'],
 ];
-export function openThirst(ctx: LimitCtx): void {
+export function openThirst(ctx: AddCtx): void {
   logThirst();
   const left = Math.max(0, ctx.goal - ctx.drink);
   const { box, close } = sheet('hl-thirst-sheet', `
@@ -159,15 +162,10 @@ export function openThirst(ctx: LimitCtx): void {
   box.querySelector('[data-small]')!.addEventListener('click', () => { close(); addChecked(ctx, 100, undefined); });
 }
 
-// «Бусад…»: the cup / drink picker; a pick goes through the limit check, «Өөр хэмжээ…» opens the dial.
-export function openPicker(ctx: LimitCtx): void {
-  openCupSheet(readCup(), () => {}, true, (ml, kind) => addChecked(ctx, ml, kind), () => openDial(ctx, readCupKind()));
-}
-
 // «Хэр их уух вэ?»: drag the arc to the amount to add, 50 мл a step (a short buzz each). Blue up to
 // what is left, orange past it, with a tick at the limit. −/+ and the arrow keys step by 50.
 const STEP = 50;
-export function openDial(ctx: LimitCtx, kind: Kind | undefined, initial = ctx.cup): void {
+export function openDial(ctx: AddCtx, kind: Kind | undefined, initial = ctx.cup, salty = false): void {
   const left = Math.max(0, ctx.goal - ctx.drink);
   const max = Math.ceil(Math.max(600, left + 200) / STEP) * STEP;
   let value = Math.min(max, Math.max(0, Math.round(initial / STEP) * STEP));
@@ -177,7 +175,7 @@ export function openDial(ctx: LimitCtx, kind: Kind | undefined, initial = ctx.cu
   const zero = at(0, 88), end = at(1, 88);
   const { box, close } = sheet('hl-dial', `
       <div class="hl-dial-head"><h2>Хэр их уух вэ?</h2><span>Үлдсэн <b>${number(left)}</b> / ${number(ctx.goal)} мл</span></div>
-      <div class="hl-dial-kind">${icon}<b>${escape(kindName(kind))}</b><button type="button" class="hl-link" data-change>Солих</button></div>
+      <div class="hl-dial-kind">${icon}<b>${escape(kindName(kind, salty))}</b><button type="button" class="hl-link" data-change>Солих</button></div>
       <div class="hl-dial-wrap" data-no-swipe>
         <svg viewBox="0 0 300 270" aria-hidden="true">
           <path class="hx-track" d="${ARC}" pathLength="100"/>
@@ -239,19 +237,19 @@ export function openDial(ctx: LimitCtx, kind: Kind | undefined, initial = ctx.cu
     if (by) { e.preventDefault(); set(value + by * STEP); }
   });
   box.querySelectorAll<HTMLButtonElement>('[data-step]').forEach(b => b.addEventListener('click', () => set(value + Number(b.dataset.step) * STEP)));
-  box.querySelector('[data-change]')!.addEventListener('click', () => { close(); openPicker(ctx); });
-  addButton.addEventListener('click', () => { close(); addChecked(ctx, value, kind); });
+  box.querySelector('[data-change]')!.addEventListener('click', () => { close(); openDrinkSheet(ctx, { kind, salty, ml: value }); });
+  addButton.addEventListener('click', () => { close(); addChecked(ctx, value, kind, salty); });
   show();
 }
 
 // Taps on the limit home: the tiles and «Цангаж байна».
-export function bindLimitHome(ctx: LimitCtx): void {
+export function bindLimitHome(ctx: AddCtx): void {
   document.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach(b => b.addEventListener('click', () => {
     const q = b.dataset.quick;
     if (q === 'water') addChecked(ctx, ctx.cup, undefined);
-    else if (q === 'milkTea') addChecked(ctx, ctx.cup, 'milkTea');
-    else if (q === 'pill') ctx.add(50, undefined);  // a sip for pills is never held back
-    else openPicker(ctx);
+    else if (q === 'milkTea') addChecked(ctx, ctx.cup, 'milkTea', readSaltyChoice());
+    else if (q === 'pill') ctx.add(50, undefined, false);  // a sip for pills is never held back
+    else openDrinkSheet(ctx);
   }));
   document.querySelector('#hl-thirst')?.addEventListener('click', () => openThirst(ctx));
 }

@@ -38,3 +38,18 @@ export async function askDoctor(body: { text: string; image?: { mediaType: strin
   if (!response.ok) throw new Error(data.error ?? 'AI хариулж чадсангүй. Дахин оролдоно уу.');
   return data as DoctorRead;
 }
+
+// What the person typed or said about a drink, read by the AI (backend/src/drink.js). It only parses:
+// the app works out what fits the limit itself. `kind: null` means it was not understood.
+export interface DrinkRead { kind: string | null; ml: number | null; cups: number | null }
+export async function askDrinkParse(body: { text: string; kinds: string[]; cupMl: number }): Promise<DrinkRead> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/drink-parse`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  } catch {
+    throw new Error('Интернэт холболтоо шалгаад дахин оролдоно уу.');
+  }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error ?? 'AI хариулж чадсангүй. Дахин оролдоно уу.');
+  return data as DrinkRead;
+}

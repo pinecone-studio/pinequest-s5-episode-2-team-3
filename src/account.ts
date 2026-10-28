@@ -3,6 +3,7 @@ import { escape, number } from './format';
 import { CUP_ICONS, readCups, writeCups, readCup, writeCup, type Cup } from './hydrify';
 import { chooseSheet, confirmSheet, openAmountSheet, pickTime } from './hx-edit';
 import { WEEKDAY_SHORT, readDialysis, writeDialysis } from './progress-data';
+import { RULES, readRules, writeRules, type Rule } from './drink-flags';
 import { readSettings, writeSettings } from './schedule';
 import { ACTIVITIES, readProfile, writeProfile, type Activity } from './plan';
 import { readMember } from './member';
@@ -245,7 +246,11 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
             <div><small>${s.mode === 'limit' ? 'Өдрийн шингэний хязгаар' : 'Өдрийн зорилт'}</small><b>${number(s.goal)} мл</b><small>Эмчийн тогтоосноор · AI өөрчлөхгүй</small></div>
             <a href="#goal">Засах</a>
           </section>
-          ${/* «Эмч хориглосон»: the drinks the doctor ruled out; filled in with the drink sheet (prompt 2). */ ''}
+          <section class="hx-card dr-rules" aria-labelledby="dr-rules-title">
+            <h2 id="dr-rules-title">Эмч хориглосон</h2>
+            <p>Тэмдэглэсэн ундаа сонгох үед улаан «Эмч хориглосон» гэж харагдана.</p>
+            <ul>${RULES.map(r => `<li><label class="dr-rule"><input type="checkbox" data-rule="${r.id}" ${readRules().includes(r.id) ? 'checked' : ''}/><span><b>${r.name}</b><small>${r.sub}</small></span></label></li>`).join('')}</ul>
+          </section>
           <section class="hx-card dr-days" aria-labelledby="dr-days-title">
             <h2 id="dr-days-title">Диализын өдрүүд</h2><small>Тайлан, жингийн тооцоонд ашиглана</small>
             <div class="dr-chips" role="group" aria-labelledby="dr-days-title">${[1, 2, 3, 4, 5, 6, 7].map(chip).join('')}</div>
@@ -261,6 +266,10 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
           document.querySelector<HTMLButtonElement>(`[data-dday="${n}"]`)?.focus();
         }));
         root.querySelector('a[href="#goal"]')!.addEventListener('click', () => { goalBack = 'doctor'; });
+        root.querySelectorAll<HTMLInputElement>('[data-rule]').forEach(i => i.addEventListener('change', () => {
+          const rules = readRules().filter(r => r !== i.dataset.rule);
+          writeRules(i.checked ? [...rules, i.dataset.rule as Rule] : rules);
+        }));
         on(root, { dtime: () => pickTime(asDate(readDialysis().time), t => { writeDialysis({ ...readDialysis(), time: hhmm(t) }); ctx.redraw(); }, 'Диализ эхлэх цаг') });
       },
     },
