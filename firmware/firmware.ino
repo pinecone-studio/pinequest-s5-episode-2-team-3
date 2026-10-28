@@ -145,6 +145,8 @@ long smoothedRaw() {
 }
 
 float grams() { return (smoothedRaw() - offset) / factor; }
+// What the screen and serial show: 0 inside ZERO_BAND_G, so the cell's drift reads 0.0, never -0.0.
+float shownGrams() { const float g = grams(); return fabsf(g) < ZERO_BAND_G ? 0.0f : g; }
 
 // After a tare the moving average starts from the new zero instead of sliding down to it.
 void fillWindow(long raw) {
@@ -583,8 +585,7 @@ void drawScreen() {
   if (g > MAX_LOAD_G) snprintf(number, sizeof number, "OVER");
   else if (water && g < PRESENT_MIN_G) snprintf(number, sizeof number, "--");
   else if (water) snprintf(number, sizeof number, "%ld", lroundf(g - bottleG));
-  else if (fabsf(g) < ZERO_BAND_G) snprintf(number, sizeof number, "0.0");  // no "-0.0" / "0.1" flicker when empty
-  else snprintf(number, sizeof number, fabsf(g) < 99.95f ? "%.1f" : "%.0f", g);  // ~0.1 g resolution
+  else snprintf(number, sizeof number, fabsf(g) < 99.95f ? "%.1f" : "%.0f", shownGrams());  // ~0.1 g resolution
   char link[12] = "";
   if (queued) snprintf(link, sizeof link, bleConnected ? "BT %d" : "%d hulee", queued);
   else if (bleConnected) strcpy(link, "BT");
@@ -612,7 +613,7 @@ void printStatus() {
   if (!hx711Alive()) { Serial.println("HX711 not responding"); return; }
   warnLimit(smoothedRaw());
   Serial.printf("raw %ld | offset %ld | factor %.4f | ", smoothedRaw(), offset, factor);
-  if (calibrated()) Serial.printf("%.1f g\n", grams());
+  if (calibrated()) Serial.printf("%.1f g\n", shownGrams());
   else Serial.println("not calibrated");
   Serial.printf("%s | boot %lu | settled %d g | phase %d (0 moving, 1 empty, 2 present) | bottle %.0f g | left %d ml | waiting %d | app %s\n",
                 deviceId, (unsigned long)bootId, settledG, (int)phase, bottleG, remainingMl(), queued, bleConnected ? "connected" : "not connected");
@@ -630,7 +631,7 @@ void watchRaw() {
       next = millis() + 250;
       const long raw = smoothedRaw();
       Serial.printf("raw %ld (%+ld from zero)", raw, raw - offset);
-      if (calibrated()) Serial.printf(" | %.1f g", grams());
+      if (calibrated()) Serial.printf(" | %.1f g", shownGrams());
       Serial.println(labs(raw) >= HX711_LIMIT ? " | at the HX711 limit: check wires" : "");
     }
     delay(5);
