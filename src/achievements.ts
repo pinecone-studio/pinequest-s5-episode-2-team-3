@@ -368,8 +368,11 @@ function bindPet(): void {
     if (!usableKinds(streak).includes(kind)) { lockedNote(kind, best, streak); return; }
     pickKind(kind, streak);
     fresh?.delete(kind);
+    // The grid scrolls sideways; keep it where it was instead of jumping back to the first animals.
+    const x = document.querySelector('.pet-kind-grid')?.scrollLeft ?? 0;
     render();
-    document.querySelector<HTMLButtonElement>(`[data-kind="${kind}"]`)?.focus();
+    document.querySelector('.pet-kind-grid')?.scrollTo({ left: x });
+    document.querySelector<HTMLButtonElement>(`[data-kind="${kind}"]`)?.focus({ preventScroll: true });
   }));
   const nameButton = document.querySelector<HTMLButtonElement>('#pet-name')!;
   nameButton.addEventListener('click', () => {
