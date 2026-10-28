@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- «Цагираг»'s progress ring: a faint full track and the share done, starting at the top. Fixed sizes, so it
+     stays round in a card of any shape. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:innerRadius="36dp" android:shape="ring" android:thickness="8dp" android:useLevel="false">
+            <solid android:color="@color/widget_track" />
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <rotate android:fromDegrees="270" android:pivotX="50%" android:pivotY="50%" android:toDegrees="270">
+            <shape android:innerRadius="36dp" android:shape="ring" android:thickness="8dp" android:useLevel="true">
+                <solid android:color="@color/widget_blue" />
+            </shape>
+        </rotate>
+    </item>
+</layer-list>
