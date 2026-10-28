@@ -42,6 +42,20 @@ const isTab = (path: string) => ORDER.includes(clean(path));
 // slide (tabs.ts). A page that finds itself there hides its own menu and hands tab moves to the host.
 export const embedded = window.parent !== window && new URLSearchParams(location.search).has('embed');
 if (embedded) document.documentElement.classList.add('embedded');
+// Capacitor on Android runs plugins only for the main frame ("Plugin execution is allowed in Main Frame only"),
+// so a tab's frame sends its plugin calls (notifications, widget, app icon, health...) through the host's bridge.
+// The host's answers come back to the host's callbacks, which settle the tab's promises.
+type Bridge = { nativePromise?: (...args: unknown[]) => unknown; nativeCallback?: (...args: unknown[]) => unknown };
+if (embedded) {
+  try {
+    const host = (window.parent as unknown as { Capacitor?: Bridge }).Capacitor;
+    const own = (window as unknown as { Capacitor?: Bridge }).Capacitor;
+    if (own && host && own !== host && host.nativePromise && host.nativeCallback) {
+      own.nativePromise = (...args) => host.nativePromise!(...args);
+      own.nativeCallback = (...args) => host.nativeCallback!(...args);
+    }
+  } catch { /* not in the app's tab host */ }
+}
 // The host marks every tab but the shown one inert (tabs.ts); those keep their animations paused (shell.css).
 const frame = embedded ? window.frameElement : null;
 if (frame) {
@@ -69,7 +83,8 @@ if (embedded) {
   document.addEventListener('click', event => {
     const link = (event.target as Element).closest?.('a[href]') as HTMLAnchorElement | null;
     if (!link || event.defaultPrevented || link.origin !== location.origin || !isTab(link.pathname)) return;
-    if (link.hash && link.pathname === location.pathname) return;
+    // A bare "#" (the profile's back link) has an empty hash, so the written href is checked too.
+    if ((link.hash || link.getAttribute('href') === '#') && link.pathname === location.pathname) return;
     event.preventDefault();
     toHost({ type: 'go', tab: rank(link.pathname) });
   });
