@@ -1,6 +1,7 @@
 import { dayKey, type WaterEntry } from './data';
 import { escape, number } from './format';
 import { pourButton, pourPanel } from './hydration';
+import { previewHomePet } from './home-pet';
 import { KINDS, entryIcon, entryName, type Kind } from './drinks';
 
 // Home screen in the "Hydrify" layout (demo): a title bar, a card with an arc gauge around a water
@@ -105,6 +106,7 @@ export function bindGaugeDrag(add: (ml: number) => unknown): void {
     arc.setAttribute('stroke-dasharray', `${(f * 100).toFixed(1)} 100`);
     arc.classList.toggle('empty', f <= 0);
     water.style.transform = `translateY(${(196 - f * 92).toFixed(1)}px)`;
+    previewHomePet(f);
     knob.setAttribute('style', knobAt(f));
     knob.setAttribute('aria-valuenow', String(target)); knob.setAttribute('aria-valuetext', `${number(target)} мл, +${number(extra)} мл`);
     amount.textContent = number(target);

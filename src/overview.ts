@@ -9,7 +9,6 @@ import { bindGaugeDrag, hxGauge, hxHeader, openCupSheet, readCup, readCupKind } 
 import { setKind } from './drinks';
 import { bindWatchCard, loadInsight, watchCard } from './watch-card';
 import { health } from './health';
-import { celebrateIfReached, showYesterday } from './day-result';
 import { startSync } from './sync';
 import { startDevices } from './devices';
 import { bindWeatherChip, loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
@@ -26,6 +25,8 @@ import { guardPlan } from '../shared/plan';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, startReminders } from './schedule';
 import { startAppIcon } from './app-icon';
+import { homeFeel, homePetDrank, placeHomePet } from './home-pet';
+import { petState } from './pet';
 import { dateLabel, escape, number } from './format';
 import { brandMark, mdIcon } from './components/Icon';
 import './theme.css';
@@ -364,7 +365,8 @@ async function addDrink(ml: number) {
   undoReset = null;
   offerUndo();
   render();
-  celebrateIfReached(state, before, before + ml);
+  const goal = todayGoal(state.goal, state.mode);
+  homePetDrank(state.mode === 'goal' && before < goal && before + ml >= goal);
 }
 
 // Demo helper: empty today's ring by removing today's drinks, so the fill can be shown again.
@@ -463,6 +465,7 @@ function render() {
   bindFamily();
   bindHydration(drink, addDrink, render);
   bindGaugeDrag(addDrink);
+  placeHomePet(homeFeel(petState(state.events, state.goal, state.mode).mood, drink / goal, state.mode === 'limit'), drink / goal);
   document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
@@ -527,7 +530,6 @@ void reload().then(() => {
   // "/?onboard" shows it again from the start (for demos); the water log is kept.
   const again = new URLSearchParams(location.search).has('onboard');
   if (again) history.replaceState(null, '', location.pathname + location.hash);
-  if (!again && !needsOnboarding()) showYesterday(state);
   if (again || needsOnboarding()) showOnboarding(async plan => {
     const result = await save({ ...state, goal: plan.ml, mode: plan.mode });
     await reload();

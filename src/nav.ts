@@ -57,7 +57,7 @@ if (embedded) {
   let swipe: { x: number; y: number; at: number; horizontal: boolean | null } | null = null;
   // A full-screen dialog (day result, onboarding, drink sheet...) keeps its buttons at the bottom, where the
   // host's floating tab bar sits. While one is open the host hides its bar, and swipes do not change tabs.
-  const DIALOGS = '.day-result, .onb, .drink-sheet, .hx-sheet, .hx-dim, .cal, .plan-wrap';
+  const DIALOGS = '.onb, .drink-sheet, .hx-sheet, .hx-dim, .cal, .plan-wrap';
   let dialogOpen = false;
   const watchDialogs = () => {
     const open = [...document.querySelectorAll(DIALOGS)].some(e => !(e as HTMLElement).hidden && e.getClientRects().length > 0);
