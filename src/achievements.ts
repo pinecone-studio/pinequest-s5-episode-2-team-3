@@ -7,6 +7,7 @@ import { siteNav } from './nav';
 import { load, onExternalChange } from './storage';
 import { GROUPS, KINDS, STAGES, petLabel, petState, petSvg, readPetName, takeNewKinds, unlockedKinds, writePetName, type Group, type Kind, type PetState } from './pet';
 import { activeKind, feed, petGame, pickKind, takeStageUp, takeStepBack, usableKinds, type Game } from './pet-game';
+import { markFeed } from './feed-alert';
 import { badgeSvg, LOOP_ICONS } from './badge-art';
 import { ENERGY_DAYS, XP_PER_FEED, XP_PER_LEVEL } from './pet-config';
 import type { Look, Pet3D } from './pet3d';
@@ -162,6 +163,7 @@ function render(): void {
       </div>
     </div></main>`;
   bindPet();
+  markFeed(game.canFeed, false);
   place3d(pet, kind, roam, name, shineOf(kind, shineOf(kind, game.shine)));
   if (!shown) {
     shown = true;
