@@ -286,17 +286,45 @@ public class ScaleWatchService extends Service {
         }
     }
 
+    // Today's total as the app last reported it (ScaleWatchPlugin.setDay), plus this drink. Under a doctor's
+    // limit the notification says how much is left, warns when it is nearly used up and when it is passed.
     private void notifyDrink(String id, int amount) {
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date());
+        int drunk = (today.equals(prefs.getString("day", null)) ? prefs.getInt("drunk", 0) : 0) + amount;
+        prefs.edit().putString("day", today).putInt("drunk", drunk).apply();
+        int goal = prefs.getInt("goal", 0);
+        boolean limit = "limit".equals(prefs.getString("mode", "goal"));
+        String title = "💧 " + amount + " мл ус уулаа", text, face = "notif_face_happy";
+        if (goal <= 0) text = "Суурь бүртгэлээ. Апп нээхэд өнөөдрийн дүнд нэмэгдэнэ.";
+        else if (limit && drunk > goal) {
+            title = "⚠️ Эмчийн хязгаараас хэтэрлээ";
+            text = "Өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл. Өнөөдөр дахиж уухаас зайлсхийгээрэй.";
+            face = "notif_face_crying";
+        } else if (limit && drunk * 10 >= goal * 8) {
+            text = "Хязгаараас ердөө " + ml(goal - drunk) + " мл үлдлээ. Бага бага балгаарай.";
+            face = "notif_face_worried";
+        } else if (limit) text = "Хязгаараас " + ml(goal - drunk) + " мл үлдлээ · өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл.";
+        else if (drunk >= goal) text = "Өдрийн зорилт биеллээ: " + ml(drunk) + " / " + ml(goal) + " мл.";
+        else text = "Өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл · дахиад " + ml(goal - drunk) + " мл.";
         Notification notification = new NotificationCompat.Builder(this, DRINK_CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_drop)
             .setColor(0xFF4A90E2)
-            .setLargeIcon(android.graphics.BitmapFactory.decodeResource(getResources(), R.drawable.notif_face_happy))
-            .setContentTitle("💧 " + amount + " мл ус уулаа")
-            .setContentText("Суурь бүртгэлээ. Апп нээхэд өнөөдрийн дүнд нэмэгдэнэ.")
+            .setLargeIcon(android.graphics.BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(face, "drawable", getPackageName())))
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(openApp())
             .setAutoCancel(true)
             .build();
         try { getSystemService(NotificationManager.class).notify(id.hashCode(), notification); } catch (SecurityException ignored) { }
+    }
+
+    private static String ml(int value) { return String.format(java.util.Locale.US, "%,d", value); }
+
+    static void setDay(Context context, String day, int drunk, int goal, String mode) {
+        context.getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .putString("day", day).putInt("drunk", drunk).putInt("goal", goal).putString("mode", mode).apply();
     }
 
     // The kept drinks, handed to the app once, then forgotten here.

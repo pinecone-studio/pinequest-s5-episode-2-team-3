@@ -483,7 +483,7 @@ function render() {
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
   bindWeatherChip();
-  scale.shareToday(drink);  // the base's screen shows the same total
+  scale.shareToday(drink, false, { goal, mode: state.mode });  // the base's screen shows the same total
   bindDevicePanel(() => {});  // the base panel redraws itself on each reading
   bindSchedule(() => state, render);
   // The tab bar's middle button ("/#reminders") opens today's schedule here.

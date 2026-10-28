@@ -12,6 +12,8 @@ interface ScaleWatchPlugin {
   start(options: { address: string }): Promise<void>;
   stop(): Promise<void>;
   takeDrinks(): Promise<{ drinks: WatchedDrink[] }>;
+  // Today's total and the goal or doctor's limit, so a drink's notification says how much is left.
+  setDay(options: { day: string; drunk: number; goal: number; mode: 'goal' | 'limit' }): Promise<void>;
 }
 const watch = Capacitor.getPlatform() === 'android' ? registerPlugin<ScaleWatchPlugin>('DusalScaleWatch') : null;
 
@@ -222,8 +224,9 @@ export class ScaleLink {
   }
 
   // The base's screen shows the app's total for today, so hand-logged drinks, deletions and resets show there too.
-  shareToday(ml: number, force = false): void {
+  shareToday(ml: number, force = false, plan?: { goal: number; mode: 'goal' | 'limit' }): void {
     this.today = Math.max(0, Math.round(ml));
+    if (plan) void watch?.setDay({ day: dayKey(), drunk: this.today, ...plan }).catch(() => {});
     if (force) this.sentToday = -1;
     void this.sendToday();
   }
