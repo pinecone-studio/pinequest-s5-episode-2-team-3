@@ -50,8 +50,17 @@ let fresh: Set<Kind> | null = null;
 // The feed button under the pet, Pou-style.
 function feedButton(g: Game): string {
   return g.canFeed ? `<button type="button" class="pg-feed" id="pg-feed">${LOOP_ICONS.bowl}Хооллох</button>`
-    : g.fedToday ? '<button type="button" class="pg-feed done" disabled>Хооллосон ✓</button>'
-    : `<button type="button" class="pg-feed" disabled>${state.mode === 'limit' ? 'Хязгаартаа багтаа' : 'Зорилгоо биелүүлээд хооллоно'}</button>`;
+    : g.fedToday ? '<p class="pg-feed-hint done">✓ Өнөөдөр хооллосон</p>'
+    : `<p class="pg-feed-hint">${LOOP_ICONS.bowl}${state.mode === 'limit' ? 'Хязгаартаа багтаагаад хооллоно' : 'Зорилгоо биелүүлээд хооллоно'}</p>`;
+}
+
+// The pet's line in two parts, a bold headline and a smaller detail: «Дусалхан цангаж байна» /
+// «Өнөөдөр 1.8 л дутуу». Split at the dash, else after the first sentence.
+function headline(line: string): [string, string] {
+  const dash = line.indexOf(' — ');
+  if (dash > 0) { const rest = line.slice(dash + 3); return [line.slice(0, dash), rest.charAt(0).toUpperCase() + rest.slice(1)]; }
+  const dot = line.search(/[.!] /);
+  return dot > 0 ? [line.slice(0, dot + 1), line.slice(dot + 2)] : [line, ''];
 }
 
 // Round gauges either side of the pet, like a pet game's status: food, growth, level and streak.
@@ -152,10 +161,16 @@ function render(): void {
           ${orbMenu(side)}
           <div class="pg-roam${roam ? ' on' : ''}${game.canFeed ? ' cheer' : ''}"><button type="button" class="pet-tap" id="pet-tap">${petSvg(pet, name, 'pet-big', kind)}</button></div>
         </div>
-        ${feedButton(game)}
         <button type="button" class="pet-name" id="pet-name" aria-label="Нэр солих: ${escape(name)}">${escape(name)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
-        <p class="pg-meta">Өсөлтийн үе ${game.stageIndex} · ${stage.name} · Түвшин ${number(game.level)}${shineOf(kind, game.shine) ? ` · <span class="pg-shine">✦ Гялбаа ${shineOf(kind, game.shine)}</span>` : ''}</p>
-        <p class="pet-line" id="pet-line">${escape(game.canFeed ? `Өнөөдрийн зорилго биеллээ! ${name} хоолоо хүлээж байна.` : pet.line)}</p>
+        <ul class="pg-meta" aria-label="Түвшин">
+          <li><span aria-hidden="true">🌱</span>Үе ${game.stageIndex} · ${stage.name}</li>
+          <li><span aria-hidden="true">⭐</span>Түвшин ${number(game.level)}</li>
+          ${shineOf(kind, game.shine) ? `<li class="pg-shine"><span aria-hidden="true">✦</span>Гялбаа ${shineOf(kind, game.shine)}</li>` : ''}
+        </ul>
+        <section class="pg-status" aria-label="${escape(name)}-ийн байдал">
+          ${(([head, more]) => `<p class="pet-line" id="pet-line"><b>${escape(head)}</b>${more ? `<small>${escape(more)}</small>` : ''}</p>`)(headline(game.canFeed ? `Өнөөдрийн зорилго биеллээ! ${name} хоолоо хүлээж байна.` : pet.line))}
+          ${feedButton(game)}
+        </section>
       </div>
       <div class="hydro hx-page ach-body">
         ${kindList(reach(pet.best), reach(pet.streak), kind)}

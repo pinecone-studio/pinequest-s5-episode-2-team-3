@@ -466,7 +466,19 @@ html .pet-name-input { box-sizing: border-box; width: min(240px, 80%); min-heigh
 html .pet-streak { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; margin-top: 4px; padding: 0 14px; border-radius: 999px; background: rgba(255, 255, 255, .18); color: #fff; font-size: 14px; font-weight: 700; }
 html .pet-streak.hot { background: #fff; color: #f97316; }
 html .pet-streak:not(.hot) span { filter: grayscale(1); opacity: .6; }
-html .pet-line { max-width: 32ch; margin: 6px 0 0; font-size: 15px; font-weight: 600; line-height: 1.4; text-align: center; }
+/* Under the pet: the name, small tags (stage, level, shine), then one card with how it is and the bowl. */
+html .pg-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
+html .pg-meta li { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px; background: rgba(255, 255, 255, .16); font-size: 13px; font-weight: 700; }
+html .pg-meta li span { font-size: 13px; line-height: 1; }
+html .pg-status { display: grid; justify-items: center; gap: 12px; width: min(100%, 360px); margin-top: 12px; padding: 14px 16px; border-radius: 20px; background: rgba(255, 255, 255, .14); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18); }
+html .pet-line { display: grid; gap: 3px; margin: 0; text-align: center; }
+html .pet-line b { font-size: 17px; font-weight: 800; line-height: 1.3; }
+html .pet-line small { font-size: 14px; font-weight: 500; line-height: 1.4; opacity: .9; }
+html .pg-status .pg-feed { display: inline-flex; align-items: center; gap: 8px; min-height: 50px; padding: 0 28px; font-size: 17px; background: #fff; color: var(--sky-deep); box-shadow: 0 8px 22px rgba(0, 40, 120, .25); }
+html .pg-status .pg-feed svg { width: 28px; height: 28px; }
+html .pg-feed-hint { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding-top: 10px; width: 100%; justify-content: center; border-top: 1px solid rgba(255, 255, 255, .2); font-size: 13px; font-weight: 700; opacity: .9; }
+html .pg-feed-hint svg { width: 22px; height: 22px; }
+html .pg-feed-hint.done { color: #d4ffe4; }
 html .pet-stage { width: min(300px, 100%); margin-top: 8px; }
 html .pet-stage p { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 6px; font-size: 13px; }
 html .pet-stage p span { opacity: .9; }
@@ -526,10 +538,6 @@ html .pg-orb b { font-size: 13px; font-weight: 800; text-shadow: 0 1px 4px rgba(
 html .pg-orb:active .pg-orb-ring { transform: rotate(-90deg) scale(.92); }
 html .pg-orb:focus-visible { outline: 3px solid #fff; outline-offset: 2px; border-radius: 16px; }
 html .pg-tip { position: absolute; z-index: 4; max-width: 230px; padding: 10px 12px; border-radius: 14px; background: #fff; color: var(--ink); font-size: 13px; line-height: 1.35; text-align: left; box-shadow: 0 10px 30px rgba(0, 40, 120, .25); animation: pg-pop .25s ease; }
-html .ach-top > .pg-feed { margin: 4px 0 6px; min-height: 52px; padding: 0 28px; display: inline-flex; align-items: center; gap: 8px; font-size: 17px; background: #fff; color: var(--sky-deep); box-shadow: 0 8px 22px rgba(0, 40, 120, .25); }
-html .ach-top > .pg-feed svg { width: 28px; height: 28px; }
-html .ach-top > .pg-feed:disabled { background: rgba(255, 255, 255, .2); color: #fff; font-size: 14px; }
-html .ach-top > .pg-feed.done { background: #e7f8ee; color: #1f9d55; }
 html .pg-help { width: 36px; height: 36px; justify-self: end; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .22); color: #fff; font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; }
 html .pg-locked .pg-loop { margin-bottom: 8px; box-shadow: none; }
 html .pg-stage.has3d .pg-roam { display: none; }
@@ -556,7 +564,6 @@ html .pg-dish svg { width: 100%; }
 @keyframes pg-cheer { 0%, 50%, 100% { transform: translateY(0); } 20% { transform: translateY(-22px) rotate(-4deg); } 35% { transform: translateY(0) scale(1.05, .95); } }
 @keyframes pg-chomp { 50% { transform: scale(1.06, .9) translateY(6px); } }
 @keyframes pg-dish { 0% { transform: translate(120px, 0); opacity: 0; } 20% { transform: translate(-50%, 0); opacity: 1; } 80% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, 8px) scale(.9); opacity: 0; } }
-html .pg-meta { margin: 2px 0 0; font-size: 14px; font-weight: 700; opacity: .92; }
 html .pg-bar { height: 10px; overflow: hidden; border-radius: 999px; background: #e4f0fd; }
 html .pg-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #5cb4ff, var(--sky-deep)); transition: width .8s cubic-bezier(.3, 1.2, .5, 1); }
 html .pg-bar.thin { height: 6px; }
