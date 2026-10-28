@@ -24,3 +24,17 @@ export async function checkAi(): Promise<boolean> {
     return false;
   }
 }
+
+// The doctor's fluid instructions (typed and/or a photo of the paper), read by the AI (backend/src/doctor.js).
+export interface DoctorRead { found: boolean; ml: number; mode: 'goal' | 'limit'; times: { at: string; ml: number }[]; summary: string; warning: string }
+export async function askDoctor(body: { text: string; image?: { mediaType: string; data: string }; wake: string; sleep: string }): Promise<DoctorRead> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/doctor`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  } catch {
+    throw new Error('Интернэт холболтоо шалгаад дахин оролдоно уу.');
+  }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error ?? 'AI хариулж чадсангүй. Дахин оролдоно уу.');
+  return data as DoctorRead;
+}

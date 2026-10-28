@@ -1238,3 +1238,25 @@ html .hydro .device-panel p { margin: 4px 0 0; font-size: 13px; line-height: 1.4
 html .hydro .device-panel .scale-actions { margin-top: 10px; }
 html .hydro .device-panel .scale-actions button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--sky); color: #fff; font-size: 14px; font-weight: 700; }
 html[data-theme="dark"] .hydro .device-panel { background: #1f222a; }
+
+/* Home: the doctor's instructions, read by the AI (doctor-card.ts) */
+html .doctor-card h2 { margin: 0 0 6px; font-size: 17px; }
+html .doctor-card .doc-intro, html .doctor-card .doc-now { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+html .doctor-card .doc-now { color: var(--ink-2); font-weight: 600; }
+html .doctor-card textarea { width: 100%; box-sizing: border-box; min-height: 76px; padding: 10px 12px; border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; font: inherit; font-size: 15px; resize: vertical; }
+html .doctor-card .doc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+html .doctor-card .doc-photo { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; font-weight: 600; cursor: pointer; }
+html .doctor-card .doc-photo input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+html .doctor-card .doc-photo:focus-within { outline: 2px solid var(--sky); outline-offset: 3px; }
+html .doctor-card .doc-ask { margin-left: auto; min-height: 44px; padding: 0 18px; }
+html .doctor-card .doc-read { margin-top: 12px; padding: 12px; border-radius: 12px; background: #eef4ff; }
+html .doctor-card .doc-amount { margin: 0 0 4px; font-size: 16px; }
+html .doctor-card .doc-summary, html .doctor-card .doc-check { margin: 4px 0; font-size: 13px; color: var(--ink-2); }
+html .doctor-card .doc-check { font-weight: 600; }
+html .doctor-card .doc-times { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; padding: 0; list-style: none; }
+html .doctor-card .doc-times li { display: grid; padding: 6px 10px; border-radius: 10px; background: #fff; font-size: 13px; text-align: center; }
+html .doctor-card .doc-warning, html .doctor-card .doc-error { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: #fff4e5; color: #8a5300; font-size: 13px; }
+html .doctor-card .doc-error { background: #fdecec; color: #b4232a; }
+html .doctor-card .doc-done { margin: 10px 0 0; color: #1f9e6a; font-weight: 600; font-size: 14px; }
+html .doctor-card .doc-actions { display: flex; gap: 8px; margin-top: 10px; }
+html .doctor-card .doc-actions button { flex: 1; min-height: 44px; }
