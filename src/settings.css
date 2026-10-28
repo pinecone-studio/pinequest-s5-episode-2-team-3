@@ -49,3 +49,46 @@
 .restore-preview dd small { display: block; font-size: 13px; color: var(--muted-2); }
 .restore-warning { padding: 10px 12px; border-radius: 10px; background: #fbeee9; color: #914530; font-size: 15px; }
 .restore-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 14px; }
+
+/* Profile → «Нүүр дэлгэцийн widget» (widgets-view.ts): each widget drawn small, as on the home screen. */
+.wv-card { display: flex; gap: 14px; align-items: center; }
+.wv-preview { flex: 0 0 120px; }
+.wv-preview.wide { flex-basis: 170px; }
+.wv-info { display: grid; gap: 4px; min-width: 0; }
+.wv-info b { font-size: 16px; }
+.wv-info small { color: var(--muted, #6b7280); font-size: 13px; }
+.wv-add { justify-self: start; min-height: 40px; margin-top: 6px; padding: 0 18px; }
+.wv { position: relative; display: flex; flex-direction: column; overflow: hidden; height: 120px; padding: 12px; border-radius: 20px; box-sizing: border-box; color: #fff; font-family: inherit; line-height: 1.15; }
+.wv > i { flex: 1; }
+.wv strong { font-size: 24px; font-weight: 800; }
+.wv small { font-size: 10px; opacity: .85; }
+.wv em { font-style: normal; font-size: 10px; font-weight: 700; }
+.wv-title { font-size: 12px; }
+.wv-navy { background: #282F66 radial-gradient(circle, rgba(255, 255, 255, .6) .6px, transparent 1px) 0 0 / 11px 13px; }
+.wv-badge { display: inline-grid; place-items: center; width: 12px; height: 12px; border-radius: 50%; background: rgba(0, 0, 0, .6); color: #fff; font-size: 7px; vertical-align: middle; }
+.wv .wv-white { color: #fff; }
+.wv-navy .wv-title, .wv-navy small { color: #9C84FC; opacity: 1; }
+.wv-navy strong { color: #9684FC; }
+.wv em.ok { color: #54D854; }
+.wv > *:not(.wv-water) { position: relative; }
+.wv-water { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(rgba(58, 122, 252, .25), rgba(58, 122, 252, .65)); }
+.wv-center { align-items: center; }
+.wv-center .wv-title { align-self: flex-start; }
+.wv-ring { display: grid; place-content: center; justify-items: center; width: 62px; height: 62px; margin: 4px 0; border-radius: 50%;
+  background: radial-gradient(closest-side, #060A0B 80%, transparent 81%), conic-gradient(#3A7AFC calc(var(--p) * 1%), #343434 0); }
+.wv-ring strong { font-size: 13px; }
+.wv-ring small { font-size: 7px; }
+.wv-black { background: #060A0B; }
+.wv-wide { height: 100px; }
+.wv-black em { font-size: 10px; }
+.wv-black .d1 { color: #3A7AFC; } .wv-black .d2 { color: #3DBED4; } .wv-black .d3 { color: #5BD58A; }
+.wv-black strong { font-size: 18px; }
+.wv-black strong small { font-size: 9px; font-weight: 700; }
+.wv-stack { display: flex; height: 10px; margin-top: 4px; overflow: hidden; border-radius: 6px; background: #A1A7B3; }
+.wv-stack i:nth-child(1) { background: #3A7AFC; } .wv-stack i:nth-child(2) { background: #3DBED4; } .wv-stack i:nth-child(3) { background: #5BD58A; }
+.wv-pill { flex-direction: row; align-items: center; justify-content: space-around; height: 56px; padding: 6px; border-radius: 28px; background: #060A0B; }
+.wv-gauge { position: relative; display: grid; justify-items: center; width: 40px; }
+.wv-gauge > span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-size: 13px;
+  background: radial-gradient(closest-side, #060A0B 76%, transparent 77%), conic-gradient(from 225deg, #00C66C calc(var(--p) * 2.7deg), #343434 0 270deg, transparent 0); }
+.wv-gauge b { margin-top: -4px; font-size: 10px; }
+.wv-steps ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }

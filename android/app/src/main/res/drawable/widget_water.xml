@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The water in «Үлдсэн хэмжээ»: a blue gradient clipped from the bottom; the ImageView's level (0–10000)
+     is how full it is (LimitWidget). -->
+<clip xmlns:android="http://schemas.android.com/apk/res/android"
+    android:clipOrientation="vertical"
+    android:gravity="bottom">
+    <shape android:shape="rectangle">
+        <gradient android:angle="270" android:endColor="@color/widget_water_bottom" android:startColor="@color/widget_water_top" />
+        <corners android:radius="28dp" />
+    </shape>
+</clip>

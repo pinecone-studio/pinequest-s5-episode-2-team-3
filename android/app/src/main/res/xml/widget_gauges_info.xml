@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- «Гурван хэмжүүр», 4×1. Refreshes every 30 minutes so it follows the day even while the app stays closed. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_gauges_info_description"
+    android:initialLayout="@layout/widget_gauges"
+    android:minWidth="250dp"
+    android:minHeight="40dp"
+    android:previewLayout="@layout/widget_gauges"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

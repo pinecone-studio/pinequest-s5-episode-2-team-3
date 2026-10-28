@@ -87,10 +87,10 @@ function table(r: Report): string {
 }
 
 // What the fluid came from: water, milk tea, soup and everything else, by the drink kind.
-const SOURCES = [['water', 'Ус'], ['milktea', 'Сүүтэй цай'], ['soup', 'Шөл'], ['other', 'Бусад']] as const;
+const SOURCES = [['water', 'Ус'], ['milkTea', 'Сүүтэй цай'], ['soup', 'Шөл'], ['other', 'Бусад']] as const;
 function sources(events: readonly WaterEntry[]): { key: string; label: string; pct: number }[] {
-  const ml: Record<string, number> = { water: 0, milktea: 0, soup: 0, other: 0 };
-  for (const e of events) { const k = kindOf(e); ml[!k ? 'water' : k === 'milktea' || k === 'soup' ? k : 'other'] += e.amount; }
+  const ml: Record<string, number> = { water: 0, milkTea: 0, soup: 0, other: 0 };
+  for (const e of events) { const k = kindOf(e); ml[!k ? 'water' : k === 'milkTea' || k === 'soup' ? k : 'other'] += e.amount; }
   const all = Object.values(ml).reduce((s, v) => s + v, 0);
   return all ? SOURCES.map(([key, label]) => ({ key, label, pct: Math.round((ml[key] / all) * 100) })).filter(s => s.pct > 0) : [];
 }

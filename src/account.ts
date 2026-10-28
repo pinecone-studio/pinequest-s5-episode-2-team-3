@@ -8,6 +8,7 @@ import { ACTIVITIES, readProfile, writeProfile, type Activity } from './plan';
 import { readMember } from './member';
 import { about, analytics, applyTheme, linked, look, prefs, reminder, security, type PayMethod } from './prefs';
 import { notify } from './components/Toast';
+import { bindWidgets, widgetsBody } from './widgets-view';
 
 // Account sub-screens, Hydrify layout (kit 52–84). Each is a #hash view: a title, the parent it goes
 // back to, an optional header button and a bottom button. Payments, sign-in options and languages
@@ -169,7 +170,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
     if (writeProfile({ ...readProfile(), ...patch })) notify('Хадгаллаа. Төлөвлөгөөг «Биеийн онцлог» хэсгээс дахин тооцоолж болно.');
     ctx.redraw();
   };
-  const setTime = (key: 'wake' | 'sleep', title: string) => pickTime(asDate(readSettings()[key]), d => { writeSettings({ ...readSettings(), [key]: hhmm(d) }); ctx.redraw(); }, title);
+  const setTime = (key: 'wake' | 'sleep', title: string) => pickTime(asDate(readSettings()[key]), d => { writeSettings({ ...readSettings(), times: undefined, [key]: hhmm(d) }); ctx.redraw(); }, title);
 
   const p = () => prefs.read();
   const choose = (title: string, opts: string[], key: keyof ReturnType<typeof prefs.read>) =>
@@ -206,7 +207,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
         messages: () => notify('Сануулга бүрд усны тухай нэг баримт санамсаргүй гарна.'),
         wake: () => setTime('wake', 'Өдөр эхлэх'),
         sleep: () => setTime('sleep', 'Өдөр дуусах'),
-        every: () => chooseSheet('Давтамж', [['1', '1 цаг'], ['1.5', '1,5 цаг'], ['2', '2 цаг'], ['3', '3 цаг']], String(readSettings().every), v => { writeSettings({ ...readSettings(), every: Number(v) }); ctx.redraw(); }),
+        every: () => chooseSheet('Давтамж', [['1', '1 цаг'], ['1.5', '1,5 цаг'], ['2', '2 цаг'], ['3', '3 цаг']], String(readSettings().every), v => { writeSettings({ ...readSettings(), times: undefined, every: Number(v) }); ctx.redraw(); }),
         'add-time': () => pickTime(asDate('09:00'), d => { const r = reminder.read(); const t = hhmm(d); if (!r.times.some(x => x.t === t)) reminder.write({ times: [...r.times, { t, on: true }].sort((a, b) => a.t.localeCompare(b.t)) }); ctx.redraw(); }, 'Цаг нэмэх'),
       }, new Proxy({} as Record<string, (on: boolean) => void>, {
         get: (_, key: string) => (value: boolean) => {
@@ -234,6 +235,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
       }),
     },
     profile: { title: 'Биеийн онцлог', back: 'personal', body: ctx.profilePanel },
+    widgets: { title: 'Нүүр дэлгэцийн widget', back: '', body: widgetsBody, bind: bindWidgets },
     preferences: {
       title: 'Тохиргоо', back: '',
       body: () => {

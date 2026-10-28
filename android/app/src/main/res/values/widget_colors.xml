@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home screen widgets (DrinkWidget and its kinds), with the colours of One UI's own widgets, taken from a
+     screenshot of them: black cards, the deep-indigo sleep card with lavender words, the screen-time bar
+     colours, green battery gauges and the green "Good". The same in light and dark mode. -->
+<resources>
+    <color name="widget_black">#060A0B</color>
+    <color name="widget_navy">#282F66</color>
+    <color name="widget_navy_title">#9C84FC</color>
+    <color name="widget_navy_number">#9684FC</color>
+    <color name="widget_white">#FCFCFC</color>
+    <color name="widget_soft">#A1A7B3</color>
+    <color name="widget_blue">#3A7AFC</color>
+    <color name="widget_cyan">#3DBED4</color>
+    <color name="widget_bar_green">#5BD58A</color>
+    <color name="widget_gray">#A1A7B3</color>
+    <color name="widget_gauge_green">#00C66C</color>
+    <color name="widget_track">#343434</color>
+    <color name="widget_green">#54D854</color>
+    <color name="widget_amber">#F5A524</color>
+    <color name="widget_red">#FF5A5A</color>
+    <!-- The water in «Үлдсэн хэмжээ»: the bar blue, see-through, so the white words stay readable over it. -->
+    <color name="widget_water_top">#403A7AFC</color>
+    <color name="widget_water_bottom">#A63A7AFC</color>
+</resources>
