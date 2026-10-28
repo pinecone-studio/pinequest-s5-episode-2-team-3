@@ -480,7 +480,10 @@ html .pet-unlock { margin: 8px 0 0; padding: 8px 14px; border-radius: 12px; back
 /* The animal list: unlocked ones can be picked, locked ones are grey with the streak they need. */
 html .pet-kinds h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 12px; font-size: 18px; font-weight: 700; color: var(--ink); }
 html .pet-kinds h2 small { font-size: 12px; font-weight: 500; color: var(--muted); }
-html .pet-kind-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+/* Two rows that scroll sideways; a sliver of the next column shows there is more. Edges fade like the cups row. */
+html .pet-kind-grid { --edge: 16px; display: grid; grid-template-rows: repeat(2, auto); grid-auto-flow: column; grid-auto-columns: calc((100% - 20px) / 3.25); gap: 10px; margin: 0 calc(-1 * var(--edge)); padding: 4px var(--edge) 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding: 0 var(--edge); scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--edge), #000 calc(100% - var(--edge)), transparent); mask-image: linear-gradient(90deg, transparent, #000 var(--edge), #000 calc(100% - var(--edge)), transparent); }
+html .pet-kind-grid::-webkit-scrollbar { display: none; }
+html .pet-kind-grid > .pet-kind { scroll-snap-align: start; }
 html .pet-kind { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border: 2px solid var(--hair); border-radius: 16px; background: none; font: inherit; color: var(--ink); cursor: pointer; }
 html .pet-kind .pet { width: 72px; height: 72px; --pet-line: #cfe6fb; }
 html .pet-kind b { font-size: 14px; font-weight: 700; }
