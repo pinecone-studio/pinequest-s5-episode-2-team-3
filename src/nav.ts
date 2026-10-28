@@ -42,6 +42,13 @@ const isTab = (path: string) => ORDER.includes(clean(path));
 // slide (tabs.ts). A page that finds itself there hides its own menu and hands tab moves to the host.
 export const embedded = window.parent !== window && new URLSearchParams(location.search).has('embed');
 if (embedded) document.documentElement.classList.add('embedded');
+// The host marks every tab but the shown one inert (tabs.ts); those keep their animations paused (shell.css).
+const frame = embedded ? window.frameElement : null;
+if (frame) {
+  const away = () => document.documentElement.classList.toggle('tab-away', frame.hasAttribute('inert'));
+  away();
+  new MutationObserver(away).observe(frame, { attributes: true, attributeFilter: ['inert'] });
+}
 const toHost = (message: Record<string, unknown>) => window.parent.postMessage({ dusal: true, ...message }, location.origin);
 
 // Gestures that start on something with its own horizontal or drag handling are left alone.

@@ -120,3 +120,5 @@ html[data-nav="back"]::view-transition-new(root) { animation: page-in-left .3s c
 /* Inside the phone app's tab host (tabs.html) the host draws the tab bar, so pages hide their own
    and keep the bottom padding that leaves room for it. */
 html.embedded .app-top .site-nav { display: none; }
+/* A tab that is not shown keeps its looping animations still, so it does not keep drawing off screen. */
+html.tab-away *, html.tab-away *::before, html.tab-away *::after { animation-play-state: paused !important; }
