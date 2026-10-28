@@ -63,6 +63,13 @@ function orb(id: string, icon: string, part: number, label: string, tip: string,
     <svg class="pg-orb-ring" viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="25" class="bg"/><circle cx="30" cy="30" r="25" class="fg" style="stroke:${color}" stroke-dasharray="${(Math.max(0, Math.min(1, part)) * c).toFixed(1)} ${c.toFixed(1)}"/></svg>
     <span class="pg-orb-ic">${icon}</span><b>${label}</b></button>`;
 }
+// The four gauges fold into one button at the top left; a tap drops them down in a column. Open or
+// closed is kept for the visit, so a redraw (feeding, renaming) doesn't fold them again.
+let orbsOpen = false;
+const ORB_DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="7.5" r="4" fill="#4aa8ff"/><circle cx="16.5" cy="7.5" r="4" fill="#ffc83d"/><circle cx="7.5" cy="16.5" r="4" fill="#5fcf5a"/><circle cx="16.5" cy="16.5" r="4" fill="#ff7a1a"/></svg>';
+const orbMenu = (side: [string, string]) => `<div class="pg-orbs left${orbsOpen ? ' open' : ''}">
+  <button type="button" class="pg-orb-toggle" id="pg-orbs-toggle" aria-expanded="${orbsOpen}" aria-controls="pg-orb-list" aria-label="Төлөв: хоол, өсөлт, түвшин, streak">${ORB_DOTS}<svg class="pg-orb-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+  <div class="pg-orb-list" id="pg-orb-list"${orbsOpen ? '' : ' inert'}>${side[0]}${side[1]}</div></div>`;
 function orbs(pet: PetState, g: Game): [string, string] {
   const at = g.stageIndex, cur = STAGES[at], next = STAGES[at + 1];
   const grow = next ? (pet.days - cur.from) / (next.from - cur.from) : 1;
@@ -141,7 +148,7 @@ function render(): void {
       <div class="ach-top">
         <div class="hx-header ach-header"><span class="hx-logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5C8 8 5 11.6 5 15.5a7 7 0 0 0 14 0c0-3.9-3-7.5-7-13z" fill="none" stroke="currentColor" stroke-width="2"/></svg></span><h1>Амжилт</h1><button type="button" class="pg-help" id="pg-help" aria-label="Яаж тоглох вэ">?</button></div>
         <div class="pg-stage" id="pg-stage">
-          <div class="pg-orbs left">${side[0]}</div><div class="pg-orbs right">${side[1]}</div>
+          ${orbMenu(side)}
           <div class="pg-roam${roam ? ' on' : ''}${game.canFeed ? ' cheer' : ''}"><button type="button" class="pet-tap" id="pet-tap">${petSvg(pet, name, 'pet-big', kind)}</button></div>
         </div>
         ${feedButton(game)}
@@ -292,7 +299,9 @@ function tip(b: HTMLButtonElement): void {
   const stageBox = document.querySelector<HTMLDivElement>('#pg-stage')!;
   const sb = stageBox.getBoundingClientRect(), bb = b.getBoundingClientRect();
   t.style.top = `${bb.bottom - sb.top + 4}px`;
-  if (b.closest('.left')) t.style.left = '8px'; else t.style.right = '8px';
+  // Beside the open column, level with the gauge that was tapped.
+  t.style.top = `${bb.top - sb.top}px`;
+  t.style.left = `${bb.right - sb.left + 14}px`;
   stageBox.append(t);
   setTimeout(() => t.remove(), 3500);
 }
@@ -348,6 +357,14 @@ function bindPet(): void {
   });
   document.querySelector<HTMLButtonElement>('#pg-feed')?.addEventListener('click', eat);
   document.querySelectorAll<HTMLButtonElement>('.pg-orb').forEach(b => b.addEventListener('click', () => tip(b)));
+  document.querySelector<HTMLButtonElement>('#pg-orbs-toggle')?.addEventListener('click', e => {
+    orbsOpen = !orbsOpen;
+    const b = e.currentTarget as HTMLButtonElement;
+    b.setAttribute('aria-expanded', String(orbsOpen));
+    b.parentElement!.classList.toggle('open', orbsOpen);
+    document.querySelector('#pg-orb-list')!.toggleAttribute('inert', !orbsOpen);
+    if (!orbsOpen) document.querySelector('.pg-tip')?.remove();
+  });
   document.querySelector<HTMLButtonElement>('#pg-help')?.addEventListener('click', help);
   const real = petState(state.events, state.goal, state.mode);
   const best = reach(real.best), streak = reach(real.streak);
