@@ -468,7 +468,7 @@ function render() {
         ${hxHeader('Нүүр')}
         ${limit ? '' : weatherChip(state.mode)}
         ${limit ? limitGauge(drink, goal, cup) + quickAdd(cup) + undoLine + dialysisCard() : hxGauge(drink, goal, state.mode, readCup(), drinking) + undoLine}
-        ${limit ? '' : doctorCard() + watchCard()}
+        ${limit ? '' : doctorCard()}${watchCard()}
         ${familySection()}
         ${ScalePanel(limit)}
       </div>
