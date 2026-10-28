@@ -12,8 +12,9 @@ import { openEditSheet, openRowMenu } from './hx-edit';
 import { entryIcon, entryName } from './drinks';
 import './theme.css';
 
-// "Түүх" page, Hydrify layout (kit screens 38–46): a week of goal rings that opens into a month,
-// then the entries by day, each with a ⋮ menu to edit (amount, date, time) or delete (with undo).
+// "Түүх" page, Hydrify layout: week / month / year tabs with a period stepper, one bar chart of the
+// water drunk against the goal (or the doctor's limit), then the period's entries by day, each with
+// a ⋮ menu to edit (amount, date, time) or delete (with undo). Tapping a bar shows only that day.
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let state: AppState = defaults();
 let storageError = '';
@@ -66,9 +67,116 @@ async function remove(id: string | undefined) {
   });
 }
 
-// A picked calendar day shows only that day; otherwise every day.
-let picked = '';
-const matches = (event: WaterEntry) => !picked || dayKey(new Date(event.at)) === picked;
+// The period on screen: seven days, the days of a month, or twelve months. Each bucket covers the
+// day keys from..to; `days` counts only days up to today, so averages and "N/M" skip the future.
+type Span = 'week' | 'month' | 'year';
+interface Bucket { label: string; name: string; ml: number; days: number; from: string; to: string }
+let span: Span = 'week';
+let offset = 0; // 0 = this period, -1 = the one before …
+let picked = -1; // the tapped bar; -1 shows the whole period
+
+const MONTHS = ['1-р', '2-р', '3-р', '4-р', '5-р', '6-р', '7-р', '8-р', '9-р', '10-р', '11-р', '12-р'];
+
+function totals(): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const e of state.events) if (e.type === 'drink') { const k = dayKey(new Date(e.at)); m.set(k, (m.get(k) ?? 0) + e.amount); }
+  return m;
+}
+
+function buckets(): { list: Bucket[]; title: string } {
+  const t = totals();
+  const today = dayKey();
+  const now = new Date(); now.setHours(12, 0, 0, 0);
+  const day = (d: Date): Bucket => {
+    const k = dayKey(d);
+    return { label: String(d.getDate()), name: `${MONTHS[d.getMonth()]} сарын ${d.getDate()}`, ml: t.get(k) ?? 0, days: k > today ? 0 : 1, from: k, to: k };
+  };
+  if (span === 'week') {
+    const end = new Date(now); end.setDate(end.getDate() + offset * 7);
+    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(end); d.setDate(d.getDate() - 6 + i); return d; });
+    const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+    return { list: days.map(day), title: `${fmt(days[0])} – ${fmt(days[6])}, ${days[6].getFullYear()}` };
+  }
+  if (span === 'month') {
+    const first = new Date(now.getFullYear(), now.getMonth() + offset, 1, 12);
+    const count = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    const list = Array.from({ length: count }, (_, i) => day(new Date(first.getFullYear(), first.getMonth(), i + 1, 12)));
+    return { list, title: `${first.getFullYear()} оны ${MONTHS[first.getMonth()]} сар` };
+  }
+  const year = now.getFullYear() + offset;
+  const list = MONTHS.map((m, i) => {
+    const count = new Date(year, i + 1, 0).getDate();
+    let ml = 0, days = 0;
+    for (let d = 1; d <= count; d++) {
+      const k = dayKey(new Date(year, i, d, 12));
+      ml += t.get(k) ?? 0;
+      if (k <= today) days++;
+    }
+    return { label: String(i + 1), name: `${m} сар`, ml, days, from: dayKey(new Date(year, i, 1, 12)), to: dayKey(new Date(year, i, count, 12)) };
+  });
+  return { list, title: `${year} он` };
+}
+
+const limitMode = () => state.mode === 'limit';
+// A bar's value: ml that day, or in the year view the month's daily average so far.
+const value = (b: Bucket) => (span === 'year' ? (b.days ? Math.round(b.ml / b.days) : 0) : b.ml);
+// Met the goal, or stayed within the doctor's limit.
+const kept = (b: Bucket) => (limitMode() ? value(b) <= state.goal : value(b) >= state.goal);
+const liters = (ml: number) => `${(ml / 1000).toFixed(1).replace(/\.0$/, '')}L`;
+
+// One bar chart against a dashed goal / limit line. Bars are never capped, so overuse shows: the
+// scale grows past the goal. The tapped bar (or, before a tap, today) gets a ring; a tap adds its value.
+function chart(list: Bucket[]): string {
+  const goal = state.goal;
+  const values = list.map(value);
+  const top = Math.max(goal * 1.25, ...values) * 1.08;
+  const pct = (v: number) => ((v / top) * 100).toFixed(2);
+  const today = dayKey();
+  const mark = picked >= 0 ? picked : list.findIndex(b => b.from <= today && today <= b.to);
+  const each = span === 'year' ? 'өдөрт дунджаар ' : '';
+  const bars = list.map((b, i) => {
+    const v = values[i];
+    const tone = (limitMode() ? (v > goal ? ' over' : '') : (v >= goal ? ' met' : '')) + (v ? '' : ' empty');
+    const tip = i === picked ? `<span class="rp-tip">${number(v)} <small>мл</small></span>` : '';
+    return `<button type="button" class="rp-bar${tone}${i === mark ? ' on' : ''}" data-pick="${i}" aria-pressed="${i === picked}" aria-label="${escape(b.name)}: ${each}${number(v)} мл" ${b.days ? '' : 'disabled'}><i style="height: ${pct(v)}%">${tip}</i></button>`;
+  }).join('');
+  // A month has room for every fifth day and the last, plus today / the tapped day without its close neighbours.
+  const near = (i: number) => mark >= 0 && i !== mark && Math.abs(i - mark) < 3;
+  const shows = (i: number) => list.length <= 12 || i === mark || ((i % 5 === 0 || i === list.length - 1) && !near(i));
+  const labels = list.map((b, i) => `<span${i === mark ? ' class="on"' : ''}>${shows(i) ? escape(b.label) : ''}</span>`).join('');
+  // The tapped bar's value wins over the goal label (both px from the bottom of the 180px plot,
+  // theme.css): the label moves under the line, or hides when there is no room there either.
+  let room = '';
+  if (picked >= 0 && (picked + .5) / list.length > .3) {
+    const line = (goal / top) * 180, lo = Math.max(4, (values[picked] / top) * 180) + 10, hi = lo + 38;
+    const hits = (a: number, b: number) => a < hi && b > lo;
+    if (hits(line + 2, line + 22)) room = hits(line - 22, line - 2) ? ' hide' : ' below';
+  }
+  const axis = [1, .75, .5, .25, 0].map(f => `<span style="bottom: ${f * 100}%">${liters(top * f)}</span>`).join('');
+  return `<div class="rp-bars${list.length > 12 ? ' dense' : ''}">
+      <div class="rp-axis" aria-hidden="true">${axis}</div>
+      <div class="rp-plot">${bars}<div class="hx-goal-line${room}" style="bottom: ${pct(goal)}%" aria-hidden="true"><span>${limitMode() ? 'Хязгаар' : 'Зорилт'} ${number(goal)} мл</span></div></div>
+      <div class="rp-labels" aria-hidden="true">${labels}</div>
+    </div>`;
+}
+
+// Under the chart: the daily average so far, how many days (months) kept the goal or limit, the
+// total, and where the water was logged (by the smart base, or by hand).
+function stats(list: Bucket[], events: readonly WaterEntry[]): string {
+  const days = list.reduce((sum, b) => sum + b.days, 0);
+  const total = list.reduce((sum, b) => sum + b.ml, 0);
+  const counted = list.filter(b => b.days);
+  const good = counted.filter(kept).length;
+  let base = 0, hand = 0;
+  for (const e of events) if (e.type === 'drink') { if (e.deviceId) base += e.amount; else hand += e.amount; }
+  const share = (ml: number) => Math.round((ml / (base + hand)) * 100);
+  return `<div class="hx-stats">
+      <p><b>${number(days ? Math.round(total / days) : 0)}</b><small>мл / өдөр</small></p>
+      <p><b${limitMode() && good < counted.length ? ' class="bad"' : ''}>${good}/${counted.length}</b><small>${limitMode() ? 'хязгаарт багтсан' : 'зорилт биелсэн'}</small></p>
+      <p><b>${liters(total)}</b><small>нийт</small></p>
+    </div>
+    ${base + hand ? `<p class="hx-src"><span><i class="base"></i>Ухаалаг суурь ${share(base)}%</span><span><i class="hand"></i>Гараар ${share(hand)}%</span></p>` : ''}`;
+}
 
 // Newest day first; entries inside a day stay newest first.
 function groupByDay(events: readonly WaterEntry[]): [string, WaterEntry[]][] {
@@ -103,7 +211,7 @@ function row(event: WaterEntry): string {
 }
 
 // Each day shows its newest few entries; «Бүгдийг харах» opens the rest. Opened days are kept here so
-// a re-render (edit, delete, undo, calendar) leaves them open. A picked calendar day always shows all.
+// a re-render (edit, delete, undo, chart) leaves them open. A tapped day always shows all.
 const PREVIEW = 4;
 const opened = new Set<string>();
 const CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
@@ -111,62 +219,60 @@ const CHEVRON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6
 function dayCard(key: string, items: WaterEntry[]): string {
   const drinks = items.filter(e => e.type === 'drink');
   const total = drinks.reduce((sum, e) => sum + e.amount, 0);
-  const folds = !picked && items.length > PREVIEW;
+  const folds = (picked < 0 || span === 'year') && items.length > PREVIEW;
   const open = !folds || opened.has(key);
+  const over = limitMode() && total > state.goal;
   return `
     <section class="hx-card hx-day-card" aria-labelledby="day-${key}">
       <div class="hx-card-head"><h2 id="day-${key}">${dayTitle(key)}</h2><span class="hx-day-sum">${number(total)} мл · ${drinks.length} удаа</span></div>
+      ${over ? `<p class="hx-over">Хязгаараас ${number(total - state.goal)} мл хэтэрсэн</p>` : ''}
       <ul class="hx-list" id="list-${key}">${(open ? items : items.slice(0, PREVIEW)).map(row).join('')}</ul>
       ${folds ? `<button type="button" class="hx-more-rows" data-more="${key}" aria-expanded="${open}" aria-controls="list-${key}">${open ? 'Хураах' : `Бүгдийг харах (+${items.length - PREVIEW})`}${CHEVRON}</button>` : ''}
     </section>`;
 }
 
-function results(events: readonly WaterEntry[]): string {
+// A tapped day without entries keeps the day card's head, so the list does not jump to a big empty card.
+function emptyDay(key: string): string {
+  return `
+    <section class="hx-card hx-day-card" aria-labelledby="day-${key}">
+      <div class="hx-card-head"><h2 id="day-${key}">${dayTitle(key)}</h2><span class="hx-day-sum">0 мл · 0 удаа</span></div>
+      <p class="hx-day-empty">Энэ өдөр ус уусан бүртгэл алга.</p>
+    </section>`;
+}
+
+function results(events: readonly WaterEntry[], day: string): string {
   if (!events.length) {
+    if (day) return emptyDay(day);
+    const empty = picked < 0 ? 'Энэ хугацаанд бүртгэл алга.' : 'Энэ сард бүртгэл алга.';
     return `<section class="hx-card hx-empty-card">
       <span aria-hidden="true">${cupIcon(300)}</span>
-      <p>${picked ? 'Энэ өдөр бүртгэл алга.' : 'Одоогоор усны түүх алга.'}</p>
+      <p>${empty}</p>
     </section>`;
   }
   return groupByDay(events).map(([key, items]) => dayCard(key, items)).join('');
 }
 
+// Tabs, stepper and chart, then the entries of the tapped bar or of the whole period.
 function renderResults() {
-  app.querySelector<HTMLDivElement>('#results')!.innerHTML = results(state.events.filter(matches));
-  app.querySelector<HTMLDivElement>('#hx-cal')!.innerHTML = calendar();
+  const { list, title } = buckets();
+  if (picked >= list.length) picked = -1;
+  const within = (from: string, to: string) => (e: WaterEntry) => { const k = dayKey(new Date(e.at)); return k >= from && k <= to; };
+  const period = state.events.filter(within(list[0].from, list[list.length - 1].to));
+  const shown = picked < 0 ? period : period.filter(within(list[picked].from, list[picked].to));
+  const tab = (key: Span, label: string) => `<button type="button" role="tab" aria-selected="${span === key}" data-span="${key}">${label}</button>`;
+  app.querySelector<HTMLDivElement>('#hx-top')!.innerHTML = `
+    <div class="rp-tabs" role="tablist" aria-label="Хугацаа">${tab('week', '7 хоног')}${tab('month', 'Сар')}${tab('year', 'Жил')}</div>
+    <div class="rp-range"><button type="button" data-step="-1" aria-label="Өмнөх">‹</button><b>${escape(title)}</b><button type="button" data-step="1" aria-label="Дараах" ${offset >= 0 ? 'disabled' : ''}>›</button></div>
+    <section class="hx-card hx-chart" aria-label="Уусан ус">${chart(list)}${stats(list, period)}</section>`;
+  app.querySelector<HTMLDivElement>('#results')!.innerHTML = results(shown, picked >= 0 && span !== 'year' ? list[picked].from : '');
 }
 
-// Hydrify's week strip (screen 38) that opens into a month (screen 46): each day a ring filled to
-// that day's share of the goal. Tapping a day shows only its entries; tapping it again shows all.
-const WEEK = ['Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя', 'Ня']; // Monday first, as in the kit
-const MONTHS = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
-let expanded = false;
-let monthOffset = 0;
-
-function dayRing(d: Date, totals: Map<string, number>): string {
-  const C = 2 * Math.PI * 17;
-  const key = dayKey(d);
-  const frac = Math.min(1, (totals.get(key) ?? 0) / state.goal);
-  return `<button type="button" class="hx-day${key === dayKey() ? ' today' : ''}${key === picked ? ' on' : ''}" data-day="${key}" ${key > dayKey() ? 'disabled' : ''} aria-pressed="${key === picked}" aria-label="${d.getMonth() + 1}/${d.getDate()}: ${Math.round(frac * 100)}%">
-    <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" class="bg"/>${frac > 0 ? `<circle cx="20" cy="20" r="17" class="fg" stroke-dasharray="${(frac * C).toFixed(1)} ${C.toFixed(1)}"/>` : ''}</svg><b>${d.getDate()}</b></button>`;
-}
-
-function calendar(): string {
-  const totals = new Map<string, number>();
-  for (const e of state.events) if (e.type === 'drink') { const k = dayKey(new Date(e.at)); totals.set(k, (totals.get(k) ?? 0) + e.amount); }
-  const toggle = `<button type="button" class="hx-cal-toggle" data-expand aria-expanded="${expanded}" aria-label="${expanded ? 'Хураах' : 'Сарын хуанли'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
-  const head = `<div class="hx-cal-week" aria-hidden="true">${WEEK.map(w => `<small>${w}</small>`).join('')}</div>`;
-  if (!expanded) {
-    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + i); return d; });
-    return `<section class="hx-card hx-cal" aria-label="Энэ долоо хоног">${head}<div class="hx-cal-grid">${days.map(d => dayRing(d, totals)).join('')}</div>${toggle}</section>`;
-  }
-  const first = new Date(); first.setHours(12, 0, 0, 0); first.setDate(1); first.setMonth(first.getMonth() + monthOffset);
-  const count = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
-  const cells = Array.from({ length: (first.getDay() + 6) % 7 }, () => '<span></span>')
-    .concat(Array.from({ length: count }, (_, i) => { const d = new Date(first); d.setDate(i + 1); return dayRing(d, totals); }));
-  return `<section class="hx-card hx-cal" aria-label="Сарын хуанли">
-    <div class="hx-cal-month"><button type="button" data-month="-1" aria-label="Өмнөх сар">‹</button><b>${first.getFullYear()} оны ${MONTHS[first.getMonth()]}</b><button type="button" data-month="1" aria-label="Дараах сар" ${monthOffset >= 0 ? 'disabled' : ''}>›</button></div>
-    ${head}<div class="hx-cal-grid">${cells.join('')}</div>${toggle}</section>`;
+// Re-render; after a key press, put focus back on the control that was used, so keyboard users keep
+// their place (after a tap that would draw the focus ring around it).
+let byKey = false;
+function refresh(focus: string) {
+  renderResults();
+  if (byKey) app.querySelector<HTMLButtonElement>(`${focus}:not(:disabled)`)?.focus();
 }
 
 function render() {
@@ -178,7 +284,7 @@ function render() {
         <div class="hydro hx-page">
           ${hxHeader('Түүх')}
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-          <div id="hx-cal"></div>
+          <div id="hx-top" class="hx-top"></div>
           <div id="results" class="hx-results"></div>
         </div>
       </div>
@@ -187,20 +293,21 @@ function render() {
   `;
   app.querySelector<HTMLDivElement>('.hx-page')!.onclick = event => {
     const target = event.target as Element;
+    byKey = event.detail === 0;
     const menu = target.closest<HTMLButtonElement>('[data-menu]');
     if (menu) openRowMenu(menu, () => openEdit(menu.dataset.menu), () => void remove(menu.dataset.menu));
-    if (target.closest('[data-expand]')) { expanded = !expanded; monthOffset = 0; renderResults(); app.querySelector<HTMLButtonElement>('[data-expand]')!.focus(); }
-    const month = target.closest<HTMLButtonElement>('[data-month]');
-    if (month) { monthOffset = Math.min(0, monthOffset + Number(month.dataset.month)); renderResults(); }
+    const tab = target.closest<HTMLButtonElement>('[data-span]');
+    if (tab) { span = tab.dataset.span as Span; offset = 0; picked = -1; refresh(`[data-span="${span}"]`); }
+    const step = target.closest<HTMLButtonElement>('[data-step]');
+    if (step) { offset = Math.min(0, offset + Number(step.dataset.step)); picked = -1; refresh(`[data-step="${step.dataset.step}"]`); }
+    const bar = target.closest<HTMLButtonElement>('[data-pick]');
+    if (bar) { const i = Number(bar.dataset.pick); picked = picked === i ? -1 : i; refresh(`[data-pick="${i}"]`); }
     const more = target.closest<HTMLButtonElement>('[data-more]');
     if (more) {
       const key = more.dataset.more!;
       if (!opened.delete(key)) opened.add(key);
-      renderResults();
-      app.querySelector<HTMLButtonElement>(`[data-more="${key}"]`)?.focus();
+      refresh(`[data-more="${key}"]`);
     }
-    const day = target.closest<HTMLButtonElement>('[data-day]');
-    if (day) { picked = picked === day.dataset.day ? '' : day.dataset.day!; renderResults(); }
   };
   renderResults();
 }
