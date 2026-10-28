@@ -58,9 +58,11 @@ function handlesOwnSwipe(start: Element | null): boolean {
 
 if (embedded) {
   // Tab links inside a page (e.g. the footer's settings link) switch tabs in the host instead.
+  // Links within this page (the profile menu's #personal...) are left to the page.
   document.addEventListener('click', event => {
     const link = (event.target as Element).closest?.('a[href]') as HTMLAnchorElement | null;
     if (!link || event.defaultPrevented || link.origin !== location.origin || !isTab(link.pathname)) return;
+    if (link.hash && link.pathname === location.pathname) return;
     event.preventDefault();
     toHost({ type: 'go', tab: rank(link.pathname) });
   });
