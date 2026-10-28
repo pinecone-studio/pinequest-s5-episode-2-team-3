@@ -163,11 +163,15 @@ export function bindSchedule(state: () => AppState, redraw: () => void): void {
 // is still unmet (drinking re-plans and drops met ones), so it always means "behind": early in the
 // day the drop is cheerful, later it worries, the evening's last one warns the streak is at risk,
 // the morning after a missed day it cries, and after days away it misses you. Under a doctor's
-// limit there is no streak to lose, so it only goes from cheerful to worried.
+// limit there is no streak to lose and more water is not the aim: it spreads the allowance through the
+// day, saying how much in total is fine by now and never to go past the limit.
 interface Tone { face: Face; title: string; body?: string }
 function tone(state: AppState, day: number, slot: number, count: number, ml: number): Tone {
   const late = slot >= count / 2 ? { face: 'worried' as const, title: 'Ус уух цаг өнгөрч байна' } : { face: 'happy' as const, title: 'Ус уух цаг боллоо' };
-  if (state.mode === 'limit') return late;
+  if (state.mode === 'limit') {
+    const upTo = Math.min(state.goal, Math.round((state.goal * (slot + 1)) / count / 10) * 10);
+    return { face: 'happy', title: 'Шингэнээ жигд хуваарилаарай', body: `Одоогоор нийт ${number(upTo)} мл хүртэл уухад болно · эмчийн хязгаар ${number(state.goal)} мл. Хязгаараа хэтрүүлэхгүй, бага бага балгаарай.` };
+  }
   const met = drunkToday(state) >= state.goal;
   // Days in a row up to today; tomorrow it is only alive if today is met.
   const streak = streakNow(state.events, state.goal, state.mode);

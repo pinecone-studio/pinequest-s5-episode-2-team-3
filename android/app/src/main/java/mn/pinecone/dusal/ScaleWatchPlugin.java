@@ -31,6 +31,16 @@ public class ScaleWatchPlugin extends Plugin {
         call.resolve();
     }
 
+    // Today's total and the goal or doctor's limit, for the text of the next drink's notification.
+    @PluginMethod
+    public void setDay(PluginCall call) {
+        String day = call.getString("day");
+        Integer drunk = call.getInt("drunk"), goal = call.getInt("goal");
+        if (day == null || drunk == null || goal == null) { call.reject("day, drunk and goal are required"); return; }
+        ScaleWatchService.setDay(getContext(), day, drunk, goal, call.getString("mode", "goal"));
+        call.resolve();
+    }
+
     // Drinks the service kept while the app was closed: { drinks: [{ baseId, boot, n, amountMl, secondsAgo, receivedAt }] }.
     @PluginMethod
     public void takeDrinks(PluginCall call) {

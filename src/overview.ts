@@ -125,6 +125,8 @@ function planSection(p: Profile): string {
   // With no diagnosis there is no doctor's amount to pick, so its fields and card are hidden.
   const noDoctor = p.condition === 'none';
   if (noDoctor && source === 'doctor') { source = 'calc'; draft = null; }
+  // A goal that is the doctor's amount opens with the doctor's card picked.
+  if (!draft && !noDoctor && state.goal === p.doctorLimit && state.mode === p.doctorMode) source = 'doctor';
   // Keep the user's own edits across re-renders; recompute only after a source or profile change.
   if (!draft) draft = suggestion(p, source);
   const d = draft;
@@ -340,6 +342,15 @@ function bindPlan() {
     if (!validProfile(p)) { showError('Нас 4–110, жин 10–250 кг, өндөр 90–230 см байна.'); return; }
     await askAiFor(p);
   });
+  // Entering the doctor's amount makes it the goal right away, so the home shows it instead of the calculated one.
+  form.querySelectorAll('#plan-doctor, #plan-doctor-mode').forEach(field => field.addEventListener('change', () => {
+    const p = readForm(form);
+    if (!validProfile(p)) return;
+    clearTimeout(autoAskTimer);
+    source = 'doctor';
+    draft = suggestion(p, 'doctor');
+    form.requestSubmit();
+  }));
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (!draft) return;
@@ -468,11 +479,11 @@ function render() {
   bindGaugeDrag(addDrink);
   markFeed(feedWaiting(state));
   placeHomePet(homeFeel(petState(state.events, state.goal, state.mode).mood, drink / goal, state.mode === 'limit'), drink / goal);
-  document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render()));
+  document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render(), state.mode === 'limit'));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
   bindWeatherChip();
-  scale.shareToday(drink);  // the base's screen shows the same total
+  scale.shareToday(drink, false, { goal, mode: state.mode });  // the base's screen shows the same total
   bindDevicePanel(() => {});  // the base panel redraws itself on each reading
   bindSchedule(() => state, render);
   // The tab bar's middle button ("/#reminders") opens today's schedule here.
