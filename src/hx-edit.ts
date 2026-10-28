@@ -175,19 +175,6 @@ export function chooseSheet(title: string, options: [string, string][], current:
   box.querySelector<HTMLInputElement>('input:checked, input')?.focus();
 }
 
-// Several choices at once (e.g. dialysis weekdays): check rows, Цуцлах / OK.
-export function chooseManySheet(title: string, options: [string, string][], current: readonly string[], onOk: (values: string[]) => void): void {
-  const { box, close } = sheet('hx-choose', `<h2>${title}</h2>
-    <div class="hx-radios" role="group" aria-label="${title}">${options.map(([v, label]) => `<label class="hx-radio"><input type="checkbox" name="hx-choose" value="${v}" ${current.includes(v) ? 'checked' : ''}/><span>${label}</span></label>`).join('')}</div>
-    <div class="hx-sheet-actions"><button type="button" class="hx-light" data-cancel>Цуцлах</button><button type="button" class="hx-blue" data-ok>OK</button></div>`);
-  box.querySelector('[data-cancel]')!.addEventListener('click', close);
-  box.querySelector('[data-ok]')!.addEventListener('click', () => {
-    const values = [...box.querySelectorAll<HTMLInputElement>('input[name="hx-choose"]:checked')].map(i => i.value);
-    close(); onOk(values);
-  });
-  box.querySelector<HTMLInputElement>('input')?.focus();
-}
-
 // "Logout" style (kit 84): a red title, one line, Цуцлах / the action.
 export function confirmSheet(title: string, text: string, okLabel: string, onOk: () => void): void {
   const { box, close } = sheet('hx-confirm', `<h2 class="danger">${title}</h2><p class="hx-confirm-text">${text}</p>

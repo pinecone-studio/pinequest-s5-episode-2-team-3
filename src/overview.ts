@@ -5,8 +5,12 @@ import './pwa';
 import { dayKey, defaults, type AppState, type WaterEntry } from './data';
 import { load, save, saveMessage, onExternalChange } from './storage';
 import { bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
-import { bindGaugeDrag, hxGauge, hxHeader, openCupSheet, readCup, readCupKind } from './hydrify';
-import { setKind } from './drinks';
+import { bindGaugeDrag, hxGauge, hxHeader, mainCup, readCup, readCupKind, writeCup, writeCupKind } from './hydrify';
+import { openDrinkSheet } from './drink-sheet';
+import { bindLimitHome, dialysisCard, limitGauge, quickAdd } from './home-limit';
+import { Toast } from './components/Toast';
+import type { Kind } from './drinks';
+import { setKind, setSalty } from './drinks';
 import { bindWatchCard, loadInsight, watchCard } from './watch-card';
 import { health } from './health';
 import { startSync } from './sync';
@@ -361,9 +365,11 @@ function bindPlan() {
 }
 
 let drinking = false;
-async function addDrink(ml: number) {
+// The limit home names the drink itself; elsewhere it is the drink the cup button pours.
+async function addDrink(ml: number, kind: Kind | undefined = readCupKind(), salty = false) {
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
-  setKind(entry.id, readCupKind());
+  setKind(entry.id, kind);
+  setSalty(entry.id, salty);
   drinking = true; render(); // "Ууж байна..." while it saves and the gauge fills (kit screen 30)
   const result = await save({ ...state, events: [...state.events, entry] });
   setTimeout(() => { drinking = false; render(); }, 900);
@@ -375,6 +381,9 @@ async function addDrink(ml: number) {
   offerUndo();
   render();
 }
+
+// The demo reset shows in a dev build or with ?demo=1; under a limit only then.
+const demo = import.meta.env.DEV || new URLSearchParams(location.search).has('demo');
 
 // Demo helper: empty today's ring by removing today's drinks, so the fill can be shown again.
 async function resetToday() {
@@ -448,35 +457,42 @@ function render() {
   const drink = drankOn(state.events, today);
   // Today's weather may raise today's target; the saved goal (and so past days) stays as it is.
   const goal = todayGoal(state.goal, state.mode);
+  // Under a doctor's limit the home only shows what is left; no weather advice, AI card or watch.
+  const limit = state.mode === 'limit', cup = mainCup();
+  const undoLine = `<p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo-entry">Буцаах</button></p>`;
   app.innerHTML = `<a class="skip-link" href="#main">Агуулга руу очих</a><main id="main" class="home home-app" tabindex="-1">
     <div class="app-shell">
       <header class="app-top"><a class="brand" href="/" aria-label="Дусал нүүр"><span class="brand-mark">${brandMark()}</span>Дусал</a>${siteNav('home')}<span class="app-date">${dateLabel(today)}</span></header>
       <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
       <div class="hydro">
         ${hxHeader('Нүүр')}
-        ${weatherChip(state.mode)}
-        ${hxGauge(drink, goal, state.mode, readCup(), drinking)}
-        <p class="undo-line" id="undo-line" role="status" ${undoId || undoReset ? '' : 'hidden'}>${undoReset ? 'Өнөөдрийг тэглэлээ' : `<b>+${number(undoAmount)} мл</b> нэмлээ`} <button type="button" class="text-button" id="undo">Буцаах</button></p>
-        ${doctorCard()}
-        ${watchCard()}
+        ${limit ? '' : weatherChip(state.mode)}
+        ${limit ? limitGauge(drink, goal, cup) + quickAdd(cup) + undoLine + dialysisCard() : hxGauge(drink, goal, state.mode, readCup(), drinking) + undoLine}
+        ${limit ? '' : doctorCard() + watchCard()}
         ${familySection()}
-        ${ScalePanel()}
+        ${ScalePanel(limit)}
       </div>
-      <footer class="home-footer hx-footer"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button><p><a href="/history.html">Бүх бүртгэл</a> · <a href="/settings.html#linked">Холболт, нөөц ба тохиргоо</a></p></footer>
+      <footer class="home-footer hx-footer">${limit && !demo ? '' : `<button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button>`}<p><a href="/history.html">Бүх бүртгэл</a> · <a href="/settings.html#linked">Холболт, нөөц ба тохиргоо</a></p></footer>
     </div>
     <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>
       <div class="plan-sheet"><button type="button" class="plan-close" id="plan-close" aria-label="Хаах">${mdIcon('close')}</button>${planSection(readProfile())}</div>
     </div>
-  </main>`;
+  </main>
+  ${limit ? Toast() : ''}`;
   pushWidget(state, drink);
   void reportFamily(state, drink);
   bindFamily();
   bindHydration(drink, addDrink, render);
-  bindGaugeDrag(addDrink);
-  document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openCupSheet(readCup(), () => render(), state.mode === 'limit'));
+  if (limit) bindLimitHome({ drink, goal, limit, cup, add: (ml, kind, salty) => void addDrink(ml, kind, salty) });
+  else bindGaugeDrag(addDrink);
+  // The goal home's cup button opens the drink sheet; what it adds becomes what «Уух» pours next.
+  document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openDrinkSheet({
+    drink, goal, limit: false, cup: readCup(),
+    add: (ml, kind, salty) => { writeCup(ml); writeCupKind(kind); void addDrink(ml, kind, salty); },
+  }, { kind: readCupKind() }));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
-  bindDoctorCard(render, async (ml, mode) => {
+  if (!limit) bindDoctorCard(render, async (ml, mode) => {
     const result = await save({ ...state, goal: ml, mode });
     await reload();
     source = 'doctor'; draft = null;
@@ -489,23 +505,24 @@ function render() {
   bindSchedule(() => state, render);
   // The tab bar's middle button ("/#reminders") opens today's schedule here.
   if (location.hash === '#reminders') { history.replaceState(null, '', '/'); document.querySelector<HTMLButtonElement>('#sched-open')?.click(); }
-  document.querySelector('#undo')?.addEventListener('click', undo);
+  document.querySelector('#undo-entry')?.addEventListener('click', undo);
   document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
   bindPlan();
   // The goal pill opens the calculator as a glass sheet over the home; the close button, the backdrop or Esc close it.
   const sheet = document.querySelector<HTMLElement>('#plan-wrap')!;
-  const pill = document.querySelector<HTMLButtonElement>('#plan-toggle')!;
+  // The goal pill is on the goal-mode gauge only; a limit is changed on «Эмчийн зөвлөмж» › Засах.
+  const pill = document.querySelector<HTMLButtonElement>('#plan-toggle');
   const setOpen = (open: boolean) => {
     planOpen = open;
-    pill.setAttribute('aria-expanded', String(open));
+    pill?.setAttribute('aria-expanded', String(open));
     sheet.hidden = !open;
     if (open) sheet.classList.remove('still');
-    if (open) sheet.querySelector<HTMLElement>('.plan-close')!.focus(); else pill.focus();
+    if (open) sheet.querySelector<HTMLElement>('.plan-close')!.focus(); else pill?.focus();
   };
   document.querySelector('#plan-close')!.addEventListener('click', () => setOpen(false));
   sheet.addEventListener('click', event => { if (event.target === sheet) setOpen(false); });
   sheet.addEventListener('keydown', event => { if (event.key === 'Escape') setOpen(false); });
-  pill.addEventListener('click', () => {
+  pill?.addEventListener('click', () => {
     setOpen(!planOpen);
   });
 }

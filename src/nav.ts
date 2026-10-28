@@ -74,7 +74,7 @@ if (embedded) {
     // A bare "#" (the profile's back link) has an empty hash, so the written href is checked too.
     if ((link.hash || link.getAttribute('href') === '#') && link.pathname === location.pathname) return;
     event.preventDefault();
-    toHost({ type: 'go', tab: rank(link.pathname) });
+    toHost({ type: 'go', tab: rank(link.pathname), hash: link.hash });
   });
   // Horizontal swipes are passed to the host, which moves the frames with the finger. Screen
   // coordinates, because the frame itself moves under the finger while dragging.
