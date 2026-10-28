@@ -15,7 +15,8 @@
   --blue: var(--sky-deep);
   --hair: #edf2f7;
   --card-shadow: 0 6px 20px rgba(70, 140, 200, .12);
-  --home-bg: #fbfbfc;
+  --home-bg: #eef2f7;
+  --card-lift: 0 1px 2px rgba(20, 40, 70, .05), 0 4px 14px rgba(20, 40, 70, .06);
   font-family: Urbanist, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   color: var(--ink);
 }
@@ -253,7 +254,7 @@ html .hx-logo { display: grid; place-items: center; width: 32px; height: 32px; c
 html .hx-logo svg { width: 28px; height: 28px; }
 html .hx-more { display: grid; place-items: center; width: 44px; height: 44px; color: var(--ink); }
 html .hx-more svg, html .hx-row-more svg { width: 22px; height: 22px; fill: currentColor; }
-html .hx-card { width: 100%; padding: 18px 16px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20, 40, 70, .06); }
+html .hx-card { width: 100%; padding: 18px 16px; border-radius: 16px; background: #fff; box-shadow: var(--card-lift); }
 html .hx-gauge-card { display: grid; justify-items: center; gap: 14px; padding-bottom: 22px; }
 html .hx-gauge { position: relative; width: 100%; max-width: 330px; }
 html .hx-gauge svg { display: block; width: 100%; height: auto; }

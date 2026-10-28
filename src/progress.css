@@ -63,7 +63,7 @@ html .pr-link:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px
 
 /* 7 / 30 / 90 day milestones */
 html .pr-miles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
-html .pr-miles li { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 84px; padding: 12px 6px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20, 40, 70, .06); text-align: center; }
+html .pr-miles li { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 84px; padding: 12px 6px; border-radius: 16px; background: #fff; box-shadow: var(--card-lift); text-align: center; }
 html .pr-miles b { font-size: 24px; font-weight: 800; line-height: 1.1; color: #bdbdbd; }
 html .pr-miles small { font-size: 12px; color: var(--muted); }
 html .pr-miles li.reached b { color: #2e9e5b; }
@@ -77,7 +77,7 @@ html .nr-who h2 { font-size: 20px; font-weight: 800; }
 html .nr-who p { margin: 4px 0 10px; font-size: 14px; color: var(--muted); }
 html .nr-pill { display: inline-block; padding: 6px 12px; border-radius: 999px; background: var(--sky-soft); font-size: 13px; font-weight: 700; color: var(--sky-deep); }
 html .nr-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-html .nr-tiles li { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 80px; padding: 12px 6px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20, 40, 70, .06); text-align: center; }
+html .nr-tiles li { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 80px; padding: 12px 6px; border-radius: 16px; background: #fff; box-shadow: var(--card-lift); text-align: center; }
 html .nr-tiles b { font-size: 22px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 html .nr-tiles small { font-size: 12px; line-height: 1.3; color: var(--muted); }
 html .nr-tiles li.bad { background: #fdecec; }
