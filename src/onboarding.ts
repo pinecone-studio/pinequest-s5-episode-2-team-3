@@ -10,8 +10,8 @@ import { about } from './prefs';
 import { climateOf, fetchWeather } from './weather';
 
 // First visit, Hydrify layout (demo): two walkthrough slides, a sign-up form (name kept on this
-// phone; email and password are not sent anywhere), eight steps with a progress bar
-// (sex, height and weight together, age, wake-up, bedtime, activity, climate, condition), a "making your plan"
+// phone; email and password are not sent anywhere), seven steps with a progress bar
+// (sex, height and weight together, age, wake-up and bedtime together, activity, climate, condition), a "making your plan"
 // ring, then the daily amount from calcPlan (+500 мл in a hot climate), shown in the unit picked.
 const SEEN_KEY = 'dusal-onboarded-v1';
 
@@ -22,7 +22,7 @@ const markSeen = () => { try { localStorage.setItem(SEEN_KEY, '1'); } catch { /*
 
 type Sex = 'male' | 'female' | 'none';
 type Screen = 'walk' | 'signup' | 'step' | 'making' | 'ready';
-const QUESTIONS = 8;
+const QUESTIONS = 7;
 type Climate = 'hot' | 'mild' | 'cold';
 const CLIMATES: Record<Climate, { label: string; icon: string; extra: number }> = {
   hot: { label: 'Халуун', icon: '<circle cx="16" cy="16" r="6.5" fill="#ffb300"/><g stroke="#ffb300" stroke-width="2.4" stroke-linecap="round"><path d="M16 2.5v4M16 25.5v4M2.5 16h4M25.5 16h4M6.5 6.5l2.8 2.8M22.7 22.7l2.8 2.8M6.5 25.5l2.8-2.8M22.7 9.3l2.8-2.8"/></g>', extra: 500 },
@@ -285,11 +285,11 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
             ? wheel('ob-weight', range(10, 250), p.weight, 'кг')
             : wheel('ob-weight', range(22, 550), pounds(p.weight), 'lb')}</div></div>`);
       case 3: return question('Хэдэн настай вэ?', 'Нас ахих тусам цангах мэдрэмж сулардаг.', wheel('ob-age', range(4, 110), p.age, 'нас'));
-      case 4: return question('Хэдэн цагт сэрдэг вэ?', 'Сануулга сэрснээс хойш эхэлнэ.', timePicker('ob-wake', times.wake));
-      case 5: return question('Хэдэн цагт унтдаг вэ?', 'Унтахын өмнө сануулга ирэхгүй.', timePicker('ob-sleep', times.sleep));
-      case 6: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
+      case 4: return question('Хэдэн цагт сэрж, унтдаг вэ?', 'Сануулга сэрснээс хойш эхэлж, унтахаас өмнө дуусна.',
+        `<div class="ob-times"><p class="ob-time-label">Сэрэх</p>${timePicker('ob-wake', times.wake)}<p class="ob-time-label">Унтах</p>${timePicker('ob-sleep', times.sleep)}</div>`);
+      case 5: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
         `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => `<button type="button" class="ob-card${p.activity === a ? ' on' : ''}" data-act="${a}" aria-pressed="${p.activity === a}"><span class="ob-card-icon">${mdIcon(ACT_ICONS[a])}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small></button>`).join('')}</div>`);
-      case 7: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа уур амьсгалыг сонгоно уу.',
+      case 6: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа уур амьсгалыг сонгоно уу.',
         `<div class="ob-cards">${(Object.keys(CLIMATES) as Climate[]).map(c => `<button type="button" class="ob-climate${climate === c ? ' on' : ''}" data-climate="${c}" aria-pressed="${climate === c}"><svg viewBox="0 0 32 32" aria-hidden="true">${CLIMATES[c].icon}</svg><b>${CLIMATES[c].label}</b>${CLIMATES[c].extra ? `<small>+${CLIMATES[c].extra} мл</small>` : ''}</button>`).join('')}</div>
         ${'geolocation' in navigator ? `<button type="button" class="ob-locate" data-locate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Миний байршлын цаг агаараар</button>` : ''}
         <p class="ob-weather" role="status">${weather}</p>`);
@@ -385,7 +385,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         ? 'Байршлын зөвшөөрөл өгөөгүй. Доороос сонгоно уу.'
         : 'Байршил авч чадсангүй. Доороос сонгоно уу.';
     }
-    if (screen === 'step' && step === 7) draw();
+    if (screen === 'step' && step === 6) draw();
   }
 
   function draw(): void {
@@ -439,7 +439,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     if (step === 2 && w) p.weight = wUnit === 'kg' ? Number(w) : Math.round(Number(w) * 0.4536);
     if (step === 3) p.age = Number(picked('ob-age') ?? p.age);
     if (step === 4) times.wake = `${picked('ob-wake-h') ?? '07'}:${picked('ob-wake-m') ?? '00'}`;
-    if (step === 5) times.sleep = `${picked('ob-sleep-h') ?? '22'}:${picked('ob-sleep-m') ?? '00'}`;
+    if (step === 4) times.sleep = `${picked('ob-sleep-h') ?? '22'}:${picked('ob-sleep-m') ?? '00'}`;
     const limit = box.querySelector<HTMLInputElement>('#ob-limit');
     if (limit) { const v = Math.round(Number(limit.value) / 50) * 50; if (v >= 500 && v <= 4000) p.doctorLimit = v; }
     const note = box.querySelector<HTMLInputElement>('#ob-note');
@@ -500,7 +500,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       if (step < QUESTIONS) {
         step += 1; draw();
         // Already allowed once: fill the climate in without asking again.
-        if (step === 7 && !weather) void navigator.permissions?.query({ name: 'geolocation' }).then(r => { if (r.state === 'granted') void locate(); }).catch(() => {});
+        if (step === 6 && !weather) void navigator.permissions?.query({ name: 'geolocation' }).then(r => { if (r.state === 'granted') void locate(); }).catch(() => {});
         return;
       }
       screen = 'making'; draw(); making();

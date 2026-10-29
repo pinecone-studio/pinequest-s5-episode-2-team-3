@@ -1370,3 +1370,8 @@ html .ob-col .ob-wheel { width: 100%; }
 html .ob-pick.two .ob-wheel-item { font-size: 22px; gap: 3px; }
 html .ob-pick.two .ob-wheel-item.on { font-size: 32px; }
 html .ob-pick.two .ob-wheel-item small { font-size: 13px; }
+/* Wake-up and bedtime on one step: two shorter wheels pairs, each under its label. */
+html .ob-times { display: grid; gap: 4px; margin-top: 14px; }
+html .ob-time-label { margin: 6px 0 0; text-align: center; font-size: 15px; font-weight: 700; color: var(--ink); }
+html .ob-times .ob-wheel { height: 160px; padding: 54px 0; mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent); }
+html .ob-times .ob-time { margin-top: 0; }
