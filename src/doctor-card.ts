@@ -15,6 +15,11 @@ let asking = false;
 let read: DoctorRead | null = null;
 let error = '';
 let done = '';
+// A one-row card with an «Оруулах» button; the form opens as a pop-up over the home, and stays
+// open while the AI is asked or its answer waits. `fresh` plays the opening only once, not on each
+// redraw while it is open.
+let open = false;
+let fresh = false;
 
 const kind = (mode: 'goal' | 'limit') => (mode === 'limit' ? 'хамгийн ихдээ' : 'дор хаяж');
 
@@ -33,22 +38,33 @@ function resultBlock(): string {
   </div>`;
 }
 
-// One step of «Зорилтоо тохируулах» (overview.ts), right under the diagnosis.
+// A card on the home, under the gauge, for everyone (overview.ts).
 export function doctorCard(): string {
   const times = readSettings().times;
-  return `<div class="plan-doc doctor-card" role="group" aria-labelledby="doc-title">
-    <p class="plan-step" id="doc-title">${mdIcon('stethoscope')} Эмчийн заавар <small>байвал</small></p>
-    <p class="doc-intro">Бичээд эсвэл зургийг нь оруулаад AI-д өгвөл хэмжээ, уух цагийг тань тохируулна.</p>
-    ${times ? `<p class="doc-now">Одоогийн хуваарь: ${times.map(t => `${t.at} · ${number(t.ml)} мл`).join(', ')}</p>` : ''}
-    <label class="visually-hidden" for="doc-text">Эмчийн заавар</label>
-    <textarea id="doc-text" rows="3" maxlength="2000" placeholder="Жишээ: Өдөрт 1.5 литрээс хэтрүүлэхгүй. Өглөө 8, өдөр 12, орой 18 цагт 300 мл.">${escape(text)}</textarea>
-    <div class="doc-row">
-      <label class="file-button doc-photo"><span aria-hidden="true">📷</span><span>${photo ? escape(photo.name) : 'Зураг'}</span><input type="file" id="doc-photo" accept="image/*"/></label>
-      ${photo ? '<button type="button" class="text-button" data-doc-unphoto>Зураг хасах</button>' : ''}
-      <button type="button" class="hx-blue doc-ask" data-doc-ask ${asking ? 'disabled' : ''}>${asking ? 'Уншиж байна…' : 'AI-д өгөх'}</button>
+  const shown = open || asking || !!read || !!error;
+  const still = !fresh;
+  fresh = false;
+  return `<section class="hx-card doctor-card" aria-labelledby="doc-title">
+    <div class="doc-top" data-doc-open>
+      <span class="doc-icon">${mdIcon('stethoscope')}</span><span class="doc-head"><b id="doc-title">Эмчийн заавар</b>${done ? `<small>${escape(done)}</small>` : ''}</span>
+      <button type="button" class="doc-cta" id="doc-toggle" aria-haspopup="dialog" aria-label="Эмчийн заавар оруулах"><span>Оруулах</span></button>
     </div>
-    ${resultBlock()}
-  </div>`;
+    ${shown ? `<div class="hx-dim doc-dim${still ? ' still' : ''}" data-doc-dim>
+      <div class="hx-bottom doc-sheet" role="dialog" aria-modal="true" aria-labelledby="doc-sheet-title">
+      <span class="hl-grab" aria-hidden="true"></span>
+      <div class="hm-head"><h2 id="doc-sheet-title">Эмчийн заавар</h2><button type="button" class="hm-close" data-doc-close aria-label="Хаах">${mdIcon('close')}</button></div>
+      <p class="doc-intro">Бичээд эсвэл зургийг нь оруулаад AI-д өгвөл хэмжээ, уух цагийг тань тохируулна.</p>
+      ${times ? `<p class="doc-now">Одоогийн хуваарь: ${times.map(t => `${t.at} · ${number(t.ml)} мл`).join(', ')}</p>` : ''}
+      <label class="visually-hidden" for="doc-text">Эмчийн заавар</label>
+      <textarea id="doc-text" rows="3" maxlength="2000" placeholder="Жишээ: Өдөрт 1.5 литрээс хэтрүүлэхгүй. Өглөө 8, өдөр 12, орой 18 цагт 300 мл.">${escape(text)}</textarea>
+      <div class="doc-row">
+        <label class="file-button doc-photo"><span aria-hidden="true">📷</span><span>${photo ? escape(photo.name) : 'Зураг'}</span><input type="file" id="doc-photo" accept="image/*"/></label>
+        ${photo ? '<button type="button" class="text-button" data-doc-unphoto>Зураг хасах</button>' : ''}
+        <button type="button" class="hx-blue doc-ask" data-doc-ask ${asking ? 'disabled' : ''}>${asking ? 'Уншиж байна…' : 'AI-д өгөх'}</button>
+      </div>
+      ${resultBlock()}
+    </div></div>` : ''}
+  </section>`;
 }
 
 // A phone photo is several MB; 1600 px JPEG keeps the writing readable and the request small.
@@ -67,6 +83,20 @@ async function shrink(file: File): Promise<{ mediaType: string; data: string }> 
 export function bindDoctorCard(redraw: () => void, apply: (ml: number, mode: 'goal' | 'limit') => Promise<boolean>): void {
   const card = document.querySelector<HTMLElement>('.doctor-card');
   if (!card) return;
+  // The whole row opens the pop-up (an easy target); ×, a tap outside or Escape closes it and drops a
+  // pending answer or error, since nothing is saved until «Батлах».
+  const show = (yes: boolean) => {
+    open = yes; fresh = yes; done = '';
+    if (!yes) { read = null; error = ''; }
+    redraw();
+    document.querySelector<HTMLElement>(yes ? '#doc-text' : '#doc-toggle')?.focus({ preventScroll: true });
+  };
+  card.querySelector('[data-doc-open]')!.addEventListener('click', () => show(true));
+  const dim = card.querySelector<HTMLElement>('[data-doc-dim]');
+  if (!dim) return;
+  card.querySelector('[data-doc-close]')!.addEventListener('click', () => show(false));
+  dim.addEventListener('click', e => { if (e.target === dim) show(false); });
+  dim.addEventListener('keydown', e => { if (e.key === 'Escape') show(false); });
   card.querySelector<HTMLTextAreaElement>('#doc-text')!.addEventListener('input', e => { text = (e.target as HTMLTextAreaElement).value; });
   card.querySelector<HTMLInputElement>('#doc-photo')!.addEventListener('change', async e => {
     const file = (e.target as HTMLInputElement).files?.[0];
@@ -95,7 +125,7 @@ export function bindDoctorCard(redraw: () => void, apply: (ml: number, mode: 'go
     if (!(await apply(r.ml, r.mode))) { error = 'Хадгалж чадсангүй. Дахин оролдоно уу.'; redraw(); return; }
     const on = nativeReminders ? await askPermission().catch(() => false) : readSettings().on;
     writeSettings({ ...readSettings(), times: r.times.length ? r.times : undefined, on });
-    read = null; text = ''; photo = null;
+    read = null; text = ''; photo = null; open = false;
     done = `Өдөрт ${kind(r.mode)} ${number(r.ml)} мл боллоо.${on ? ' Сануулга тавигдлаа.' : ' Сануулгыг Профайл → Уух сануулга дотроос асаана уу.'}`;
     redraw();
   });

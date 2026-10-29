@@ -158,8 +158,6 @@ function planSection(p: Profile): string {
     </div>` : '';
   // Ready-made days only without a diagnosis: with one, the amount comes from the doctor or the calculator.
   const templates = p.condition === 'none' && d?.mode === 'goal';
-  // The AI's doctor card lives here on both homes, right under the diagnosis it depends on.
-  const doctorHere = !noDoctor;
   return `<section class="plan-card" aria-labelledby="plan-title">
     <h2 id="plan-title">Зорилтоо тохируулах</h2>
     <form id="plan-form" novalidate>
@@ -172,7 +170,6 @@ function planSection(p: Profile): string {
         ${p.condition === 'other' ? `<label class="wide">Ямар онош вэ?<input id="plan-condition-note" name="conditionNote" type="text" maxlength="60" placeholder="Оношоо энд бичнэ үү" aria-describedby="plan-condition-hint" value="${escape(p.conditionNote)}"/>
           <small id="plan-condition-hint">${aiReady === false ? 'AI идэвхгүй байна. Энэ оношид тохирох хэмжээг эмчээсээ асуугаарай.' : 'Бичээд түр хүлээхэд AI таны оношийг харгалзан тооцно. «Тооцоолсон» хэмжээ өөрчлөгдөхгүй.'}</small></label>` : ''}
       </div>
-      ${doctorHere ? doctorCard() : ''}
       <details class="plan-more" id="plan-more" ${planMore ? 'open' : ''}>
         <summary>Дэлгэрэнгүй тохиргоо</summary>
         <div class="plan-fields">
@@ -226,13 +223,14 @@ function renderKeepingFocus() {
   const field = document.activeElement as HTMLInputElement | null;
   const id = field?.id;
   const at = field?.type === 'text' ? [field.selectionStart, field.selectionEnd] : null;
-  const scroll = document.querySelector('#plan-wrap')?.scrollTop ?? 0;
+  const scroll = document.querySelector('#plan-wrap')?.scrollTop ?? 0, page = window.scrollY;
   render();
+  window.scrollTo(0, page);
   const wrap = document.querySelector<HTMLElement>('#plan-wrap')!;
   wrap.classList.add('still');
   wrap.scrollTop = scroll;
   const again = id ? document.getElementById(id) as HTMLInputElement | null : null;
-  again?.focus();
+  again?.focus({ preventScroll: true });
   if (again && at) again.setSelectionRange(at[0], at[1]);
 }
 
@@ -484,6 +482,7 @@ function render() {
         ${hxHeader('Нүүр')}
         ${limit ? '' : weatherChip(state.mode)}
         ${limit ? limitGauge(drink, goal, cup) : hxGauge(drink, goal, state.mode, readCup(), drinking)}${undoLine}
+        ${doctorCard()}
         ${watchCard()}
         ${familySection()}
         ${ScalePanel(limit)}
@@ -509,8 +508,7 @@ function render() {
   }, { kind: readCupKind() }));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
-  // The doctor card is inside the open goal sheet, which must redraw without replaying its opening
-  // or losing its scroll.
+  // The doctor card on the home redraws keeping the field in focus and the page where it was.
   bindDoctorCard(renderKeepingFocus, async (ml, mode) => {
     const result = await save({ ...state, goal: ml, mode });
     await reload();
