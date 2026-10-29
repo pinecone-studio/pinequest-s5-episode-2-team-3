@@ -33,11 +33,11 @@ function resultBlock(): string {
   </div>`;
 }
 
-// One step of «Зорилтоо тохируулах» (overview.ts), right under the diagnosis.
+// A card on the home, under the gauge, for anyone with a diagnosis (overview.ts).
 export function doctorCard(): string {
   const times = readSettings().times;
-  return `<div class="plan-doc doctor-card" role="group" aria-labelledby="doc-title">
-    <p class="plan-step" id="doc-title">${mdIcon('stethoscope')} Эмчийн заавар <small>байвал</small></p>
+  return `<section class="hx-card doctor-card" aria-labelledby="doc-title">
+    <h2 id="doc-title">${mdIcon('stethoscope')} Эмчийн заавар <small>байвал</small></h2>
     <p class="doc-intro">Бичээд эсвэл зургийг нь оруулаад AI-д өгвөл хэмжээ, уух цагийг тань тохируулна.</p>
     ${times ? `<p class="doc-now">Одоогийн хуваарь: ${times.map(t => `${t.at} · ${number(t.ml)} мл`).join(', ')}</p>` : ''}
     <label class="visually-hidden" for="doc-text">Эмчийн заавар</label>
@@ -48,7 +48,7 @@ export function doctorCard(): string {
       <button type="button" class="hx-blue doc-ask" data-doc-ask ${asking ? 'disabled' : ''}>${asking ? 'Уншиж байна…' : 'AI-д өгөх'}</button>
     </div>
     ${resultBlock()}
-  </div>`;
+  </section>`;
 }
 
 // A phone photo is several MB; 1600 px JPEG keeps the writing readable and the request small.
