@@ -178,6 +178,9 @@ export function gaugeArt(frac: number, clipId = 'hx-drop'): string {
         </g></g>`;
 }
 
+// «⋯» at the end of the gauge's row on both homes: the rarer actions, chosen by diagnosis (home-menu.ts).
+export const moreButton = () => `<button type="button" class="hx-cup hx-more-act" id="hx-more" aria-label="Бусад үйлдэл" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>`;
+
 export function hxGauge(drink: number, goal: number, mode: Mode, cup: number, drinking = false): string {
   const kind = readCupKind();
   const frac = Math.max(0, Math.min(1, drink / goal));
@@ -196,6 +199,7 @@ export function hxGauge(drink: number, goal: number, mode: Mode, cup: number, dr
       <button type="button" class="hx-drink${drinking ? ' busy' : ''}" data-drink="${cup}" ${drinking ? 'disabled' : ''}>${drinking ? 'Ууж байна...' : `Уух (${number(cup)} мл)`}</button>
       <button type="button" class="hx-cup" id="hx-cup" aria-label="Аяга солих, одоо ${kind ? `${KINDS[kind].name} ` : ''}${number(cup)} мл">${kind ? KINDS[kind].icon : iconFor(cup)}<span class="hx-swap" aria-hidden="true">⟳</span></button>
       ${pourButton()}
+      ${moreButton()}
     </div>
     ${pourPanel()}
   </section>`;
