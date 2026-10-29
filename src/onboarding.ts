@@ -152,6 +152,15 @@ function body(sex: Sex | null, weight: number, height: number): string {
 const FOR_ALL: Condition[] = ['none', 'stones', 'kidney', 'heart', 'other'];
 const FOR_WOMEN: Condition[] = ['pregnant', 'breastfeeding'];
 const ACT_ICONS = { low: 'weekend', medium: 'directions_walk', high: 'directions_run' } as const satisfies Record<Activity, string>;
+// The picked level opens with two questions of its own: what fills the day (several), and how long.
+const ACT_MORE: Record<Activity, { kinds: [string, string[]]; time: [string, string[]] }> = {
+  low: { kinds: ['Өдрийн ихэнх цагаа юу хийж өнгөрөөдөг вэ?', ['Оффисын ажил', 'Гэртээ', 'Сурдаг', 'Жолооддог']],
+    time: ['Өдөрт хэр удаан алхдаг вэ?', ['15 мин хүрэхгүй', '15–30 мин', '30 мин+']] },
+  medium: { kinds: ['Ямар дасгал хийдэг вэ?', ['Алхалт', 'Гүйлт', 'Фитнес', 'Йог', 'Дугуй', 'Бөмбөг', 'Сэлэлт']],
+    time: ['Нэг удаад хэр удаан?', ['30 мин', '45 мин', '1 цаг', '1.5 цаг+']] },
+  high: { kinds: ['Юу хийдэг вэ?', ['Мэргэжлийн спорт', 'Хүнд биеийн ажил', 'Гүйлт', 'Фитнес', 'Бөх', 'Бусад']],
+    time: ['Өдөрт хэр удаан?', ['1 цаг', '2 цаг', '3 цаг+']] },
+};
 
 const SLIDES = [
   { title: 'Дусал – таны усны туслах!', text: 'Биеийн жингийн 1–2%-ийн ус алдахад л ядаргаа, толгой өвдөлт эхэлдэг. Усаа бүртгэж, зорилтоо биелүүлээрэй.' },
@@ -225,6 +234,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   const times = readSettings();
   let sex: Sex | null = null;
   let climate: Climate = 'mild';
+  let move = { kinds: [] as string[], time: '' }; // the opened activity card's answers
   let temp = 18; // the climate wheel, °C on a usual day where they live; the climate follows it
   let weather = ''; // the line under the climate wheel: where the value came from
   let unit: Unit = 'ml';
@@ -242,7 +252,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   document.body.append(box);
 
   const finish = (plan: Plan | null) => {
-    if (plan) { writeProfile(p); writeSettings(times); about.write({ sex: sex ?? 'none', climate }); }
+    if (plan) { writeProfile(p); writeSettings(times); about.write({ sex: sex ?? 'none', climate, move }); }
     markSeen();
     box.remove();
     if (plan) onDone(plan);
@@ -284,7 +294,15 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         `<div class="ob-times">${([['ob-wake', 'Сэрэх', '☀', times.wake], ['ob-sleep', 'Унтах', '☾', times.sleep]] as const).map(([id, label, icon, at]) =>
           `<section class="ob-tcard" aria-label="${label}"><p class="ob-time-label"><span aria-hidden="true">${icon}</span>${label}</p>${timePicker(id, at)}</section>`).join('')}</div>`);
       case 5: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
-        `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => `<button type="button" class="ob-card${p.activity === a ? ' on' : ''}" data-act="${a}" aria-pressed="${p.activity === a}"><span class="ob-card-icon">${mdIcon(ACT_ICONS[a])}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small></button>`).join('')}</div>`);
+        `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => {
+          const on = p.activity === a;
+          const chips = (field: 'kinds' | 'time', [label, opts]: [string, string[]]) => `<fieldset class="ob-chips"><legend>${label}</legend>${opts.map(o => {
+            const picked = field === 'kinds' ? move.kinds.includes(o) : move.time === o;
+            return `<button type="button" class="ob-chip${picked ? ' on' : ''}" data-${field}="${escape(o)}" aria-pressed="${picked}">${escape(o)}</button>`;
+          }).join('')}</fieldset>`;
+          return `<div class="ob-acc${on ? ' on' : ''}"><button type="button" class="ob-card${on ? ' on' : ''}" data-act="${a}" aria-pressed="${on}" aria-expanded="${on}"><span class="ob-card-icon">${mdIcon(ACT_ICONS[a])}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small><span class="ob-acc-arrow" aria-hidden="true"></span></button>
+            ${on ? `<div class="ob-acc-body">${chips('kinds', ACT_MORE[a].kinds)}${chips('time', ACT_MORE[a].time)}</div>` : ''}</div>`;
+        }).join('')}</div>`);
       case 6: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа ердийн өдрийн дулааныг сонгоно уу.',
         `<div class="ob-pick">${climateBadge(temp)}${wheel('ob-temp', range(-30, 45), temp, '°C', v => String(v).replace('-', '−'))}</div>
         ${'geolocation' in navigator ? `<button type="button" class="ob-locate" data-locate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Миний байршлын цаг агаараар</button>` : ''}
@@ -492,7 +510,22 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     on('[data-locate]', () => void locate());
     on('[data-unit]', el => { unit = el.dataset.unit as Unit; draw(); });
     on('[data-adjust]', () => openAmountSheet('Өдрийн зорилт', '💧', result().ml, ml => { custom = Math.max(500, Math.min(5000, Math.round(ml / 50) * 50)); draw(); }));
-    on('[data-act]', el => { p.activity = el.dataset.act as Activity; draw(); });
+    on('[data-act]', el => {
+      const a = el.dataset.act as Activity;
+      if (a !== p.activity) move = { kinds: [], time: '' };
+      p.activity = a; draw();
+      box.querySelector<HTMLElement>(`[data-act="${a}"]`)?.focus();
+    });
+    // Chips change in place, so the page keeps its scroll.
+    on('[data-kinds]', el => {
+      const k = el.dataset.kinds!;
+      move.kinds = move.kinds.includes(k) ? move.kinds.filter(x => x !== k) : [...move.kinds, k];
+      el.classList.toggle('on'); el.setAttribute('aria-pressed', String(move.kinds.includes(k)));
+    });
+    on('[data-time]', el => {
+      move.time = move.time === el.dataset.time ? '' : el.dataset.time!;
+      box.querySelectorAll<HTMLElement>('[data-time]').forEach(b => { const yes = b.dataset.time === move.time; b.classList.toggle('on', yes); b.setAttribute('aria-pressed', String(yes)); });
+    });
     on('[data-cond]', el => { readStep(); p.condition = el.dataset.cond as Condition; draw(); });
     on('[data-continue]', () => {
       readStep();
