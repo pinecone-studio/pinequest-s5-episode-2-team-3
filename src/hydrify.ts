@@ -131,7 +131,7 @@ export function bindGaugeDrag(add: (ml: number) => unknown): void {
     gauge.classList.toggle('dragging', extra > 0 || dragging);
   };
   const reset = () => { dragging = false; show(drink); gauge.classList.remove('dragging'); };
-  const commit = () => { const extra = target - drink; dragging = false; gauge.classList.remove('dragging'); if (extra >= 10) add(extra); else reset(); };
+  const commit = () => { const extra = target - drink; dragging = false; gauge.classList.remove('dragging'); if (extra >= 10) { gaugeAt('hx-drop', Math.min(1, target / goal), target); add(extra); } else reset(); };
   const fracAt = (e: PointerEvent) => arcAt(svg, e.clientX, e.clientY)?.frac ?? null;
   const onRing = (e: PointerEvent) => { const at = arcAt(svg, e.clientX, e.clientY); return !!at && at.r > 92 && at.r < 152; };
   gauge.addEventListener('pointerdown', e => {
@@ -161,6 +161,45 @@ export function bindGaugeDrag(add: (ml: number) => unknown): void {
 
 const level = (frac: number) => 196 - frac * 92; // water top inside the drop (it spans y 104–196)
 
+// Every render draws the gauges anew, so CSS alone can't animate a change («Уух» would just jump). A
+// gauge (by its clip id) starts where it last stood and is eased to its new share here, its count
+// ([data-gauge-count]) rolling with it. The gauge's box carries data-gauge-key.
+const shown = new Map<string, { frac: number; value: number }>();
+// A move under way: where it is now. A redraw in the middle (the save landing) draws it there and lets it run on.
+const moving = new Map<string, { frac: number; value: number; frame: number }>();
+const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Where the gauge should be drawn now; the eased move to (frac, value) starts on the next frame.
+export function gaugeStart(key: string, frac: number, value: number, fmt: (v: number) => string = number): { frac: number; value: number } {
+  const target = shown.get(key), run = moving.get(key);
+  if (run && target?.frac === frac && target.value === value) return run;
+  if (run) cancelAnimationFrame(run.frame);
+  moving.delete(key);
+  const from = reduced() ? { frac, value } : run ?? target ?? { frac, value };
+  shown.set(key, { frac, value });
+  if (from.frac === frac && from.value === value) return { frac, value };
+  const t0 = performance.now(), ms = 700;
+  const step = (now: number) => {
+    const box = document.querySelector<HTMLElement>(`[data-gauge-key="${key}"]`);
+    const t = Math.min(1, (now - t0) / ms), e = 1 - (1 - t) ** 3;
+    const f = from.frac + (frac - from.frac) * e, v = t < 1 ? from.value + (value - from.value) * e : value;
+    if (box) {
+      const arc = box.querySelector<SVGPathElement>('.hx-progress');
+      arc?.setAttribute('stroke-dasharray', `${(f * 100).toFixed(1)} 100`);
+      arc?.classList.toggle('empty', f <= 0);
+      box.querySelector<SVGGElement>('.hx-water')?.style.setProperty('transform', `translateY(${level(f).toFixed(1)}px)`);
+      box.querySelector<HTMLElement>('.hx-knob')?.setAttribute('style', knobAt(f));
+      const count = box.querySelector<HTMLElement>('[data-gauge-count]');
+      if (count) count.textContent = fmt(Math.round(v));
+    }
+    if (t < 1 && box) moving.set(key, { frac: f, value: v, frame: requestAnimationFrame(step) });
+    else moving.delete(key);
+  };
+  moving.set(key, { ...from, frame: requestAnimationFrame(step) });
+  return from;
+}
+// A drag already showed the new total: the next render starts from there instead of easing back.
+const gaugeAt = (key: string, frac: number, value: number) => shown.set(key, { frac, value });
+
 // The arc, its ticks and the drop whose water rises with `frac` (viewBox 0 0 300 270). Shared by the
 // home gauge and the doctor's-limit gauge (home-limit.ts), which gives its own clip id.
 export function gaugeArt(frac: number, clipId = 'hx-drop'): string {
@@ -186,16 +225,21 @@ export function hxGauge(drink: number, goal: number, mode: Mode, cup: number, dr
   const kind = readCupKind();
   const frac = Math.max(0, Math.min(1, drink / goal));
   const over = mode === 'limit' && drink > goal;
+  // Drawn where it last stood; gaugeStart eases the arc, the water, the knob and the number on.
+  const start = gaugeStart('hx-drop', frac, drink);
+  // Past the goal is fine without a doctor's limit: the card just says by how much.
+  const extra = mode === 'goal' && drink > goal ? drink - goal : 0;
   return `<section class="hx-card hx-gauge-card" aria-label="Өнөөдрийн ус">
-    <div class="hx-gauge${over ? ' over' : ''}" data-goal="${goal}" data-drink-now="${drink}" data-no-swipe role="group" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл">
+    <div class="hx-gauge${over ? ' over' : ''}" data-gauge-key="hx-drop" data-goal="${goal}" data-drink-now="${drink}" data-no-swipe role="group" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл${extra ? `, зорилтоосоо ${number(extra)} мл илүү` : ''}">
       <svg viewBox="0 0 300 270" aria-hidden="true">
-        ${gaugeArt(frac)}
+        ${gaugeArt(start.frac)}
       </svg>
-      <span class="hx-knob" role="slider" tabindex="0" aria-label="Нумыг чирж ус нэмэх (сум товч, Enter)" aria-valuemin="${drink}" aria-valuemax="${Math.max(drink, goal)}" aria-valuenow="${drink}" aria-valuetext="${number(drink)} мл" style="${knobAt(frac)}"></span>
+      <span class="hx-knob" role="slider" tabindex="0" aria-label="Нумыг чирж ус нэмэх (сум товч, Enter)" aria-valuemin="${drink}" aria-valuemax="${Math.max(drink, goal)}" aria-valuenow="${drink}" aria-valuetext="${number(drink)} мл" style="${knobAt(start.frac)}"></span>
       <span class="hx-drag-add" aria-hidden="true" hidden></span>
-      <p class="hx-amount"><b id="today-drink">${number(drink)}</b></p>
+      <p class="hx-amount"><b id="today-drink" data-gauge-count>${number(start.value)}</b></p>
       <button type="button" class="hx-goal" id="plan-toggle" data-plan-open aria-controls="plan-wrap" aria-expanded="false">/${number(goal)} мл${mode === 'limit' ? ' хязгаар' : ''}</button>
     </div>
+    ${extra ? `<p class="hx-extra" role="status">Зорилтоосоо <b>+${number(extra)} мл</b> илүү уусан</p>` : ''}
     <div class="hx-actions">
       <button type="button" class="hx-drink${drinking ? ' busy' : ''}" data-drink="${cup}" ${drinking ? 'disabled' : ''}>${drinking ? 'Ууж байна...' : `Уух (${number(cup)} мл)`}</button>
       <button type="button" class="hx-cup" id="hx-cup" aria-label="Аяга солих, одоо ${kind ? `${KINDS[kind].name} ` : ''}${number(cup)} мл">${kind ? KINDS[kind].icon : iconFor(cup)}<span class="hx-swap" aria-hidden="true">⟳</span></button>

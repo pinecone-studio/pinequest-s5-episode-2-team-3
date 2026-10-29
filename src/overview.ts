@@ -393,8 +393,11 @@ async function addDrink(ml: number, kind: Kind | undefined = readCupKind(), salt
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
   setKind(entry.id, kind);
   setSalty(entry.id, salty);
+  // Shown before it is saved, so the gauge starts filling at once and a drag never eases back; a failed
+  // save reloads the stored day below.
+  state = { ...state, events: [...state.events, entry] };
   drinking = true; render(); // "Ууж байна..." while it saves and the gauge fills (kit screen 30)
-  const result = await save({ ...state, events: [...state.events, entry] });
+  const result = await save(state);
   setTimeout(() => { drinking = false; render(); }, 900);
   await reload();
   if (result !== 'saved') { storageError = saveMessage[result]; render(); return; }

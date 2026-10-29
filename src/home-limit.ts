@@ -1,6 +1,6 @@
 import { escape, number } from './format';
 import { KINDS, SALTABLE, type Kind } from './drinks';
-import { arcAt, arcPoint, gaugeArt, moreButton } from './hydrify';
+import { arcAt, arcPoint, gaugeArt, gaugeStart, moreButton } from './hydrify';
 import { openDrinkSheet } from './drink-sheet';
 import { logThirst, type Dialysis } from './progress-data';
 import './home-limit.css';
@@ -48,12 +48,14 @@ export function limitGauge(drink: number, goal: number, cup: number): string {
   const frac = Math.min(1, drink / goal);
   // Close to the limit the arc turns amber and a line under it says how much is left; past it, red.
   const tone = left < 0 ? ' over' : nearLimit(drink, goal) ? ' near' : '';
+  // Drawn where it last stood and eased on, «Үлдсэн» counting down with it (hydrify.ts gaugeStart).
+  const start = gaugeStart('hl-drop-clip', frac, Math.max(0, left), v => `${number(v)} мл`);
   const center = left < 0
     ? `<p class="hl-over">Хязгаараас <b>${number(-left)} мл</b> илүү</p><p class="hl-calm">Маргааш дахиад хамт оролдъё</p>`
-    : `<small>Үлдсэн</small><b class="hl-left">${number(left)} мл</b><span class="hl-cups">${cupsText(left, cup)}</span>`;
+    : `<small>Үлдсэн</small><b class="hl-left" data-gauge-count>${number(start.value)} мл</b><span class="hl-cups">${cupsText(left, cup)}</span>`;
   return `<section class="hx-card hl-gauge-card${tone}" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл, ${left < 0 ? `хязгаараас ${number(-left)} мл илүү` : `үлдсэн ${number(left)} мл${tone ? ', хязгаарт ойртож байна' : ''}`}">
-      <div class="hl-gauge" aria-hidden="true">
-        <svg viewBox="0 0 300 270">${gaugeArt(frac, 'hl-drop-clip')}</svg>
+      <div class="hl-gauge" data-gauge-key="hl-drop-clip" aria-hidden="true">
+        <svg viewBox="0 0 300 270">${gaugeArt(start.frac, 'hl-drop-clip')}</svg>
         <div class="hl-center">${center}</div>
       </div>
       ${tone === ' near' ? `<p class="hl-near" role="status">${WARN_ICON}<span><b>Хязгаарт ойртож байна</b> · ${number(left)} мл үлдсэн. Бага багаар уугаарай.</span></p>` : ''}
