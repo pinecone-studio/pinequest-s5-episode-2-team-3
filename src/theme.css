@@ -303,8 +303,9 @@ html .hx-wave { fill: #2f86e8; animation: hx-wave 2.4s linear infinite; }
 @keyframes hx-wave { to { transform: translateX(60px); } }
 html .hx-wave.back { fill: #0062e5; animation-duration: 4.2s; }
 html .hx-wave:not(.back) { fill: #197fff; }
-html .hx-amount { position: absolute; left: 0; right: 0; top: 66%; margin: 0; text-align: center; font-size: 46px; font-weight: 800; letter-spacing: -1px; color: var(--ink); font-variant-numeric: tabular-nums; }
-html .hx-goal { position: absolute; left: 50%; top: 86%; transform: translateX(-50%); padding: 4px 8px; border: 0; background: none; font-size: 17px; color: var(--muted); cursor: pointer; }
+/* Under the drop (it ends at 73% of the box), not over its tip. */
+html .hx-amount { position: absolute; left: 0; right: 0; top: 74%; margin: 0; text-align: center; font-size: 34px; line-height: 1; font-weight: 800; letter-spacing: -1px; color: var(--ink); font-variant-numeric: tabular-nums; }
+html .hx-goal { position: absolute; left: 50%; top: 86%; transform: translateX(-50%); padding: 4px 8px; border: 0; background: none; font-size: 15px; color: var(--muted); cursor: pointer; }
 /* Уух, the cup, ↕ and ⋯ in one row: «Уух» gives way so the row fits a 360px phone. */
 html .hx-actions { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 360px; }
 html .hx-drink { flex: 1 1 auto; min-width: 0; min-height: 52px; padding: 0 10px; white-space: nowrap; border: 0; border-radius: 999px; background: var(--sky); color: #fff; font-size: 16px; font-weight: 700; box-shadow: none; }
