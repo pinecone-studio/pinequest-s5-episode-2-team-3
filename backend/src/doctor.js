@@ -74,9 +74,20 @@ function checkAnswer(a) {
   return { found: true, ml, mode, times, summary, warning };
 }
 
+// Keeps the photo of the doctor's paper in R2. Best effort: a missing bucket or a failed write never blocks the reading.
+async function saveImage(env, image) {
+  if (!env.IMAGES) return;
+  try {
+    const bytes = Uint8Array.from(atob(image.data), c => c.charCodeAt(0));
+    const ext = image.mediaType.split('/')[1];
+    await env.IMAGES.put(`doctor/${crypto.randomUUID()}.${ext}`, bytes, { httpMetadata: { contentType: image.mediaType } });
+  } catch { /* the photo is only kept for the record */ }
+}
+
 export async function readDoctorNote(body, env) {
   if (!env.ANTHROPIC_API_KEY) throw new PlanError(503, 'AI одоохондоо тохируулагдаагүй байна. Эмчийн хэмжээг «Зорилтоо тохируулах» хэсэгт гараар оруулна уу.');
   const r = checkRequest(body);
+  if (r.image) await saveImage(env, r.image);
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
   const content = [];

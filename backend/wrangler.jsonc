@@ -11,5 +11,9 @@
       "database_id": "7010b809-a68a-4d46-a495-b379dd0086b0",
       "migrations_dir": "migrations"
     }
+  ],
+  // Doctor-note photos (create once: `npx wrangler r2 bucket create dusal-images`).
+  "r2_buckets": [
+    { "binding": "IMAGES", "bucket_name": "dusal-images" }
   ]
 }
