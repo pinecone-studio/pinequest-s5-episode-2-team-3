@@ -25,3 +25,28 @@
 .device-panel .bottle-chip .bottle-remove { padding: 8px 12px; color: #5d6870; }
 .bottle-add div { display: flex; gap: 8px; }
 .bottle-add input { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #b5ceca; border-radius: 8px; font: inherit; }
+/* The base in the watch card's row: round icon, two lines, one button; savny jin below. */
+.device-panel .scale-link + * { margin-top: 10px; }
+.device-panel .hx-watch-icon.on { background: #e3f7ec; color: #2e9e5b; }
+.device-panel .scale-forget { min-height: 40px; padding: 0 16px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+.device-panel .scale-bottles { margin: 14px 0 0; padding: 14px 0 0; border: 0; border-top: 1px solid #e3e7ee; min-width: 0; }
+.device-panel .scale-bottles[disabled] :is(input, button, .bottle-chip) { opacity: .55; cursor: default; }
+.device-panel .scale-sub { float: left; width: 100%; margin: 0; padding: 0; font-size: 15px; font-weight: 700; color: var(--ink, #284b49); }
+html[data-theme="dark"] .device-panel .scale-bottles { border-top-color: #2a2d36; }
+.device-panel .scale-sub + * { clear: both; }
+.device-panel .bottle-add button { white-space: nowrap; }
+.settings-page .device-panel .hx-blue { background: var(--sky); color: #fff; }
+html .device-panel .hx-watch-link.scale-link { padding: 0; }
+html .device-panel .scale-link .hx-blue { min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; font-size: 14px; }
+/* Dark: the light fills above (icon, chips, inputs, plain buttons) on the card's dark surface. */
+html[data-theme="dark"] .hx-watch-icon { background: #1d3a3f; color: #4fd1c5; }
+html[data-theme="dark"] .device-panel .hx-watch-icon.on { background: #1d3a2a; color: #5ad08a; }
+html[data-theme="dark"] .device-panel :is(.device-heading button, .bottle-add button, .scale-forget, select, .bottle-add input) { border-color: #3a3e48; background: #2a2d36; color: #fff; }
+html[data-theme="dark"] .device-panel .bottle-chip { border-color: #3a3e48; background: #2a2d36; }
+html[data-theme="dark"] .device-panel .bottle-chip.on { border-color: #00bedc; background: #12333b; }
+html[data-theme="dark"] .device-panel .bottle-chip button { border: 0; background: transparent; color: #fff; }
+html[data-theme="dark"] .device-panel .bottle-chip .bottle-remove { color: #9aa3ad; }
+html[data-theme="dark"] .device-panel .device-error { color: #ff9b85; }
+/* Disabled (base not connected): grey with grey text, not white text on a faded blue pill. */
+html .device-panel .scale-bottles[disabled] .scale-actions button, html .device-panel .scale-link .hx-blue:disabled { opacity: 1; background: #eef1f5; color: #8a94a3; }
+html[data-theme="dark"] .device-panel .scale-bottles[disabled] :is(.scale-actions, .bottle-add) button, html[data-theme="dark"] .device-panel .scale-link .hx-blue:disabled { background: #2a2d36; color: #6f7785; }
