@@ -10,8 +10,8 @@ import { about } from './prefs';
 import { climateOf, fetchWeather } from './weather';
 
 // First visit, Hydrify layout (demo): two walkthrough slides, a sign-up form (name kept on this
-// phone; email and password are not sent anywhere), nine one-question steps with a progress bar
-// (sex, height, weight, age, wake-up, bedtime, activity, climate, condition), a "making your plan"
+// phone; email and password are not sent anywhere), eight steps with a progress bar
+// (sex, height and weight together, age, wake-up, bedtime, activity, climate, condition), a "making your plan"
 // ring, then the daily amount from calcPlan (+500 мл in a hot climate), shown in the unit picked.
 const SEEN_KEY = 'dusal-onboarded-v1';
 
@@ -22,7 +22,7 @@ const markSeen = () => { try { localStorage.setItem(SEEN_KEY, '1'); } catch { /*
 
 type Sex = 'male' | 'female' | 'none';
 type Screen = 'walk' | 'signup' | 'step' | 'making' | 'ready';
-const QUESTIONS = 9;
+const QUESTIONS = 8;
 type Climate = 'hot' | 'mild' | 'cold';
 const CLIMATES: Record<Climate, { label: string; icon: string; extra: number }> = {
   hot: { label: 'Халуун', icon: '<circle cx="16" cy="16" r="6.5" fill="#ffb300"/><g stroke="#ffb300" stroke-width="2.4" stroke-linecap="round"><path d="M16 2.5v4M16 25.5v4M2.5 16h4M25.5 16h4M6.5 6.5l2.8 2.8M22.7 22.7l2.8 2.8M6.5 25.5l2.8-2.8M22.7 9.3l2.8-2.8"/></g>', extra: 500 },
@@ -33,7 +33,7 @@ const CLIMATES: Record<Climate, { label: string; icon: string; extra: number }> 
 const UNITS = { ml: { label: 'мл', per: 1, digits: 0 }, l: { label: 'л', per: 1000, digits: 2 }, us: { label: 'US oz', per: 29.5735, digits: 0 }, uk: { label: 'UK oz', per: 28.4131, digits: 0 } } as const;
 type Unit = keyof typeof UNITS;
 
-// The figure on the height and weight steps (kit 10–12), drawn from the numbers so it changes as
+// The figure on the height and weight step (kit 10–12), drawn from the numbers so it changes as
 // the wheel turns: BMI widens the shoulders, chest, waist (a belly from about BMI 25), hips, arms
 // and legs; height scales the whole figure from the feet up. Women get narrower shoulders, wider
 // hips, longer hair and a top. Height 175 cm and BMI 22 is the drawing's base size. Every part is a
@@ -276,20 +276,20 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       case 1: return question('Таны хүйс?', 'Дусал таны усны төлөвлөгөөг тохируулна. Өөрийнхөө тухай бага зэрэг хэлээрэй.',
         `<div class="ob-sex">${(['male', 'female'] as const).map(s => `<button type="button" class="ob-sex-opt${sex === s ? ' on' : ''}" data-sex="${s}" aria-pressed="${sex === s}"><span aria-hidden="true">${s === 'male' ? '♂' : '♀'}</span>${s === 'male' ? 'Эрэгтэй' : 'Эмэгтэй'}</button>`).join('')}</div>
         <button type="button" class="ob-sex-skip${sex === 'none' ? ' on' : ''}" data-sex="none" aria-pressed="${sex === 'none'}">Бусад</button>`);
-      case 2: return question('Таны өндөр?', 'Өндөр нь усны төлөвлөгөөг тань тохируулахад чухал. Өндрөө сонгоно уу.',
-        `${toggle('hunit', hUnit, [['cm', 'см'], ['ft', 'фут']])}<div class="ob-pick">${body(sex, p.weight, p.height)}${hUnit === 'cm'
-          ? wheel('ob-height', range(90, 230), p.height, 'см')
-          : wheel('ob-height', range(36, 90), inches(p.height), '', v => `${Math.floor(Number(v) / 12)}′${Number(v) % 12}″`)}</div>`);
-      case 3: return question('Таны жин?', 'Өдрийн усны хэмжээг голчлон биеийн жингээр тооцно. Жингээ сонгоно уу.',
-        `${toggle('wunit', wUnit, [['kg', 'кг'], ['lb', 'lb']])}<div class="ob-pick">${body(sex, p.weight, p.height)}${wUnit === 'kg'
-          ? wheel('ob-weight', range(10, 250), p.weight, 'кг')
-          : wheel('ob-weight', range(22, 550), pounds(p.weight), 'lb')}</div>`);
-      case 4: return question('Хэдэн настай вэ?', 'Нас ахих тусам цангах мэдрэмж сулардаг.', wheel('ob-age', range(4, 110), p.age, 'нас'));
-      case 5: return question('Хэдэн цагт сэрдэг вэ?', 'Сануулга сэрснээс хойш эхэлнэ.', timePicker('ob-wake', times.wake));
-      case 6: return question('Хэдэн цагт унтдаг вэ?', 'Унтахын өмнө сануулга ирэхгүй.', timePicker('ob-sleep', times.sleep));
-      case 7: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
+      case 2: return question('Таны өндөр, жин?', 'Өдрийн усны хэмжээг голчлон биеийн жин, өндрөөр тооцно.',
+        `<div class="ob-pick two">${body(sex, p.weight, p.height)}
+          <div class="ob-col">${toggle('hunit', hUnit, [['cm', 'см'], ['ft', 'фут']])}${hUnit === 'cm'
+            ? wheel('ob-height', range(90, 230), p.height, 'см')
+            : wheel('ob-height', range(36, 90), inches(p.height), '', v => `${Math.floor(Number(v) / 12)}′${Number(v) % 12}″`)}</div>
+          <div class="ob-col">${toggle('wunit', wUnit, [['kg', 'кг'], ['lb', 'lb']])}${wUnit === 'kg'
+            ? wheel('ob-weight', range(10, 250), p.weight, 'кг')
+            : wheel('ob-weight', range(22, 550), pounds(p.weight), 'lb')}</div></div>`);
+      case 3: return question('Хэдэн настай вэ?', 'Нас ахих тусам цангах мэдрэмж сулардаг.', wheel('ob-age', range(4, 110), p.age, 'нас'));
+      case 4: return question('Хэдэн цагт сэрдэг вэ?', 'Сануулга сэрснээс хойш эхэлнэ.', timePicker('ob-wake', times.wake));
+      case 5: return question('Хэдэн цагт унтдаг вэ?', 'Унтахын өмнө сануулга ирэхгүй.', timePicker('ob-sleep', times.sleep));
+      case 6: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
         `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => `<button type="button" class="ob-card${p.activity === a ? ' on' : ''}" data-act="${a}" aria-pressed="${p.activity === a}"><span class="ob-card-icon">${mdIcon(ACT_ICONS[a])}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small></button>`).join('')}</div>`);
-      case 8: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа уур амьсгалыг сонгоно уу.',
+      case 7: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа уур амьсгалыг сонгоно уу.',
         `<div class="ob-cards">${(Object.keys(CLIMATES) as Climate[]).map(c => `<button type="button" class="ob-climate${climate === c ? ' on' : ''}" data-climate="${c}" aria-pressed="${climate === c}"><svg viewBox="0 0 32 32" aria-hidden="true">${CLIMATES[c].icon}</svg><b>${CLIMATES[c].label}</b>${CLIMATES[c].extra ? `<small>+${CLIMATES[c].extra} мл</small>` : ''}</button>`).join('')}</div>
         ${'geolocation' in navigator ? `<button type="button" class="ob-locate" data-locate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Миний байршлын цаг агаараар</button>` : ''}
         <p class="ob-weather" role="status">${weather}</p>`);
@@ -385,10 +385,11 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         ? 'Байршлын зөвшөөрөл өгөөгүй. Доороос сонгоно уу.'
         : 'Байршил авч чадсангүй. Доороос сонгоно уу.';
     }
-    if (screen === 'step' && step === 8) draw();
+    if (screen === 'step' && step === 7) draw();
   }
 
   function draw(): void {
+    live = { height: p.height, weight: p.weight };
     box.innerHTML = `<div class="ob-screen">${view()}</div>`;
     bind();
     box.querySelectorAll<HTMLElement>('.ob-wheel').forEach(centerWheel);
@@ -421,11 +422,13 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     });
   }
   let bodyFrame = 0;
+  let live = { height: p.height, weight: p.weight };
   function redrawBody(change: { height?: number; weight?: number }): void {
+    Object.assign(live, change);
     cancelAnimationFrame(bodyFrame);
     bodyFrame = requestAnimationFrame(() => {
       const fig = box.querySelector('.ob-body');
-      if (fig) fig.outerHTML = body(sex, change.weight ?? p.weight, change.height ?? p.height);
+      if (fig) fig.outerHTML = body(sex, live.weight, live.height);
     });
   }
   const picked = (id: string) => box.querySelector<HTMLElement>(`#${id} .ob-wheel-item.on`)?.dataset.v;
@@ -433,10 +436,10 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   const readStep = () => {
     const h = picked('ob-height'), w = picked('ob-weight');
     if (step === 2 && h) p.height = hUnit === 'cm' ? Number(h) : Math.round(Number(h) * 2.54);
-    if (step === 3 && w) p.weight = wUnit === 'kg' ? Number(w) : Math.round(Number(w) * 0.4536);
-    if (step === 4) p.age = Number(picked('ob-age') ?? p.age);
-    if (step === 5) times.wake = `${picked('ob-wake-h') ?? '07'}:${picked('ob-wake-m') ?? '00'}`;
-    if (step === 6) times.sleep = `${picked('ob-sleep-h') ?? '22'}:${picked('ob-sleep-m') ?? '00'}`;
+    if (step === 2 && w) p.weight = wUnit === 'kg' ? Number(w) : Math.round(Number(w) * 0.4536);
+    if (step === 3) p.age = Number(picked('ob-age') ?? p.age);
+    if (step === 4) times.wake = `${picked('ob-wake-h') ?? '07'}:${picked('ob-wake-m') ?? '00'}`;
+    if (step === 5) times.sleep = `${picked('ob-sleep-h') ?? '22'}:${picked('ob-sleep-m') ?? '00'}`;
     const limit = box.querySelector<HTMLInputElement>('#ob-limit');
     if (limit) { const v = Math.round(Number(limit.value) / 50) * 50; if (v >= 500 && v <= 4000) p.doctorLimit = v; }
     const note = box.querySelector<HTMLInputElement>('#ob-note');
@@ -497,7 +500,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       if (step < QUESTIONS) {
         step += 1; draw();
         // Already allowed once: fill the climate in without asking again.
-        if (step === 8 && !weather) void navigator.permissions?.query({ name: 'geolocation' }).then(r => { if (r.state === 'granted') void locate(); }).catch(() => {});
+        if (step === 7 && !weather) void navigator.permissions?.query({ name: 'geolocation' }).then(r => { if (r.state === 'granted') void locate(); }).catch(() => {});
         return;
       }
       screen = 'making'; draw(); making();
