@@ -181,6 +181,11 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="s" />
 
+    <!-- Reminders and the weekend notice go off at their minute. Without this Android 12+ only allows inexact
+         alarms, which it (and MIUI more so) holds back by up to half an hour. From Android 14 the person turns it
+         on in «Сэрүүлэг ба сануулга»; src/native-reminders.ts opens that screen once. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 

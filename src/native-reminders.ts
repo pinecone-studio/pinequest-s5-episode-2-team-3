@@ -11,8 +11,23 @@ const LAST_ID = 4999;
 
 export async function askPermission(): Promise<boolean> {
   const current = await LocalNotifications.checkPermissions();
-  if (current.display === 'granted') return true;
-  return (await LocalNotifications.requestPermissions()).display === 'granted';
+  const granted = current.display === 'granted' || (await LocalNotifications.requestPermissions()).display === 'granted';
+  if (granted) await askExactAlarms();
+  return granted;
+}
+
+// Android 12+: without exact alarms a reminder can come half an hour late (MIUI holds them longest), and
+// from Android 14 they start switched off. The system screen to allow them opens once per install; the
+// reminders still work (late) if the person leaves it off.
+const EXACT_ASKED = 'dusal-exact-alarm-asked-v1';
+async function askExactAlarms(): Promise<void> {
+  if (Capacitor.getPlatform() !== 'android') return;
+  try {
+    if ((await LocalNotifications.checkExactNotificationSetting()).exact_alarm === 'granted') return;
+    if (localStorage.getItem(EXACT_ASKED)) return;
+    localStorage.setItem(EXACT_ASKED, '1');
+    await LocalNotifications.changeExactNotificationSetting();
+  } catch { /* an older plugin or Android: inexact alarms, as before */ }
 }
 
 // The water drop's face beside each reminder, Duolingo style: it gets sadder the further behind you are.
