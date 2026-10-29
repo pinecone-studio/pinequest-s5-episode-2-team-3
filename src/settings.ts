@@ -17,6 +17,10 @@ import { brandMark } from './components/Icon';
 import { siteNav } from './nav';
 import { Toast, notify } from './components/Toast';
 import { load, save, saveMessage, onExternalChange, requestPersistence } from './storage';
+import { WEEKEND_DEMO_ID, askPermission, nativeReminders, scheduleWeekend } from './native-reminders';
+import { weekendFor } from './weekend-notice';
+import { openWeekendCard } from './weekend-card';
+import { streakNow } from './hydration';
 import { downloadBackup, readBackup, summarize, type BackupSummary } from './backup';
 import './theme.css';
 import './home-limit.css';
@@ -118,7 +122,28 @@ function menu(): string {
       ${row('security', 'Бүртгэл ба аюулгүй байдал')}${row('linked', 'Холбосон бүртгэл')}
       ${row('appearance', 'Харагдах байдал')}${row('data', 'Өгөгдөл ба шинжилгээ')}${row('help', 'Тусламж')}
       <li><button type="button" class="ac-logout" data-logout>${ICON(ICONS.logout)}<span>Гарах</span></button></li>
-    </ul></section>`;
+    </ul></section>
+    ${demo ? `<section class="hx-card ac-demo"><button type="button" class="hx-blue hl-wide" data-weekend-demo>Амралтын мэдэгдэл турших</button>
+      <small>1 минутын дараа энэ профайлын амралтын мэдэгдэл ирнэ. Утсаа түгжээд хүлээгээрэй.</small></section>` : ''}`;
+}
+
+// Demo tools show in a dev build, with ?demo=1 on this page or the app's tab host, or once that was
+// seen on this phone.
+const demo = (() => {
+  const asked = [location, window.top?.location].some(l => { try { return !!l && new URLSearchParams(l.search).has('demo'); } catch { return false; } });
+  try { if (asked) localStorage.setItem('dusal-demo-v1', '1'); return import.meta.env.DEV || asked || localStorage.getItem('dusal-demo-v1') === '1'; } catch { return import.meta.env.DEV || asked; }
+})();
+
+// «Амралтын мэдэгдэл турших»: this profile's weekend notice in a minute (its own id, so the real one
+// stays). On the web the card itself opens then.
+async function weekendDemo(): Promise<void> {
+  const n = weekendFor(state, streakNow(state.events, state.goal, state.mode));
+  if (!n) { notify('Эхлээд «Эмчийн зөвлөмж» дээр диализын өдрөө тохируулна уу.'); return; }
+  const at = new Date(Date.now() + 60_000);
+  if (!nativeReminders) { notify('1 минутын дараа карт нээгдэнэ.'); setTimeout(() => openWeekendCard(n), 60_000); return; }
+  if (!await askPermission().catch(() => false)) { notify('Мэдэгдлийн зөвшөөрөл өгөөгүй байна.'); return; }
+  await scheduleWeekend({ at, title: n.title, body: n.body, face: n.face }, WEEKEND_DEMO_ID);
+  notify('1 минутын дараа ирнэ. Утсаа түгжээд хүлээгээрэй.');
 }
 
 // Logout clears this phone's profile and name, then onboarding starts again. The water log stays.
@@ -243,6 +268,7 @@ async function confirmRestore(): Promise<void> {
 
 function bind(): void {
   // Each account screen shows only some sections, so every part is optional here.
+  document.querySelector('[data-weekend-demo]')?.addEventListener('click', () => void weekendDemo());
   const form = document.querySelector<HTMLFormElement>('#goal-form');
   if (form) {
     form.onsubmit = event => { event.preventDefault(); saveGoal(form); };

@@ -49,3 +49,35 @@ export async function scheduleNative(items: readonly NativeReminder[]): Promise<
     })),
   });
 }
+
+// The weekly notice before the days off (weekend-notice.ts) has its own fixed id, outside 4100–4999,
+// so re-planning the reminders never cancels it and it never cancels them. The demo uses the next id.
+export const WEEKEND_ID = 9000;
+export const WEEKEND_DEMO_ID = 9001;
+export async function allowed(): Promise<boolean> {
+  return (await LocalNotifications.checkPermissions()).display === 'granted';
+}
+export async function scheduleWeekend(item: NativeReminder | null, id = WEEKEND_ID): Promise<void> {
+  await LocalNotifications.cancel({ notifications: [{ id }] }).catch(() => {});
+  if (!item) return;
+  await LocalNotifications.schedule({
+    notifications: [{
+      id,
+      title: item.title,
+      body: item.body,
+      schedule: { at: item.at, allowWhileIdle: true },
+      smallIcon: 'ic_stat_drop',
+      iconColor: '#4a90e2',
+      largeIcon: `notif_face_${item.face}`,
+      attachments: [{ id: item.face, url: `res:///notif/${item.face}.png` }],
+      extra: { kind: 'weekend' },
+    }],
+  });
+}
+// A tap on the weekend notice; the plugin keeps the tap that started the app until a listener comes.
+export function onWeekendTap(open: () => void): void {
+  if (!nativeReminders) return;
+  void LocalNotifications.addListener('localNotificationActionPerformed', e => {
+    if ((e.notification.extra as { kind?: string } | undefined)?.kind === 'weekend') open();
+  });
+}

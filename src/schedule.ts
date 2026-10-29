@@ -2,7 +2,10 @@ import './schedule.css';
 import { dayKey, type AppState } from './data';
 import { number } from './format';
 import { mdIcon } from './components/Icon';
-import { nativeReminders, askPermission, clearDelivered, scheduleNative, type Face, type NativeReminder } from './native-reminders';
+import { nativeReminders, allowed, askPermission, clearDelivered, scheduleNative, scheduleWeekend, type Face, type NativeReminder } from './native-reminders';
+import { weekendFor } from './weekend-notice';
+import { readProfile } from './plan';
+import { readDialysis } from './progress-data';
 import { streakNow } from './hydration';
 import { readPetName } from './pet';
 
@@ -212,9 +215,18 @@ async function planNative(state: AppState): Promise<void> {
       });
     }
   }
-  planned = JSON.stringify([s, state.goal, state.mode, dayKey(), today.map(x => x.state === 'done')]);
+  planned = planKey(state);
   try { await scheduleNative(items); } catch { /* the in-app schedule still works */ }
+  // The weekend notice, apart from the reminders: only with reminders on and notifications allowed;
+  // without them the card still shows in the app (weekend-card.ts).
+  try {
+    const notice = s.on && await allowed() ? weekendFor(state, streakNow(state.events, state.goal, state.mode)) : null;
+    await scheduleWeekend(notice && { at: notice.at, title: notice.title, body: notice.body, face: notice.face });
+  } catch { /* the card still shows in the app */ }
 }
+// What the plan depends on: settings, the goal, the day, the met slots, and for the weekend notice the
+// diagnosis and dialysis days (set on other tabs).
+const planKey = (st: AppState) => JSON.stringify([readSettings(), st.goal, st.mode, dayKey(), slots(st).map(x => x.state === 'done'), readProfile().condition, readDialysis()]);
 
 // Checks once a minute; for the latest due slot the person is behind on, sends one notification.
 let ticking = false;
@@ -237,8 +249,7 @@ export function startReminders(state: () => AppState): void {
     // Re-plan only when something that changes the plan does (a drink, the goal, the day, settings).
     setInterval(() => {
       const st = state();
-      const key = JSON.stringify([readSettings(), st.goal, st.mode, dayKey(), slots(st).map(x => x.state === 'done')]);
-      if (key !== planned) void planNative(st);
+      if (planKey(st) !== planned) void planNative(st);
     }, 30_000);
     return;
   }

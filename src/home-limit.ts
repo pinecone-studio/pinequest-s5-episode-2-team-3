@@ -60,20 +60,22 @@ export const TILE_ICONS = {
 
 // Ус · Сүүтэй цай (a main cup each) and a 50 мл sip to take pills with, on top of the drink sheet.
 // Not data-drink: hydration.ts adds every [data-drink] button straight away, past the limit check.
-export type Quick = 'water' | 'milkTea' | 'pill';
+export type Quick = 'water' | 'medMix' | 'pill';
+// A sachet or powder is usually stirred into about this much water.
+export const MED_MIX_ML = 100;
 export function quickTiles(cup: number): string {
   const tile = (id: Quick, icon: string, name: string, sub: string, label: string) =>
     `<button type="button" class="hl-tile" data-quick="${id}" aria-label="${escape(label)}">${icon}<span>${name}</span><small>${sub}</small></button>`;
   return `<div class="hl-quick" role="group" aria-label="Хурдан нэмэх">
       ${tile('water', TILE_ICONS.water, 'Ус', '1 аяга', `Ус, 1 аяга (${number(cup)} мл) нэмэх`)}
-      ${tile('milkTea', KINDS.milkTea.icon, 'Сүүтэй цай', '1 аяга', `Сүүтэй цай, 1 аяга (${number(cup)} мл) нэмэх`)}
       ${tile('pill', TILE_ICONS.pill, 'Эм уухад', '50 мл', 'Эм уухад 50 мл ус нэмэх')}
+      ${tile('medMix', KINDS.medMix.icon, 'Найруулсан эм', `${MED_MIX_ML} мл`, `Найруулсан эм, ${MED_MIX_ML} мл нэмэх`)}
     </div>`;
 }
-// What a quick tile adds: a cup of water or milk tea through the limit check, the pill sip always.
-export function quickDrink(ctx: AddCtx, quick: Quick, salty: boolean, warn = overLimit): void {
+// What a quick tile adds: a cup of water or a dissolved medicine through the limit check, the pill sip always.
+export function quickDrink(ctx: AddCtx, quick: Quick, warn = overLimit): void {
   if (quick === 'water') addChecked(ctx, ctx.cup, undefined, false, warn);
-  else if (quick === 'milkTea') addChecked(ctx, ctx.cup, 'milkTea', salty, warn);
+  else if (quick === 'medMix') addChecked(ctx, MED_MIX_ML, 'medMix', false, warn);
   else ctx.add(50, undefined, false);  // a sip for pills is never held back
 }
 
@@ -139,7 +141,7 @@ function overLimit(ctx: AddCtx, ml: number, kind: Kind | undefined, salty: boole
 // «Цангаж байна»: ways to ease thirst without drinking; each opening is logged for the report.
 const THIRST_TIPS: [string, string, string][] = [
   ['<path d="M8 6h8l-1 13H9z"/><path d="M10 10h4"/>', 'Жижиг аягаар, бага багаар уу', 'Том аяга хурдан дуусдаг'],
-  ['<rect x="6" y="6" width="5" height="5" rx="1"/><rect x="13" y="9" width="5" height="5" rx="1"/><rect x="8" y="14" width="5" height="5" rx="1"/>', 'Мөсөн хэлтэрхий хөх', 'Мөс ч шингэн тул бүртгэгдэнэ'],
+  ['<rect x="6" y="6" width="5" height="5" rx="1"/><rect x="13" y="9" width="5" height="5" rx="1"/><rect x="8" y="14" width="5" height="5" rx="1"/>', 'Мөс амандаа хайлуул', 'Мөс ч шингэнд тооцогдоно'],
   ['<path d="M5 12c2-3 5-4 7-4s5 1 7 4c-2 3-5 4-7 4s-5-1-7-4Z"/><path d="M9 12h6"/>', 'Амаа хүйтэн усаар зайл', 'Залгилгүй асгаарай'],
   ['<rect x="5" y="9" width="14" height="6" rx="3"/>', 'Чихэргүй бохь зажил', 'Шүлс ялгаруулж ам чийглэнэ'],
   ['<path d="M7 20h10"/><path d="M8 20l1-9h6l1 9"/><path d="M10 7h4M12 4v3"/>', 'Давстай хоолоо багасга', 'Давс цангааг ихэсгэнэ'],

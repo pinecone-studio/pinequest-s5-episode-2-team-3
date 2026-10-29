@@ -14,6 +14,8 @@ const can = (fill: string) => svg(`<rect x="10" y="5" width="12" height="23" rx=
 const bottle = (fill: string) => svg(`<path d="M13 3h6v5l3 4v15a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2V12l3-4z" fill="${fill}"/><path d="M10 16h12v6H10z" fill="#fff" opacity=".7"/>`);
 
 export const KINDS = {
+  // Medicine dissolved in water (a sachet, a powder): the water counts like any drink, under a limit too.
+  medMix: { name: 'Найруулсан эм', icon: glass('#b9a6f0') },
   milkTea: { name: 'Сүүтэй цай', icon: cup('#d2a679') },
   tea: { name: 'Цай', icon: cup('#e2553f') },
   soup: { name: 'Шөл', icon: svg('<path d="M4 14h24a12 10 0 0 1-24 0z" fill="#f2b84b"/><path d="M11 6c-1 2 1 3 0 5M16 5c-1 2 1 3 0 5M21 6c-1 2 1 3 0 5" stroke="#c9c9c9" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M9 27h14" stroke="#e0a22f" stroke-width="2.5" stroke-linecap="round"/>') },
