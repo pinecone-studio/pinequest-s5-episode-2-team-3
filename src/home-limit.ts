@@ -1,6 +1,6 @@
 import { escape, number } from './format';
 import { KINDS, SALTABLE, type Kind } from './drinks';
-import { arcAt, arcPoint } from './hydrify';
+import { arcAt, arcPoint, gaugeArt } from './hydrify';
 import { openDrinkSheet, readSaltyChoice } from './drink-sheet';
 import { WEEKDAY_LONG, WEEKDAY_SHORT, logThirst, readDialysis, type Dialysis } from './progress-data';
 import './home-limit.css';
@@ -28,11 +28,12 @@ export const kindName = (kind: Kind | undefined, salty = false) =>
 // add. Only under a limit (`limit`) does an add that would pass it stop at the popup first.
 export interface AddCtx { drink: number; goal: number; limit: boolean; cup: number; add: (ml: number, kind: Kind | undefined, salty: boolean) => void }
 
-// The gauge as a display: the arc fills to today's share of the limit and stays full past it.
+// The gauge as a display: the arc fills to today's share of the limit and stays full past it, and the
+// drop in the middle is the home gauge's, its waves floating the same way (hydrify.ts gaugeArt).
+// The dial sheet below draws its own arc and ticks.
 const TICKS = Array.from({ length: 9 }, (_, i) => (i + 1) / 10)
   .map(f => { const [a, b] = [arcPoint(f, 94), arcPoint(f, 102)]; return `<path d="M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}"/>`; }).join('');
 const ARC = (() => { const [s, e] = [arcPoint(0, 122), arcPoint(1, 122)]; return `M${s[0].toFixed(1)} ${s[1].toFixed(1)} A122 122 0 1 1 ${e[0].toFixed(1)} ${e[1].toFixed(1)}`; })();
-
 export function limitGauge(drink: number, goal: number, cup: number): string {
   const left = goal - drink;
   const frac = Math.min(1, drink / goal);
@@ -41,7 +42,7 @@ export function limitGauge(drink: number, goal: number, cup: number): string {
     : `<small>Үлдсэн</small><b class="hl-left">${number(left)} мл</b><span class="hl-cups">${cupsText(left, cup)}</span>`;
   return `<section class="hx-card hl-gauge-card" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл, ${left < 0 ? `хязгаараас ${number(-left)} мл илүү` : `үлдсэн ${number(left)} мл`}">
       <div class="hl-gauge" aria-hidden="true">
-        <svg viewBox="0 0 300 270"><path class="hx-track" d="${ARC}" pathLength="100"/>${frac > 0 ? `<path class="hl-arc" d="${ARC}" pathLength="100" stroke-dasharray="${(frac * 100).toFixed(1)} 100"/>` : ''}<g class="hx-ticks">${TICKS}</g></svg>
+        <svg viewBox="0 0 300 270">${gaugeArt(frac, 'hl-drop-clip')}</svg>
         <div class="hl-center">${center}</div>
       </div>
       <p class="hl-sum">${number(drink)} / ${number(goal)} мл уусан · эмчийн хязгаар</p>
