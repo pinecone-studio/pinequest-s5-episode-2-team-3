@@ -123,6 +123,14 @@ const GOAL_TEMPLATES = [
   { name: 'Хүүхэд', ml: 1000, icon: 'woman' },
 ] as const;
 
+// A plain button under the gauge for the same sheet as the goal pill, easier to find and to hit;
+// under a doctor's limit it is the only way in.
+const planOpenButton = () => `<button type="button" class="plan-open" id="plan-open" data-plan-open aria-controls="plan-wrap" aria-expanded="${planOpen}">${mdIcon('target')}Зорилтоо тохируулах</button>`;
+
+// «Дэлгэрэнгүй тохиргоо» stays open across redraws once opened.
+let planMore = false;
+const glassesText = (d: Draft) => `өдөрт ${kindLabel(d.mode)} · ${Math.round(d.ml / GLASS_ML)} аяга`;
+
 function planSection(p: Profile): string {
   // With no diagnosis there is no doctor's amount to pick, so its fields and card are hidden.
   const noDoctor = p.condition === 'none';
@@ -134,55 +142,60 @@ function planSection(p: Profile): string {
   const d = draft;
   const vs = d && versusGoal(d);
   const aiOff = aiReady === false;
-  const result = d ? `<div class="plan-result" aria-live="polite">
-        <p class="plan-picked">${SOURCES[source]}</p>
-        <div class="plan-amount">
-          <button type="button" class="step" id="plan-minus" aria-label="50 мл хасах">−</button>
-          <label class="visually-hidden" for="plan-l">Өдрийн хэмжээ, литр</label>
-          <input id="plan-l" type="number" inputmode="decimal" min="0.5" max="4" step="0.05" value="${liters(d.ml)}"/>
-          <span>л</span>
-          <button type="button" class="step" id="plan-plus" aria-label="50 мл нэмэх">+</button>
-        </div>
-        <p class="plan-kind" id="plan-kind">өдөрт ${kindLabel(d.mode)}</p>
-        <p class="plan-vs${vs!.same ? ' same' : ''}" id="plan-vs">${vs!.text}</p>
-        <p class="plan-how" id="plan-how">${escape(d.how)}</p>
-        <p class="plan-warning" id="plan-warning" ${d.warning ? '' : 'hidden'}>${escape(d.warning)}</p>
-      </div>` : '';
-  // "Set your goal": the amount in 250 ml glasses, and ready-made days. Only without a diagnosis:
-  // with one, the amount comes from the doctor or the calculator, never a template.
+  // The amount being set comes first, with − and + either side of it.
+  const hero = d ? `<div class="plan-hero" aria-live="polite">
+      <div class="plan-stepper">
+        <button type="button" class="step" id="plan-minus" aria-label="50 мл хасах">−</button>
+        <label class="visually-hidden" for="plan-l">Өдрийн хэмжээ, литр</label>
+        <p class="plan-l"><input id="plan-l" type="number" inputmode="decimal" min="0.5" max="4" step="0.05" value="${liters(d.ml)}"/><span>л</span></p>
+        <button type="button" class="step" id="plan-plus" aria-label="50 мл нэмэх">+</button>
+      </div>
+      <p class="plan-kind" id="plan-kind">${glassesText(d)}</p>
+      <p class="plan-vs${vs!.same ? ' same' : ''}" id="plan-vs">${vs!.text}</p>
+      <p class="plan-how"><span class="plan-picked">${SOURCES[source]}</span> · <span id="plan-how">${escape(d.how)}</span></p>
+      <p class="plan-warning" id="plan-warning" ${d.warning ? '' : 'hidden'}>${escape(d.warning)}</p>
+    </div>` : '';
+  // Ready-made days only without a diagnosis: with one, the amount comes from the doctor or the calculator.
   const templates = p.condition === 'none' && d?.mode === 'goal';
+  // The AI's doctor card lives here on both homes, right under the diagnosis it depends on.
+  const doctorHere = !noDoctor;
   return `<section class="plan-card" aria-labelledby="plan-title">
     <h2 id="plan-title">Зорилтоо тохируулах</h2>
-    <div class="goal-hero" aria-live="polite"><p class="goal-count" id="plan-glasses">${d ? Math.round(d.ml / GLASS_ML) : '—'}</p><p class="goal-unit">аяга · ${GLASS_ML} мл</p></div>
     <form id="plan-form" novalidate>
-      ${templates ? `<p class="plan-step">Бэлэн загварууд</p>
-      <div class="goal-templates">${GOAL_TEMPLATES.map(t => `<button type="button" class="goal-template" data-template="${t.ml}" data-name="${t.name}">
-        <small>${t.name}</small><b>${t.ml / GLASS_ML} аяга</b><span aria-hidden="true">${mdIcon(t.icon)}</span></button>`).join('')}</div>` : ''}
+      ${hero}
       <p class="plan-step">Таны мэдээлэл</p>
-      <div class="plan-fields">
+      <div class="plan-fields two">
         <label>Нас<input id="plan-age" name="age" type="number" inputmode="numeric" min="4" max="110" value="${p.age}"/></label>
         <label>Жин, кг<input id="plan-weight" name="weight" type="number" inputmode="numeric" min="10" max="250" value="${p.weight}"/></label>
-        <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
         <label class="wide">Онош<select id="plan-condition" name="condition">${Object.entries(CONDITIONS).map(([k, v]) => `<option value="${k}" ${p.condition === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
         ${p.condition === 'other' ? `<label class="wide">Ямар онош вэ?<input id="plan-condition-note" name="conditionNote" type="text" maxlength="60" placeholder="Оношоо энд бичнэ үү" aria-describedby="plan-condition-hint" value="${escape(p.conditionNote)}"/>
           <small id="plan-condition-hint">${aiReady === false ? 'AI идэвхгүй байна. Энэ оношид тохирох хэмжээг эмчээсээ асуугаарай.' : 'Бичээд түр хүлээхэд AI таны оношийг харгалзан тооцно. «Тооцоолсон» хэмжээ өөрчлөгдөхгүй.'}</small></label>` : ''}
       </div>
-      <div class="plan-doctor" ${noDoctor ? 'hidden' : ''}>
-      <p class="plan-step">Эмчийн заавар <small>байвал</small></p>
-      <div class="plan-fields">
-        <label>Хэмжээ, мл<input id="plan-doctor" name="doctorLimit" type="number" inputmode="numeric" min="500" max="4000" value="${p.doctorLimit}"/></label>
-        <label class="span2">Эмч юу гэж заасан бэ?<select id="plan-doctor-mode" name="doctorMode"><option value="goal" ${p.doctorMode === 'goal' ? 'selected' : ''}>Дор хаяж ийм хэмжээ уух</option><option value="limit" ${p.doctorMode === 'limit' ? 'selected' : ''}>Үүнээс хэтрүүлэхгүй</option></select></label>
-      </div>
-      </div>
-      <p class="plan-step">AI-аас асуух <small>заавал биш</small></p>
-      ${aiOff ? '<p class="ai-off">AI одоогоор идэвхжээгүй байна.</p>' : `<div class="ai-row">
-        <label class="visually-hidden" for="plan-note">Нэмэлт мэдээлэл</label>
-        <input id="plan-note" name="note" type="text" maxlength="200" placeholder="Жишээ: гүйдэг, халуун" value="${escape(aiNote)}"/>
-        <button type="button" class="ai-button" id="ask-ai" ${aiAsking ? 'disabled' : ''}>${aiAsking ? 'Бодож байна…' : aiPlan ? 'Дахин асуух' : 'Асуух'}</button>
-      </div>`}
-      <p class="plan-step">Аль хэмжээг сонгох вэ?</p>
-      <div class="plan-options" role="radiogroup" aria-label="Хэмжээ сонгох">${(Object.keys(SOURCES) as Source[]).map(s => optionCard(s, p)).join('')}</div>
-      ${result}
+      ${doctorHere ? doctorCard() : ''}
+      <details class="plan-more" id="plan-more" ${planMore ? 'open' : ''}>
+        <summary>Дэлгэрэнгүй тохиргоо</summary>
+        <div class="plan-fields">
+          <label>Өндөр, см<input id="plan-height" name="height" type="number" inputmode="numeric" min="90" max="230" value="${p.height}"/></label>
+        </div>
+        ${templates ? `<p class="plan-step">Бэлэн загварууд</p>
+        <div class="goal-templates">${GOAL_TEMPLATES.map(t => `<button type="button" class="goal-template" data-template="${t.ml}" data-name="${t.name}">
+          <small>${t.name}</small><b>${t.ml / GLASS_ML} аяга</b><span aria-hidden="true">${mdIcon(t.icon)}</span></button>`).join('')}</div>` : ''}
+        <div class="plan-doctor" ${noDoctor ? 'hidden' : ''}>
+        <p class="plan-step">Эмчийн заасан хэмжээ <small>гараар</small></p>
+        <div class="plan-fields">
+          <label>Хэмжээ, мл<input id="plan-doctor" name="doctorLimit" type="number" inputmode="numeric" min="500" max="4000" value="${p.doctorLimit}"/></label>
+          <label class="span2">Эмч юу гэж заасан бэ?<select id="plan-doctor-mode" name="doctorMode"><option value="goal" ${p.doctorMode === 'goal' ? 'selected' : ''}>Дор хаяж ийм хэмжээ уух</option><option value="limit" ${p.doctorMode === 'limit' ? 'selected' : ''}>Үүнээс хэтрүүлэхгүй</option></select></label>
+        </div>
+        </div>
+        <p class="plan-step">AI-аас асуух <small>заавал биш</small></p>
+        ${aiOff ? '<p class="ai-off">AI одоогоор идэвхжээгүй байна.</p>' : `<div class="ai-row">
+          <label class="visually-hidden" for="plan-note">Нэмэлт мэдээлэл</label>
+          <input id="plan-note" name="note" type="text" maxlength="200" placeholder="Жишээ: гүйдэг, халуун" value="${escape(aiNote)}"/>
+          <button type="button" class="ai-button" id="ask-ai" ${aiAsking ? 'disabled' : ''}>${aiAsking ? 'Бодож байна…' : aiPlan ? 'Дахин асуух' : 'Асуух'}</button>
+        </div>`}
+        <p class="plan-step">Аль хэмжээг сонгох вэ?</p>
+        <div class="plan-options" role="radiogroup" aria-label="Хэмжээ сонгох">${(Object.keys(SOURCES) as Source[]).map(s => optionCard(s, p)).join('')}</div>
+      </details>
       <p class="form-error" id="plan-error" role="alert" ${aiError ? '' : 'hidden'}>${escape(aiError)}</p>
       <button type="submit" class="primary-button plan-save" ${d && !vs!.same ? '' : 'disabled'}>${vs?.same ? 'Зорилт болгосон' : 'Үүнийг зорилт болгох'}</button>
       <p class="plan-saved" id="plan-saved" role="status"></p>
@@ -264,13 +277,12 @@ function bindPlan() {
   const showError = (text: string) => { error.textContent = text; error.hidden = !text; };
   const show = () => {
     if (!draft || !amount) return;
-    form.querySelector('#plan-kind')!.textContent = `өдөрт ${kindLabel(draft!.mode)}`;
+    form.querySelector('#plan-kind')!.textContent = glassesText(draft!);
     form.querySelector('#plan-how')!.textContent = draft!.how;
     const warning = form.querySelector<HTMLElement>('#plan-warning')!;
     warning.textContent = draft!.warning;
     warning.hidden = !draft!.warning;
     amount.value = liters(draft!.ml);
-    form.ownerDocument.querySelector('#plan-glasses')!.textContent = String(Math.round(draft!.ml / GLASS_ML));
     const vs = versusGoal(draft!);
     const line = form.querySelector<HTMLElement>('#plan-vs')!;
     line.innerHTML = vs.text;
@@ -295,9 +307,11 @@ function bindPlan() {
     render();
   }));
   // Profile edits recompute the suggestions; the AI is asked again after a pause (see scheduleAsk).
+  form.querySelector('#plan-more')!.addEventListener('toggle', event => { planMore = (event.target as HTMLDetailsElement).open; });
   form.addEventListener('input', event => {
     const target = event.target as HTMLElement;
-    if (target === amount) return;
+    // The doctor card keeps its own text and photo (doctor-card.ts); it is not part of the profile.
+    if (target === amount || target.closest('.doctor-card')) return;
     if (target.id === 'plan-note') { aiNote = (target as HTMLInputElement).value; return; }
     const p = readForm(form);
     if (!validProfile(p)) { showError('Нас 4–110, жин 10–250 кг, өндөр 90–230 см, эмчийн хэмжээ 500–4,000 мл байна.'); return; }
@@ -467,8 +481,8 @@ function render() {
       <div class="hydro">
         ${hxHeader('Нүүр')}
         ${limit ? '' : weatherChip(state.mode)}
-        ${limit ? limitGauge(drink, goal, cup) + quickAdd(cup) + undoLine + dialysisCard() : hxGauge(drink, goal, state.mode, readCup(), drinking) + undoLine}
-        ${limit ? '' : doctorCard()}${watchCard()}
+        ${limit ? limitGauge(drink, goal, cup) + quickAdd(cup) + undoLine + planOpenButton() + dialysisCard() : hxGauge(drink, goal, state.mode, readCup(), drinking) + undoLine + planOpenButton()}
+        ${watchCard()}
         ${familySection()}
         ${ScalePanel(limit)}
       </div>
@@ -492,11 +506,13 @@ function render() {
   }, { kind: readCupKind() }));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();
-  if (!limit) bindDoctorCard(render, async (ml, mode) => {
+  // The doctor card is inside the open goal sheet, which must redraw without replaying its opening
+  // or losing its scroll.
+  bindDoctorCard(renderKeepingFocus, async (ml, mode) => {
     const result = await save({ ...state, goal: ml, mode });
     await reload();
     source = 'doctor'; draft = null;
-    render();
+    renderKeepingFocus();
     return result === 'saved';
   });
   bindWeatherChip();
@@ -508,24 +524,34 @@ function render() {
   document.querySelector('#undo-entry')?.addEventListener('click', undo);
   document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
   bindPlan();
-  // The goal pill opens the calculator as a glass sheet over the home; the close button, the backdrop or Esc close it.
+  // The close button, the backdrop or Esc close the sheet; the openers are bound once, below.
   const sheet = document.querySelector<HTMLElement>('#plan-wrap')!;
-  // The goal pill is on the goal-mode gauge only; a limit is changed on «Эмчийн зөвлөмж» › Засах.
-  const pill = document.querySelector<HTMLButtonElement>('#plan-toggle');
-  const setOpen = (open: boolean) => {
-    planOpen = open;
-    pill?.setAttribute('aria-expanded', String(open));
-    sheet.hidden = !open;
-    if (open) sheet.classList.remove('still');
-    if (open) sheet.querySelector<HTMLElement>('.plan-close')!.focus(); else pill?.focus();
-  };
-  document.querySelector('#plan-close')!.addEventListener('click', () => setOpen(false));
-  sheet.addEventListener('click', event => { if (event.target === sheet) setOpen(false); });
-  sheet.addEventListener('keydown', event => { if (event.key === 'Escape') setOpen(false); });
-  pill?.addEventListener('click', () => {
-    setOpen(!planOpen);
-  });
+  document.querySelector('#plan-close')!.addEventListener('click', () => setPlanOpen(false));
+  sheet.addEventListener('click', event => { if (event.target === sheet) setPlanOpen(false); });
+  sheet.addEventListener('keydown', event => { if (event.key === 'Escape') setPlanOpen(false); });
 }
+
+// The goal pill and «Зорилтоо тохируулах» under the gauge open the calculator as a glass sheet over the
+// home. The pill is on the goal-mode gauge; the button is on both homes.
+let planOpener = '';
+function setPlanOpen(open: boolean) {
+  const sheet = document.querySelector<HTMLElement>('#plan-wrap');
+  if (!sheet) return;
+  planOpen = open;
+  document.querySelectorAll('[data-plan-open]').forEach(b => b.setAttribute('aria-expanded', String(open)));
+  sheet.hidden = !open;
+  if (open) sheet.classList.remove('still');
+  if (open) sheet.querySelector<HTMLElement>('.plan-close')?.focus();
+  else document.getElementById(planOpener)?.focus();
+}
+// Bound once on the document rather than in render(), so the openers work even if a later part of a
+// redraw fails.
+document.addEventListener('click', event => {
+  const opener = (event.target as Element).closest<HTMLElement>('[data-plan-open]');
+  if (!opener) return;
+  planOpener = opener.id;
+  setPlanOpen(!planOpen);
+});
 
 // The streak and today's total may change while the app is away; send them as it leaves.
 document.addEventListener('visibilitychange', () => {

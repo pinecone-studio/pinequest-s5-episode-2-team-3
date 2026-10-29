@@ -5,7 +5,7 @@ import { readProfile, writeProfile } from './plan';
 import { readSettings, writeSettings } from './schedule';
 import { askPermission, nativeReminders } from './native-reminders';
 
-// Home card for people under a doctor's care (heart or kidney failure): they type the doctor's fluid
+// For people under a doctor's care (heart or kidney failure): they type the doctor's fluid
 // instructions or photograph the paper, the AI reads them (POST /api/doctor), and only after the person
 // checks what it understood does the app take the amount as the goal or limit and set the reminders.
 // The home redraws often, so what is typed and the AI's answer live here, not in the page.
@@ -33,11 +33,12 @@ function resultBlock(): string {
   </div>`;
 }
 
+// One step of «Зорилтоо тохируулах» (overview.ts), right under the diagnosis.
 export function doctorCard(): string {
   const times = readSettings().times;
-  return `<section class="hx-card doctor-card" aria-labelledby="doc-title">
-    <h2 id="doc-title"><span aria-hidden="true">🩺</span> Эмчийн заавар</h2>
-    <p class="doc-intro">Эмчийн заавраа бичих эсвэл бичгийн зургийг оруулбал AI өдрийн хэмжээ, уух цагийг тань тохируулна.</p>
+  return `<div class="plan-doc doctor-card" role="group" aria-labelledby="doc-title">
+    <p class="plan-step" id="doc-title">${mdIcon('stethoscope')} Эмчийн заавар <small>байвал</small></p>
+    <p class="doc-intro">Бичээд эсвэл зургийг нь оруулаад AI-д өгвөл хэмжээ, уух цагийг тань тохируулна.</p>
     ${times ? `<p class="doc-now">Одоогийн хуваарь: ${times.map(t => `${t.at} · ${number(t.ml)} мл`).join(', ')}</p>` : ''}
     <label class="visually-hidden" for="doc-text">Эмчийн заавар</label>
     <textarea id="doc-text" rows="3" maxlength="2000" placeholder="Жишээ: Өдөрт 1.5 литрээс хэтрүүлэхгүй. Өглөө 8, өдөр 12, орой 18 цагт 300 мл.">${escape(text)}</textarea>
@@ -47,7 +48,7 @@ export function doctorCard(): string {
       <button type="button" class="hx-blue doc-ask" data-doc-ask ${asking ? 'disabled' : ''}>${asking ? 'Уншиж байна…' : 'AI-д өгөх'}</button>
     </div>
     ${resultBlock()}
-  </section>`;
+  </div>`;
 }
 
 // A phone photo is several MB; 1600 px JPEG keeps the writing readable and the request small.

@@ -80,11 +80,9 @@ html[data-theme="dark"] .fam { --ink-2: #fff; --muted-2: #9e9e9e; }
 html[data-theme="dark"] .plan-card { --ink-2: #fff; --muted-2: #9e9e9e; }
 html[data-theme="dark"] .plan-sheet .plan-card { border-color: #35383f; background: rgba(31, 34, 42, .96); }
 html[data-theme="dark"] .plan-close { background: #2a2d36; color: #bdbdbd; }
-html[data-theme="dark"] .goal-hero { background: linear-gradient(180deg, #1d2a3a, #1f222a); }
-html[data-theme="dark"] :is(.plan-fields input, .plan-fields select, .ai-button, .plan-option, .plan-amount .step, .plan-amount input) { border-color: #35383f; background: #2a2d36; color: #fff; }
+html[data-theme="dark"] :is(.plan-fields input, .plan-fields select, .ai-button, .plan-option, .plan-stepper .step) { border-color: #35383f; background: #2a2d36; color: #fff; }
 html[data-theme="dark"] .plan-option[aria-checked="true"] { border-color: #4aa8ff; background: #1d2a3a; }
 html[data-theme="dark"] .plan-option[data-source="ai"][aria-checked="true"] { border-color: #8b7bf0; background: #2a2540; }
-html[data-theme="dark"] .plan-result { background: linear-gradient(180deg, #1d2a3a, #222a36); }
 html[data-theme="dark"] .plan-vs.same { color: #6fd39a; }
 html[data-theme="dark"] .ai-off { background: #3a2f1d; color: #ffcf8a; }
 
@@ -188,11 +186,32 @@ html .week-report > .tile-sub { margin: 0 16px 14px; }
 html .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 
-/* "Зорилтоо тохируулах": the big glass count and ready-made days (overview.ts planSection). */
+/* "Зорилтоо тохируулах" (overview.ts planSection): ring hero, a few fields, the doctor card and «Дэлгэрэнгүй». */
 html .plan-card h2 { text-align: center; }
-html .goal-hero { display: grid; justify-items: center; gap: 2px; margin: 4px -20px 14px; padding: 18px 0 20px; background: linear-gradient(180deg, #d6eefd, #eef8ff); }
-html .goal-count { margin: 0; padding: 0 14px; border-radius: 10px; background: var(--sky); color: #fff; font-size: 54px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
-html .goal-unit { margin: 0; font-size: 12px; color: #4b6075; }
+/* The amount being set, − and + either side. */
+html .plan-hero { display: grid; justify-items: center; gap: 2px; margin: 4px 0 8px; text-align: center; }
+html .plan-stepper { display: flex; align-items: center; justify-content: center; gap: 14px; }
+html .plan-l { display: flex; align-items: baseline; justify-content: center; gap: 2px; margin: 0; }
+html .plan-l input { width: 3.4ch; min-width: 0; padding: 0; border: 0; border-radius: 8px; background: none; text-align: center; font: inherit; font-size: 44px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+html .plan-l input::-webkit-inner-spin-button, html .plan-l input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+html .plan-l input:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+html .plan-l span { font-size: 20px; font-weight: 700; color: var(--muted); }
+html .plan-stepper .step { width: 44px; height: 44px; border: 1px solid var(--sky-line); border-radius: 50%; background: #fff; color: var(--sky-deep); font-size: 24px; line-height: 1; }
+html .plan-stepper .step:active { transform: scale(.94); }
+html .plan-hero .plan-vs, html .plan-hero .plan-how { margin-top: 2px; font-size: 14px; }
+html .plan-fields.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* The doctor card as a step of the sheet (doctor-card.ts inSheet). */
+html .plan-doc { margin-top: 4px; }
+html .plan-doc .plan-step { display: flex; align-items: center; gap: 6px; }
+html .plan-doc .doc-intro { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+/* «Дэлгэрэнгүй тохиргоо»: everything else, closed by default. */
+html .plan-more { margin-top: 14px; border-top: 1px solid var(--hair); }
+html .plan-more > summary { display: flex; align-items: center; justify-content: space-between; min-height: 48px; cursor: pointer; list-style: none; font-size: 15px; font-weight: 700; color: var(--sky-deep); }
+html .plan-more > summary::-webkit-details-marker { display: none; }
+html .plan-more > summary::after { content: ""; width: 9px; height: 9px; margin-right: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .2s; }
+html .plan-more[open] > summary::after { transform: rotate(-135deg); }
+html .plan-more > summary:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 8px; }
+html .plan-more > .plan-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 html .goal-templates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 html .goal-template { position: relative; display: grid; justify-items: start; gap: 2px; min-height: 64px; padding: 10px 12px; border: 1px solid var(--hair); border-radius: 14px; background: #fff; box-shadow: var(--card-shadow); text-align: left; color: var(--ink); }
 html .goal-template small { font-size: 11px; color: var(--muted); }
@@ -1316,3 +1335,10 @@ html .wt-dots li.done { background: #22c55e; }
 html .wt-badge.pop { animation: wt-pop .45s cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes wt-pop { from { transform: scale(.4); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { html .wt-badge.pop { animation: none; } }
+
+/* «Зорилтоо тохируулах» under the gauge on both homes: opens the same sheet as the goal pill (overview.ts). */
+html .plan-open { display: inline-flex; align-items: center; justify-content: center; gap: 6px; justify-self: center; min-height: 44px; padding: 0 18px; border: 1px solid var(--sky-line); border-radius: 999px; background: #fff; color: var(--sky-deep); font-size: 15px; font-weight: 700; }
+html .plan-open .md-icon { width: 20px; height: 20px; fill: currentColor; }
+html .plan-open:hover { background: var(--sky-soft); }
+html .plan-open:active { transform: scale(.97); }
+html[data-theme="dark"] .plan-open { background: #1f222a; border-color: #35383f; }

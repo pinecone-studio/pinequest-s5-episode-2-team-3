@@ -122,7 +122,7 @@ export function bindGaugeDrag(add: (ml: number) => unknown): void {
     const f = Math.min(1, target / goal), extra = target - drink;
     arc.setAttribute('stroke-dasharray', `${(f * 100).toFixed(1)} 100`);
     arc.classList.toggle('empty', f <= 0);
-    water.style.transform = `translateY(${(196 - f * 92).toFixed(1)}px)`;
+    water.style.transform = `translateY(${level(f).toFixed(1)}px)`;
     knob.setAttribute('style', knobAt(f));
     knob.setAttribute('aria-valuenow', String(target)); knob.setAttribute('aria-valuetext', `${number(target)} мл, +${number(extra)} мл`);
     amount.textContent = number(target);
@@ -158,32 +158,39 @@ export function bindGaugeDrag(add: (ml: number) => unknown): void {
   });
 }
 
+const level = (frac: number) => 196 - frac * 92; // water top inside the drop (it spans y 104–196)
+
+// The arc, its ticks and the drop whose water rises with `frac` (viewBox 0 0 300 270). Shared by the
+// home gauge and the doctor's-limit gauge (home-limit.ts), which gives its own clip id.
+export function gaugeArt(frac: number, clipId = 'hx-drop'): string {
+  const point = (deg: number, r: number) => { const a = (deg * Math.PI) / 180; return `${(150 + r * Math.cos(a)).toFixed(1)} ${(150 + r * Math.sin(a)).toFixed(1)}`; };
+  const ticks = Array.from({ length: 11 }, (_, i) => 135 + i * 27).slice(1, -1)
+    .map(deg => `<path d="M${point(deg, 94)} L${point(deg, 102)}"/>`).join('');
+  return `<path class="hx-track" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100"/>
+        <path class="hx-progress${frac > 0 ? '' : ' empty'}" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100" stroke-dasharray="${(frac * 100).toFixed(1)} 100"/>
+        <g class="hx-ticks">${ticks}</g>
+        <defs><clipPath id="${clipId}"><path d="M150 72c-26 34-42 54-42 76a42 42 0 0 0 84 0c0-22-16-42-42-76z"/></clipPath></defs>
+        <path class="hx-drop-ring" d="M150 62c-31 39-50 62-50 86a50 50 0 0 0 100 0c0-24-19-47-50-86z"/>
+        <path class="hx-drop" d="M150 72c-26 34-42 54-42 76a42 42 0 0 0 84 0c0-22-16-42-42-76z"/>
+        <g clip-path="url(#${clipId})"><g class="hx-water" style="transform: translateY(${level(frac).toFixed(1)}px)">
+          <path class="hx-wave back" d="${WAVE(-60, 0)}"/>
+          <path class="hx-wave" d="${WAVE(-90, 6)}"/>
+        </g></g>`;
+}
+
 export function hxGauge(drink: number, goal: number, mode: Mode, cup: number, drinking = false): string {
   const kind = readCupKind();
   const frac = Math.max(0, Math.min(1, drink / goal));
   const over = mode === 'limit' && drink > goal;
-  const point = (deg: number, r: number) => { const a = (deg * Math.PI) / 180; return `${(150 + r * Math.cos(a)).toFixed(1)} ${(150 + r * Math.sin(a)).toFixed(1)}`; };
-  const ticks = Array.from({ length: 11 }, (_, i) => 135 + i * 27).slice(1, -1)
-    .map(deg => `<path d="M${point(deg, 94)} L${point(deg, 102)}"/>`).join('');
-  const level = 196 - frac * 92; // water top inside the drop (it spans y 104–196)
   return `<section class="hx-card hx-gauge-card" aria-label="Өнөөдрийн ус">
     <div class="hx-gauge${over ? ' over' : ''}" data-goal="${goal}" data-drink-now="${drink}" data-no-swipe role="group" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл">
       <svg viewBox="0 0 300 270" aria-hidden="true">
-        <path class="hx-track" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100"/>
-        <path class="hx-progress${frac > 0 ? '' : ' empty'}" d="M${point(135, 122)} A122 122 0 1 1 ${point(45, 122)}" pathLength="100" stroke-dasharray="${(frac * 100).toFixed(1)} 100"/>
-        <g class="hx-ticks">${ticks}</g>
-        <defs><clipPath id="hx-drop"><path d="M150 72c-26 34-42 54-42 76a42 42 0 0 0 84 0c0-22-16-42-42-76z"/></clipPath></defs>
-        <path class="hx-drop-ring" d="M150 62c-31 39-50 62-50 86a50 50 0 0 0 100 0c0-24-19-47-50-86z"/>
-        <path class="hx-drop" d="M150 72c-26 34-42 54-42 76a42 42 0 0 0 84 0c0-22-16-42-42-76z"/>
-        <g clip-path="url(#hx-drop)"><g class="hx-water" style="transform: translateY(${level.toFixed(1)}px)">
-          <path class="hx-wave back" d="${WAVE(-60, 0)}"/>
-          <path class="hx-wave" d="${WAVE(-90, 6)}"/>
-        </g></g>
+        ${gaugeArt(frac)}
       </svg>
       <span class="hx-knob" role="slider" tabindex="0" aria-label="Нумыг чирж ус нэмэх (сум товч, Enter)" aria-valuemin="${drink}" aria-valuemax="${Math.max(drink, goal)}" aria-valuenow="${drink}" aria-valuetext="${number(drink)} мл" style="${knobAt(frac)}"></span>
       <span class="hx-drag-add" aria-hidden="true" hidden></span>
       <p class="hx-amount"><b id="today-drink">${number(drink)}</b></p>
-      <button type="button" class="hx-goal" id="plan-toggle" aria-controls="plan-wrap" aria-expanded="false">/${number(goal)} мл${mode === 'limit' ? ' хязгаар' : ''}</button>
+      <button type="button" class="hx-goal" id="plan-toggle" data-plan-open aria-controls="plan-wrap" aria-expanded="false">/${number(goal)} мл${mode === 'limit' ? ' хязгаар' : ''}</button>
     </div>
     <div class="hx-actions">
       <button type="button" class="hx-drink${drinking ? ' busy' : ''}" data-drink="${cup}" ${drinking ? 'disabled' : ''}>${drinking ? 'Ууж байна...' : `Уух (${number(cup)} мл)`}</button>
