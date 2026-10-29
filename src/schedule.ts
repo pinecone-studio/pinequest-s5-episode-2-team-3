@@ -120,48 +120,51 @@ function sheet(state: AppState): string {
 }
 
 export function bindSchedule(state: () => AppState, redraw: () => void): void {
-  document.querySelector('#sched-open')?.addEventListener('click', () => {
-    const box = document.createElement('div');
-    box.className = 'cal';
-    box.setAttribute('role', 'dialog');
-    box.setAttribute('aria-modal', 'true');
-    box.setAttribute('aria-labelledby', 'sched-title');
-    document.body.append(box);
-    const close = () => { box.remove(); document.removeEventListener('keydown', onKey); redraw(); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('keydown', onKey);
-    box.addEventListener('click', e => { if (e.target === box) close(); });
-    const draw = (note = '') => {
-      box.innerHTML = sheet(state());
-      box.querySelector('#sched-note')!.textContent = note;
-      box.querySelector('.cal-close')!.addEventListener('click', close);
-      const save = () => {
-        const s = readSettings();
-        writeSettings({ ...s, times: undefined, wake: (box.querySelector('#sched-wake') as HTMLInputElement).value || s.wake, sleep: (box.querySelector('#sched-sleep') as HTMLInputElement).value || s.sleep, every: Number((box.querySelector('#sched-every') as HTMLSelectElement).value) });
-        void planNative(state());
-        draw();
-      };
-      box.querySelectorAll('#sched-form input, #sched-form select').forEach(el => el.addEventListener('change', save));
-      box.querySelector<HTMLInputElement>('#sched-on')!.addEventListener('change', async e => {
-        const want = (e.target as HTMLInputElement).checked;
-        if (nativeReminders) {
-          const allowed = !want || await askPermission();
-          writeSettings({ ...readSettings(), on: want && allowed });
-          await planNative(state());
-          draw(!allowed ? 'Мэдэгдэл зөвшөөрөгдсөнгүй. Утасны тохиргоо → Апп → Дусал → Мэдэгдэл хэсгээс зөвшөөрнө үү.' : want ? 'Сануулга асаалаа. Апп хаалттай байсан ч ирнэ.' : 'Сануулга унтарлаа.');
-          return;
-        }
-        if (want && Notification.permission !== 'granted') {
-          const answer = await Notification.requestPermission();
-          if (answer !== 'granted') { writeSettings({ ...readSettings(), on: false }); draw('Мэдэгдэл зөвшөөрөгдсөнгүй. Хөтчийн тохиргооноос зөвшөөрнө үү.'); return; }
-        }
-        writeSettings({ ...readSettings(), on: want });
-        draw(want ? 'Сануулга асаалаа. Апп эсвэл таб нээлттэй үед ирнэ.' : 'Сануулга унтарлаа.');
-      });
+  document.querySelector('#sched-open')?.addEventListener('click', () => openSchedule(state, redraw));
+}
+
+// Today's schedule and the reminder switch, over the page; closing redraws the page.
+export function openSchedule(state: () => AppState, redraw: () => void): void {
+  const box = document.createElement('div');
+  box.className = 'cal';
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  box.setAttribute('aria-labelledby', 'sched-title');
+  document.body.append(box);
+  const close = () => { box.remove(); document.removeEventListener('keydown', onKey); redraw(); };
+  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  box.addEventListener('click', e => { if (e.target === box) close(); });
+  const draw = (note = '') => {
+    box.innerHTML = sheet(state());
+    box.querySelector('#sched-note')!.textContent = note;
+    box.querySelector('.cal-close')!.addEventListener('click', close);
+    const save = () => {
+      const s = readSettings();
+      writeSettings({ ...s, times: undefined, wake: (box.querySelector('#sched-wake') as HTMLInputElement).value || s.wake, sleep: (box.querySelector('#sched-sleep') as HTMLInputElement).value || s.sleep, every: Number((box.querySelector('#sched-every') as HTMLSelectElement).value) });
+      void planNative(state());
+      draw();
     };
-    draw();
-    box.querySelector<HTMLElement>('.cal-close')?.focus();
-  });
+    box.querySelectorAll('#sched-form input, #sched-form select').forEach(el => el.addEventListener('change', save));
+    box.querySelector<HTMLInputElement>('#sched-on')!.addEventListener('change', async e => {
+      const want = (e.target as HTMLInputElement).checked;
+      if (nativeReminders) {
+        const allowed = !want || await askPermission();
+        writeSettings({ ...readSettings(), on: want && allowed });
+        await planNative(state());
+        draw(!allowed ? 'Мэдэгдэл зөвшөөрөгдсөнгүй. Утасны тохиргоо → Апп → Дусал → Мэдэгдэл хэсгээс зөвшөөрнө үү.' : want ? 'Сануулга асаалаа. Апп хаалттай байсан ч ирнэ.' : 'Сануулга унтарлаа.');
+        return;
+      }
+      if (want && Notification.permission !== 'granted') {
+        const answer = await Notification.requestPermission();
+        if (answer !== 'granted') { writeSettings({ ...readSettings(), on: false }); draw('Мэдэгдэл зөвшөөрөгдсөнгүй. Хөтчийн тохиргооноос зөвшөөрнө үү.'); return; }
+      }
+      writeSettings({ ...readSettings(), on: want });
+      draw(want ? 'Сануулга асаалаа. Апп эсвэл таб нээлттэй үед ирнэ.' : 'Сануулга унтарлаа.');
+    });
+  };
+  draw();
+  box.querySelector<HTMLElement>('.cal-close')?.focus();
 }
 
 // What a reminder says and which face it shows, Duolingo style. A reminder only fires when its slot

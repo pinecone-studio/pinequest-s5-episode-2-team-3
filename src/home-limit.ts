@@ -1,15 +1,15 @@
 import { escape, number } from './format';
 import { KINDS, SALTABLE, type Kind } from './drinks';
-import { arcAt, arcPoint, gaugeArt } from './hydrify';
-import { openDrinkSheet, readSaltyChoice } from './drink-sheet';
-import { WEEKDAY_LONG, WEEKDAY_SHORT, logThirst, readDialysis, type Dialysis } from './progress-data';
+import { arcAt, arcPoint, gaugeArt, moreButton } from './hydrify';
+import { openDrinkSheet } from './drink-sheet';
+import { logThirst, type Dialysis } from './progress-data';
 import './home-limit.css';
 
 // The home under a doctor's fluid limit (state.mode === 'limit'), for people on dialysis. The gauge only
-// shows what is left: nothing is logged by dragging it while scrolling. Adding goes through four
-// tiles, the «Бусад…» picker or the dial sheet, and any add that would pass the limit first shows by
-// how much, with the amount that still fits. A real entry is never refused. «Цангаж байна» offers
-// ways to ease thirst without drinking. The goal (the limit) is never changed here.
+// shows what is left: nothing is logged by dragging it while scrolling. Adding goes through «Уух»
+// (the drink sheet) or the dial sheet, and any add that would pass the limit first shows by how much,
+// with the amount that still fits. A real entry is never refused. «Цангаж байна» (in the «⋯» menu)
+// offers ways to ease thirst without drinking. The goal (the limit) is never changed here.
 
 // «≈ 1½ аяга»: ml in the user's main cup, always rounded down to a half (the dial: a quarter), so
 // it never promises more than is left.
@@ -46,30 +46,12 @@ export function limitGauge(drink: number, goal: number, cup: number): string {
         <div class="hl-center">${center}</div>
       </div>
       <p class="hl-sum">${number(drink)} / ${number(goal)} мл уусан · эмчийн хязгаар</p>
+      <div class="hx-actions hl-actions"><button type="button" class="hx-drink" data-drink-sheet>Уух (${number(cup)} мл)</button>${moreButton()}</div>
     </section>`;
 }
 
 const svg = (body: string) => `<svg viewBox="0 0 32 32" aria-hidden="true">${body}</svg>`;
-const TILE_ICONS = {
-  water: svg('<path d="M9 5h14l-1.6 23H10.6z" fill="#eef6fe"/><path d="M9.8 13h12.4l-1 15H10.8z" fill="#569df8"/>'),
-  pill: svg('<rect x="9" y="8" width="14" height="18" rx="4" fill="#eef6fe" stroke="#569df8" stroke-width="1.6"/><rect x="11" y="4" width="10" height="5" rx="1.5" fill="#569df8"/><path d="M13 17h6" stroke="#569df8" stroke-width="2" stroke-linecap="round"/>'),
-  more: svg('<circle cx="16" cy="16" r="12" fill="#eef6fe" stroke="#569df8" stroke-width="1.6"/><path d="M10.5 16h11M16 10.5v11" stroke="#569df8" stroke-width="2.2" stroke-linecap="round"/>'),
-};
-const DROP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 4.2 6 7.4 6 11a6 6 0 0 1-12 0c0-3.6 3-6.8 6-11Z"/><path d="M9 14h6"/></svg>';
-
-// Ус · Сүүтэй цай (a main cup each), a 50 мл sip to take pills with, and «Бусад…». Not data-drink:
-// hydration.ts adds every [data-drink] button straight away, past the limit check.
-export function quickAdd(cup: number): string {
-  const tile = (id: string, icon: string, name: string, sub: string, label: string) =>
-    `<button type="button" class="hl-tile" data-quick="${id}" aria-label="${escape(label)}">${icon}<span>${name}</span><small>${sub}</small></button>`;
-  return `<section class="hl-quick" aria-label="Хурдан нэмэх">
-      ${tile('water', TILE_ICONS.water, 'Ус', '1 аяга', `Ус, 1 аяга (${number(cup)} мл) нэмэх`)}
-      ${tile('milkTea', KINDS.milkTea.icon, 'Сүүтэй цай', '1 аяга', `Сүүтэй цай, 1 аяга (${number(cup)} мл) нэмэх`)}
-      ${tile('pill', TILE_ICONS.pill, 'Эм уухад', '50 мл', 'Эм уухад 50 мл ус нэмэх')}
-      ${tile('more', TILE_ICONS.more, 'Бусад…', 'ундаа', 'Бусад ундаа, өөр хэмжээ')}
-    </section>
-    <button type="button" class="hl-thirst" id="hl-thirst">${DROP}Цангаж байна</button>`;
-}
+const WATER_ICON = svg('<path d="M9 5h14l-1.6 23H10.6z" fill="#eef6fe"/><path d="M9.8 13h12.4l-1 15H10.8z" fill="#569df8"/>');
 
 // The next session from the dialysis days and time, and how long until it.
 export function nextDialysis(d: Dialysis, now = new Date()): Date | null {
@@ -88,20 +70,8 @@ export function untilText(at: Date, now = new Date()): string {
   return hours ? `${hours} цагийн дараа` : `${min} минутын дараа`;
 }
 
-const CAL = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="16" rx="3"/><path d="M3.5 9h17M8 2.5v4M16 2.5v4"/><path d="M12 12.5v3l2 1.2"/></svg>';
-export function dialysisCard(now = new Date()): string {
-  const d = readDialysis(), at = nextDialysis(d, now);
-  // The days live on «Эмчийн зөвлөмж»; in the app's tab host the hash goes along (tabs.ts).
-  if (!at) return `<a class="hx-card hl-dialysis empty" href="/settings.html#doctor"><span class="hl-dialysis-icon">${CAL}</span><b>Диализын өдрөө тохируулах</b><i aria-hidden="true">›</i></a>`;
-  return `<section class="hx-card hl-dialysis" aria-label="Дараагийн диализ">
-      <span class="hl-dialysis-icon">${CAL}</span>
-      <div><small>Дараагийн диализ</small><b>${WEEKDAY_LONG[at.getDay()]}, ${d.time}</b><small>${untilText(at, now)}</small></div>
-      <span class="hl-days">${d.days.map(n => WEEKDAY_SHORT[n % 7]).join(' · ')}</span>
-    </section>`;
-}
-
 // A bottom sheet with a grab handle; Escape or a tap outside closes it and focus goes back.
-function sheet(className: string, html: string, label: string): { box: HTMLElement; close: () => void } {
+export function sheet(className: string, html: string, label: string): { box: HTMLElement; close: () => void } {
   const back = document.activeElement as HTMLElement | null;
   const box = document.createElement('div');
   box.className = 'hx-dim';
@@ -170,7 +140,7 @@ export function openDial(ctx: AddCtx, kind: Kind | undefined, initial = ctx.cup,
   const left = Math.max(0, ctx.goal - ctx.drink);
   const max = Math.ceil(Math.max(600, left + 200) / STEP) * STEP;
   let value = Math.min(max, Math.max(0, Math.round(initial / STEP) * STEP));
-  const icon = kind ? KINDS[kind].icon : TILE_ICONS.water;
+  const icon = kind ? KINDS[kind].icon : WATER_ICON;
   const at = (f: number, r: number) => arcPoint(f, r).map(n => n.toFixed(1)) as [string, string];
   const tickIn = at(left / max, 108), tickOut = at(left / max, 140), tickLabel = at(left / max, 156);
   const zero = at(0, 88), end = at(1, 88);
@@ -241,16 +211,4 @@ export function openDial(ctx: AddCtx, kind: Kind | undefined, initial = ctx.cup,
   box.querySelector('[data-change]')!.addEventListener('click', () => { close(); openDrinkSheet(ctx, { kind, salty, ml: value }); });
   addButton.addEventListener('click', () => { close(); addChecked(ctx, value, kind, salty); });
   show();
-}
-
-// Taps on the limit home: the tiles and «Цангаж байна».
-export function bindLimitHome(ctx: AddCtx): void {
-  document.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach(b => b.addEventListener('click', () => {
-    const q = b.dataset.quick;
-    if (q === 'water') addChecked(ctx, ctx.cup, undefined);
-    else if (q === 'milkTea') addChecked(ctx, ctx.cup, 'milkTea', readSaltyChoice());
-    else if (q === 'pill') ctx.add(50, undefined, false);  // a sip for pills is never held back
-    else openDrinkSheet(ctx);
-  }));
-  document.querySelector('#hl-thirst')?.addEventListener('click', () => openThirst(ctx));
 }

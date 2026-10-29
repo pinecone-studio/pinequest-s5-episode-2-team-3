@@ -32,7 +32,7 @@
 
 .undo-line { margin-top: 8px; font-size: 16px; color: var(--muted-2); display: flex; align-items: center; gap: 8px; }
 .undo-line .text-button { min-height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: #fff; font-size: 16px; font-weight: 700; }
-html .hydro:has(.hl-quick) .undo-line { padding: 8px 12px; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink-2); }
+html .hydro:has(.hl-gauge-card) .undo-line { padding: 8px 12px; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink-2); }
 
 /* The calculator opens from the goal pill as a frosted-glass sheet; the home stays visible behind it. */
 .plan-wrap { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); overflow-y: auto; background: rgba(30, 45, 70, .18); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
