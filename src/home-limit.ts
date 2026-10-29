@@ -26,7 +26,9 @@ export const kindName = (kind: Kind | undefined, salty = false) =>
 
 // What every sheet needs from the home: today's total, the goal or limit, the main cup and how to
 // add. Only under a limit (`limit`) does an add that would pass it stop at the popup first.
-export interface AddCtx { drink: number; goal: number; limit: boolean; cup: number; add: (ml: number, kind: Kind | undefined, salty: boolean) => void }
+// `addOnce`, where set, adds without making it the next cup (the quick tiles use it).
+type Add = (ml: number, kind: Kind | undefined, salty: boolean) => void;
+export interface AddCtx { drink: number; goal: number; limit: boolean; cup: number; add: Add; addOnce?: Add }
 
 // The gauge as a display: the arc fills to today's share of the limit and stays full past it, and the
 // drop in the middle is the home gauge's, its waves floating the same way (hydrify.ts gaugeArt).
@@ -51,7 +53,29 @@ export function limitGauge(drink: number, goal: number, cup: number): string {
 }
 
 const svg = (body: string) => `<svg viewBox="0 0 32 32" aria-hidden="true">${body}</svg>`;
-const WATER_ICON = svg('<path d="M9 5h14l-1.6 23H10.6z" fill="#eef6fe"/><path d="M9.8 13h12.4l-1 15H10.8z" fill="#569df8"/>');
+export const TILE_ICONS = {
+  water: svg('<path d="M9 5h14l-1.6 23H10.6z" fill="#eef6fe"/><path d="M9.8 13h12.4l-1 15H10.8z" fill="#569df8"/>'),
+  pill: svg('<rect x="9" y="8" width="14" height="18" rx="4" fill="#eef6fe" stroke="#569df8" stroke-width="1.6"/><rect x="11" y="4" width="10" height="5" rx="1.5" fill="#569df8"/><path d="M13 17h6" stroke="#569df8" stroke-width="2" stroke-linecap="round"/>'),
+};
+
+// Ус · Сүүтэй цай (a main cup each) and a 50 мл sip to take pills with, on top of the drink sheet.
+// Not data-drink: hydration.ts adds every [data-drink] button straight away, past the limit check.
+export type Quick = 'water' | 'milkTea' | 'pill';
+export function quickTiles(cup: number): string {
+  const tile = (id: Quick, icon: string, name: string, sub: string, label: string) =>
+    `<button type="button" class="hl-tile" data-quick="${id}" aria-label="${escape(label)}">${icon}<span>${name}</span><small>${sub}</small></button>`;
+  return `<div class="hl-quick" role="group" aria-label="Хурдан нэмэх">
+      ${tile('water', TILE_ICONS.water, 'Ус', '1 аяга', `Ус, 1 аяга (${number(cup)} мл) нэмэх`)}
+      ${tile('milkTea', KINDS.milkTea.icon, 'Сүүтэй цай', '1 аяга', `Сүүтэй цай, 1 аяга (${number(cup)} мл) нэмэх`)}
+      ${tile('pill', TILE_ICONS.pill, 'Эм уухад', '50 мл', 'Эм уухад 50 мл ус нэмэх')}
+    </div>`;
+}
+// What a quick tile adds: a cup of water or milk tea through the limit check, the pill sip always.
+export function quickDrink(ctx: AddCtx, quick: Quick, salty: boolean, warn = overLimit): void {
+  if (quick === 'water') addChecked(ctx, ctx.cup, undefined, false, warn);
+  else if (quick === 'milkTea') addChecked(ctx, ctx.cup, 'milkTea', salty, warn);
+  else ctx.add(50, undefined, false);  // a sip for pills is never held back
+}
 
 // The next session from the dialysis days and time, and how long until it.
 export function nextDialysis(d: Dialysis, now = new Date()): Date | null {
@@ -86,9 +110,10 @@ export function sheet(className: string, html: string, label: string): { box: HT
 }
 
 // Adds unless it would pass the limit; then the popup says by how much first.
-export function addChecked(ctx: AddCtx, ml: number, kind: Kind | undefined, salty = false): void {
+// `warn` is the popup; tests pass their own.
+export function addChecked(ctx: AddCtx, ml: number, kind: Kind | undefined, salty = false, warn = overLimit): void {
   if (!ctx.limit || ctx.drink + ml <= ctx.goal) ctx.add(ml, kind, salty);
-  else overLimit(ctx, ml, kind, salty);
+  else warn(ctx, ml, kind, salty);
 }
 
 const RED_DROP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 4.2 6 7.4 6 11a6 6 0 0 1-12 0c0-3.6 3-6.8 6-11Z" fill="#e5484d"/><path d="M12 9v4.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.2" fill="#fff"/></svg>';
@@ -140,7 +165,7 @@ export function openDial(ctx: AddCtx, kind: Kind | undefined, initial = ctx.cup,
   const left = Math.max(0, ctx.goal - ctx.drink);
   const max = Math.ceil(Math.max(600, left + 200) / STEP) * STEP;
   let value = Math.min(max, Math.max(0, Math.round(initial / STEP) * STEP));
-  const icon = kind ? KINDS[kind].icon : WATER_ICON;
+  const icon = kind ? KINDS[kind].icon : TILE_ICONS.water;
   const at = (f: number, r: number) => arcPoint(f, r).map(n => n.toFixed(1)) as [string, string];
   const tickIn = at(left / max, 108), tickOut = at(left / max, 140), tickLabel = at(left / max, 156);
   const zero = at(0, 88), end = at(1, 88);

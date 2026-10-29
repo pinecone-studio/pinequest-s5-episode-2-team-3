@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'bun:test';
 // home-limit.ts pulls in stylesheets; tests only need the logic.
 mock.module('../src/hydration.css', () => ({}));
 mock.module('../src/home-limit.css', () => ({}));
-const { cupsText, nextDialysis, untilText } = await import('../src/home-limit');
+const { cupsText, nextDialysis, quickDrink, untilText } = await import('../src/home-limit');
 
 describe('cupsText', () => {
   test('rounds down to a half cup', () => {
@@ -35,5 +35,32 @@ describe('next dialysis', () => {
   });
   test('none set', () => {
     expect(nextDialysis({ days: [], time: '08:00' })).toBeNull();
+  });
+});
+
+describe('quick tiles', () => {
+  const setup = (drink: number, limit: boolean) => {
+    const added: [number, string | undefined, boolean][] = [], warned: number[] = [];
+    const ctx = { drink, goal: 1500, limit, cup: 250, add: (ml: number, kind?: string, salty = false) => { added.push([ml, kind, salty]); } };
+    const warn = (_: unknown, ml: number) => { warned.push(ml); };
+    return { ctx, added, warned, warn };
+  };
+  test('water past the limit goes to the warning first', () => {
+    const { ctx, added, warned, warn } = setup(1400, true);
+    quickDrink(ctx, 'water', false, warn);
+    expect(added).toEqual([]);
+    expect(warned).toEqual([250]);
+  });
+  test('the 50 мл pill sip is added straight away, even past the limit', () => {
+    const { ctx, added, warned, warn } = setup(1480, true);
+    quickDrink(ctx, 'pill', false, warn);
+    expect(added).toEqual([[50, undefined, false]]);
+    expect(warned).toEqual([]);
+  });
+  test('milk tea keeps its salt choice; without a limit it adds directly', () => {
+    const { ctx, added, warned, warn } = setup(1400, false);
+    quickDrink(ctx, 'milkTea', true, warn);
+    expect(added).toEqual([[250, 'milkTea', true]]);
+    expect(warned).toEqual([]);
   });
 });
