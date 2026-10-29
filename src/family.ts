@@ -4,6 +4,7 @@ import { readAvatar } from './avatars';
 import { dayKey, type AppState } from './data';
 import { readMember } from './member';
 import { scale } from './scale';
+import { checkBoard, stopWatchingFamily, watchFamily } from './family-alerts';
 
 // Family leaderboard (server side: backend/src/family.js). A family is everyone using one base, so
 // the base this phone last connected to is its family. Each report sends today's own total and gets
@@ -33,7 +34,10 @@ export async function reportFamily(state: AppState, drunk: number): Promise<void
   const baseId = readFamily();
   const member = readMember();
   if (!baseId || !member || !navigator.onLine) return;
-  const report = { name: member.name, avatar: readAvatar(), day: dayKey(), drinkMl: drunk, goalMl: state.goal, mode: state.mode };
+  // The day's latest drink, so the family can tell when someone under a limit has gone hours without one.
+  const today = dayKey();
+  const lastDrinkAt = state.events.filter(e => e.type === 'drink' && dayKey(new Date(e.at)) === today).map(e => e.at).sort().at(-1) ?? null;
+  const report = { name: member.name, avatar: readAvatar(), day: today, drinkMl: drunk, goalMl: state.goal, mode: state.mode, lastDrinkAt };
   const key = JSON.stringify([baseId, member.id, report]);
   if (key === sent && Date.now() - sentAt < 60_000) return;
   sent = key;
@@ -46,6 +50,8 @@ export async function reportFamily(state: AppState, drunk: number): Promise<void
     board = await response.json() as Leaderboard;
     try { localStorage.setItem(BOARD_KEY, JSON.stringify(board)); } catch { /* fetched again next time */ }
     changed();
+    watchFamily(baseId, member.id);
+    checkBoard(board);
   } catch {
     sent = '';
   }
@@ -59,6 +65,7 @@ export async function leaveFamily(): Promise<void> {
     await fetch(`${API_URL}/api/bases/${encodeURIComponent(baseId)}/members/${encodeURIComponent(member.id)}`, { method: 'DELETE' }).catch(() => {});
   }
   writeFamily(null);
+  stopWatchingFamily();
   board = null;
   try { localStorage.removeItem(BOARD_KEY); } catch { /* nothing kept */ }
   changed();

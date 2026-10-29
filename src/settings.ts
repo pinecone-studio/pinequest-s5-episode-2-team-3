@@ -5,6 +5,7 @@ import { ProfilePanel, bindProfilePanel } from './components/ProfilePanel';
 import { hxHeader } from './hydrify';
 import { watchCard } from './watch-card';
 import { bindDeviceTiles, deviceTiles } from './device-tiles';
+import { pushSnapshot, signOutAccount, startAccountSync } from './session';
 import { accountViews } from './account';
 import { confirmSheet } from './hx-edit';
 import './style.css';
@@ -147,7 +148,10 @@ async function weekendDemo(): Promise<void> {
 }
 
 // Logout clears this phone's profile and name, then onboarding starts again. The water log stays.
-function logout(): void {
+// Signing out sends the last changes up first, then ends the session; the water log stays on the phone.
+async function logout(): Promise<void> {
+  await pushSnapshot().catch(() => {});
+  await signOutAccount();
   for (const key of ['dusal-onboarded-v1', 'dusal-profile-v1', 'dusal-member-v1']) { try { localStorage.removeItem(key); } catch { /* nothing kept */ } }
   location.href = '/';
 }
@@ -276,11 +280,13 @@ function bind(): void {
   if (download) download.onclick = () => { downloadBackup(state); notify('Нөөц файлыг татлаа.'); };
   const file = document.querySelector<HTMLInputElement>('#backup-file');
   if (file) file.onchange = event => chooseFile(event.target as HTMLInputElement);
-  document.querySelector('[data-logout]')?.addEventListener('click', () => confirmSheet('Гарах', 'Та гарахдаа итгэлтэй байна уу? Усны бүртгэл хадгалагдана.', 'Тийм, гарах', logout));
+  document.querySelector('[data-logout]')?.addEventListener('click', () => confirmSheet('Гарах', 'Та гарахдаа итгэлтэй байна уу? Усны бүртгэл хадгалагдана.', 'Тийм, гарах', () => void logout()));
   document.querySelector<HTMLButtonElement>('#confirm-restore')?.addEventListener('click', confirmRestore);
   document.querySelector<HTMLButtonElement>('#cancel-restore')?.addEventListener('click', () => { pending = undefined; render(); });
 }
 
 onExternalChange(() => { void reload(); });
+// Signed in: changes made here go up to the account too (session.ts).
+startAccountSync();
 requestPersistence();
 void reload();

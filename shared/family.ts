@@ -10,6 +10,7 @@ export interface MemberReport {
   drinkMl: number;
   goalMl: number;
   mode: 'goal' | 'limit';
+  lastDrinkAt?: string | null; // ISO time of the day's latest drink
 }
 
 export interface LeaderboardRow {
@@ -21,6 +22,7 @@ export interface LeaderboardRow {
   mode: 'goal' | 'limit';
   pct: number; // drinkMl / goalMl, whole percent
   me: boolean;
+  lastDrinkAt: string | null;
 }
 
 export interface Leaderboard {
@@ -58,7 +60,9 @@ export function validateReport(value: unknown): MemberReport {
   if (!int(body.drinkMl, 0, 20_000)) throw new ContractError('Уусан хэмжээ 0–20,000 мл бүхэл тоо байна.');
   if (!int(body.goalMl, 50, 10_000)) throw new ContractError('Өдрийн хэмжээ 50–10,000 мл байна.');
   if (body.mode !== 'goal' && body.mode !== 'limit') throw new ContractError('Горим буруу байна.');
-  return { name, avatar: body.avatar, day: validateDay(body.day), drinkMl: body.drinkMl as number, goalMl: body.goalMl as number, mode: body.mode };
+  const last = body.lastDrinkAt;
+  if (last != null && (typeof last !== 'string' || last.length > 40 || !Number.isFinite(Date.parse(last)))) throw new ContractError('Сүүлд уусан цаг буруу байна.');
+  return { name, avatar: body.avatar, day: validateDay(body.day), drinkMl: body.drinkMl as number, goalMl: body.goalMl as number, mode: body.mode, lastDrinkAt: last == null ? null : new Date(last).toISOString() };
 }
 
 // Goal days rank by how much of the goal is done (capped at 100%, so a whole bottle extra does not
@@ -76,4 +80,40 @@ export function rankMembers(rows: Omit<LeaderboardRow, 'rank' | 'pct'>[]): Leade
     return { ...r, rank };
   });
   return [...ranked, ...limit.map(r => ({ ...r, rank: null }))];
+}
+
+
+// What the family hears about someone under a doctor's limit (kidney or heart failure), from the board:
+// the limit passed, the limit close (80 %), or no drink logged for DRY_HOURS while awake (08–22, the
+// phone's local hour). Never about the phone asking (`me`) or anyone with a plain goal. `key` names the
+// event, so a phone says each one once: a new drink makes a new «no drink» event possible again.
+export const DRY_HOURS = 3;
+export const NEAR_SHARE = 0.8;
+export interface FamilyAlert { key: string; kind: 'over' | 'near' | 'dry'; title: string; body: string }
+const ml = (n: number) => new Intl.NumberFormat('en-US').format(n);
+const hhmm = (iso: string, offsetMin: number) => { const d = new Date(Date.parse(iso) - offsetMin * 60e3); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
+
+export function familyAlerts(board: Leaderboard, now: Date, localHour: number, offsetMin = now.getTimezoneOffset()): FamilyAlert[] {
+  const alerts: FamilyAlert[] = [];
+  for (const m of board.members) {
+    if (m.me || m.mode !== 'limit') continue;
+    const id = `${board.day}|${m.name}`;
+    if (m.drinkMl > m.goalMl) {
+      alerts.push({ key: `${id}|over`, kind: 'over', title: `${m.name} хязгаараас хэтэрлээ`, body: `Өнөөдөр ${ml(m.drinkMl)} / ${ml(m.goalMl)} мл · ${ml(m.drinkMl - m.goalMl)} мл илүү. Түүнтэй холбогдоорой.` });
+    } else if (m.drinkMl >= m.goalMl * NEAR_SHARE) {
+      alerts.push({ key: `${id}|near`, kind: 'near', title: `${m.name} хязгаартаа ойртлоо`, body: `Өнөөдөр ${ml(m.drinkMl)} / ${ml(m.goalMl)} мл · ${ml(m.goalMl - m.drinkMl)} мл үлдсэн.` });
+    }
+    if (localHour < 8 || localHour >= 22) continue;
+    const last = m.lastDrinkAt ? Date.parse(m.lastDrinkAt) : null;
+    const dry = last === null ? localHour >= 8 + DRY_HOURS : now.getTime() - last >= DRY_HOURS * 3600e3;
+    if (dry) {
+      const hours = last === null ? null : Math.floor((now.getTime() - last) / 3600e3);
+      alerts.push({
+        key: `${id}|dry|${m.lastDrinkAt ?? 'none'}`, kind: 'dry',
+        title: last === null ? `${m.name} өнөөдөр ус уусан бүртгэлгүй` : `${m.name} ${hours} цаг ус уусан бүртгэлгүй`,
+        body: last === null ? 'Өглөөнөөс хойш нэг ч уулт бүртгэгдээгүй байна. Залгаж асуугаарай.' : `Сүүлд ${hhmm(m.lastDrinkAt!, offsetMin)}-д уусан. Хязгаартаа багтаан бага багаар уухыг сануулаарай.`,
+      });
+    }
+  }
+  return alerts;
 }
