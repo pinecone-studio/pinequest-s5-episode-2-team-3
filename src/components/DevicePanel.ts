@@ -9,6 +9,10 @@ import './device-panel.css';
 export function ScalePanel(compact = false): string {
   return `<section class="device-panel" aria-labelledby="scale-title" data-scale-panel${compact ? ' data-compact' : ''}></section>`;
 }
+// Profile › «Ухаалаг суурь»: the bottles and their empty weights show even before the base is connected.
+export function BasePanel(): string {
+  return '<section class="device-panel" aria-labelledby="scale-title" data-scale-panel data-full></section>';
+}
 
 export function DevicePanel(): string {
   return `<section class="device-panel" aria-labelledby="scale-title" data-scale-panel></section>
@@ -43,14 +47,26 @@ function scaleText(): string {
   if (scale.phase === 'unsupported') return 'Android апп эсвэл Chrome хөтчөөр холбогдоно.';
   if (scale.phase === 'connected') return `${name} холбогдсон. Уусан ус автоматаар бүртгэгдэнэ.`;
   if (scale.phase === 'connecting') return `${name}-тай холбогдож байна…`;
-  return scale.saved ? `${name} холбогдоогүй байна.` : 'Сууриа асаагаад утсандаа ойртуулна уу.';
+  return scale.saved ? `${name} холбогдоогүй байна.` : 'Уусан ус өөрөө бүртгэгдэнэ.';
+}
+
+// A bottle standing on the base, in the watch card's round icon.
+const BASE_ICON = '<svg viewBox="0 0 24 24"><rect x="3.5" y="15" width="17" height="5" rx="2"/><path d="M8.5 15V9a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v6M10.5 7V4.5h3V7"/></svg>';
+function scaleButton(): string {
+  if (scale.phase === 'unsupported') return '';
+  if (scale.phase === 'connected') return '<button type="button" class="scale-forget" data-scale-forget>Салгах</button>';
+  if (scale.phase === 'connecting') return '<button type="button" class="hx-blue" disabled>Холбож байна…</button>';
+  return scale.saved ? '<button type="button" class="hx-blue" data-scale-retry>Дахин холбох</button>' : '<button type="button" class="hx-blue" data-scale-pair>Суурь холбох</button>';
 }
 
 // Each bottle keeps its empty weight; choosing one before putting it on the base keeps a swap from counting.
 // These do what the base's BOOT button does, for a base sealed in its case.
+// Off the base (profile only) the block stays visible but disabled, so it is clear where the weight is taken.
 function bottlesBlock(): string {
   const { list, selected } = savedBottles();
-  return `<div class="scale-bottles">
+  const on = scale.phase === 'connected';
+  return `<fieldset class="scale-bottles" ${on ? '' : 'disabled'}><legend class="scale-sub">Савны жин</legend>
+    ${on ? '' : '<p class="device-time">Суурь холбогдсоны дараа савныхаа хоосон жинг авна.</p>'}
     ${list.length ? `<p class="device-time">Саваа солихдоо эхлээд энд сонгоод, дараа нь суурь дээр тавина.</p>
     <div class="bottle-list">${list.map(b => `<span class="bottle-chip${b.id === selected ? ' on' : ''}">
       <button type="button" data-bottle="${escape(b.id)}" aria-pressed="${b.id === selected}">${escape(b.name)} · ${number(b.grams)} г</button>
@@ -62,7 +78,7 @@ function bottlesBlock(): string {
     </form>
     <p class="device-time">${scale.result ? `<b>${escape(scale.result)}</b>` : 'Шинэ савыг хоосноор нь суурь дээр тавиад нэр өгч «Хоосон жинг авах»-г дарна.'}</p>
     <div class="scale-actions"><button type="button" data-reset-today>Өнөөдрийн дүнг тэглэх</button><button type="button" data-scale-zero>Суурийн жинг тэглэх</button></div>
-  </div>`;
+  </fieldset>`;
 }
 
 // Rebuilt only when the connection, the bottles or a command result change; the live line is updated in
@@ -81,19 +97,21 @@ function renderScale(): void {
     host.querySelector('[data-scale-live]')!.textContent = ml != null ? `Сав: ${number(ml)} мл` : '';
     return;
   }
+  const full = host.hasAttribute('data-full');
   const key = [scale.phase, scale.saved, scale.name, scale.message, scale.result, JSON.stringify(savedBottles())].join('|');
   // Do not wipe a bottle name while it is being typed.
   if (host.dataset.key !== key && document.activeElement !== host.querySelector('#bottle-name')) {
     host.dataset.key = key;
-    const buttons = scale.phase === 'unsupported' ? '' : scale.phase === 'off' && !scale.saved
-      ? '<button type="button" data-scale-pair>Суурь хайх</button>'
-      : `${scale.phase === 'off' ? '<button type="button" data-scale-retry>Дахин холбох</button>' : ''}<button type="button" data-scale-forget>Салгах</button>`;
-    host.innerHTML = `<div class="device-heading"><h2 id="scale-title">Bluetooth суурь</h2></div>
-      <p role="status">${scaleText()}</p>
+    const on = scale.phase === 'connected';
+    host.innerHTML = `<div class="hx-watch-link scale-link">
+        <span class="hx-watch-icon${on ? ' on' : ''}" aria-hidden="true">${BASE_ICON}</span>
+        <div><h2 id="scale-title">Ухаалаг суурь</h2><p role="status">${scaleText()}</p></div>
+        ${scaleButton()}
+      </div>
       <p class="scale-live" data-scale-live></p>
       ${scale.message ? `<p>${escape(scale.message)}</p>` : ''}
-      ${buttons ? `<div class="scale-actions">${buttons}</div>` : ''}
-      ${scale.phase === 'connected' ? bottlesBlock() : ''}
+      ${scale.saved && !on ? '<div class="scale-actions"><button type="button" data-scale-forget>Салгах</button></div>' : ''}
+      ${on || (full && scale.phase !== 'unsupported') ? bottlesBlock() : ''}
       <p class="device-error" role="alert" hidden></p>`;
     host.querySelector('[data-scale-pair]')?.addEventListener('click', () => void act(host, () => scale.pair()));
     host.querySelector('[data-scale-retry]')?.addEventListener('click', () => scale.reconnect());

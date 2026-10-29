@@ -20,6 +20,7 @@ export interface Ctx {
   goalSection: () => string;
   backupSection: () => string;
   devices: () => string;
+  base: () => string;
   profilePanel: () => string;
   restart: () => void;
   logout: () => void;
@@ -274,6 +275,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
       },
     },
     widgets: { title: 'Нүүр дэлгэцийн widget', back: '', body: widgetsBody, bind: bindWidgets },
+    base: { title: 'Ухаалаг суурь', back: '', body: ctx.base },
     preferences: {
       title: 'Тохиргоо', back: '',
       body: () => {
