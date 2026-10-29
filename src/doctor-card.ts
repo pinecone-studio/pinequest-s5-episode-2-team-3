@@ -42,13 +42,12 @@ function resultBlock(): string {
 export function doctorCard(): string {
   const times = readSettings().times;
   const shown = open || asking || !!read || !!error;
-  const sub = done || (times ? `Хуваарь: ${times.map(t => t.at).join(', ')}` : 'Бичээд эсвэл зургаар AI-д өгөх');
   const still = !fresh;
   fresh = false;
   return `<section class="hx-card doctor-card" aria-labelledby="doc-title">
     <div class="doc-top" data-doc-open>
-      <span class="doc-icon">${mdIcon('stethoscope')}</span><span class="doc-head"><b id="doc-title">Эмчийн заавар</b><small>${escape(sub)}</small></span>
-      <button type="button" class="hx-blue doc-cta" id="doc-toggle" aria-haspopup="dialog" aria-label="Эмчийн заавар оруулах">Оруулах</button>
+      <span class="doc-icon">${mdIcon('stethoscope')}</span><span class="doc-head"><b id="doc-title">Эмчийн заавар</b>${done ? `<small>${escape(done)}</small>` : ''}</span>
+      <button type="button" class="doc-cta" id="doc-toggle" aria-haspopup="dialog" aria-label="Эмчийн заавар оруулах"><span>Оруулах</span></button>
     </div>
     ${shown ? `<div class="hx-dim doc-dim${still ? ' still' : ''}" data-doc-dim>
       <div class="hx-bottom doc-sheet" role="dialog" aria-modal="true" aria-labelledby="doc-sheet-title">
