@@ -7,6 +7,11 @@
 .device-panel p { margin: 8px 0 0; }
 .device-panel .device-time { color: #5d6870; }
 .device-panel .device-error { color: #914530; }
+.device-panel .scale-help { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: var(--sky-soft, #eef6fe); font-size: 13.5px; line-height: 1.45; color: var(--ink, #212121); }
+.device-panel .scale-help[hidden] { display: none; }
+.device-panel .scale-help ul { margin: 6px 0; padding-left: 18px; }
+.device-panel .scale-help li + li { margin-top: 3px; }
+.device-panel .scale-help small { color: var(--muted, #757575); }
 .device-panel .scale-live { color: var(--ink-2, #284b49); font-weight: 600; }
 .device-panel .scale-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .device-panel .watch-day { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 0; }
@@ -47,6 +52,7 @@ html[data-theme="dark"] .device-panel .bottle-chip.on { border-color: #00bedc; b
 html[data-theme="dark"] .device-panel .bottle-chip button { border: 0; background: transparent; color: #fff; }
 html[data-theme="dark"] .device-panel .bottle-chip .bottle-remove { color: #9aa3ad; }
 html[data-theme="dark"] .device-panel .device-error { color: #ff9b85; }
+html[data-theme="dark"] .device-panel .scale-help { background: #1d2a3a; color: #fff; }
 /* Disabled (base not connected): grey with grey text, not white text on a faded blue pill. */
 html .device-panel .scale-bottles[disabled] .scale-actions button, html .device-panel .scale-link .hx-blue:disabled { opacity: 1; background: #eef1f5; color: #8a94a3; }
 html[data-theme="dark"] .device-panel .scale-bottles[disabled] :is(.scale-actions, .bottle-add) button, html[data-theme="dark"] .device-panel .scale-link .hx-blue:disabled { background: #2a2d36; color: #6f7785; }
