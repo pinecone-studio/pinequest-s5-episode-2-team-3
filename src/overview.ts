@@ -500,10 +500,12 @@ function render() {
   bindFamily();
   bindHydration(drink, addDrink, render);
   if (!limit) bindGaugeDrag(addDrink);
-  // The goal home's cup button opens the drink sheet; what it adds becomes what «Уух» pours next.
+  // The goal home's cup button opens the drink sheet; what it adds becomes what «Уух» pours next
+  // (not the quick tiles on top, which add once).
   document.querySelector<HTMLButtonElement>('#hx-cup')?.addEventListener('click', () => openDrinkSheet({
     drink, goal, limit: false, cup: readCup(),
     add: (ml, kind, salty) => { writeCup(ml); writeCupKind(kind); void addDrink(ml, kind, salty); },
+    addOnce: (ml, kind, salty) => void addDrink(ml, kind, salty),
   }, { kind: readCupKind() }));
   bindStreakCalendar(state.events, state.goal, state.mode);
   bindWatchCard();

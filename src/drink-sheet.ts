@@ -3,10 +3,10 @@ import { COMMON, KINDS, OTHER, SALTABLE, SERVING, type Kind } from './drinks';
 import { FLAGS, flagSeen, forbidden, markFlagSeen } from './drink-flags';
 import { readCups } from './hydrify';
 import { askDrinkParse } from './api';
-import { addChecked, openDial, type AddCtx } from './home-limit';
+import { addChecked, openDial, quickDrink, quickTiles, type AddCtx, type Quick } from './home-limit';
 
-// «Юу уусан бэ?»: the drink sheet (opened by «Бусад…» on the limit home and by the cup button on the
-// goal home). A drink (Түгээмэл, or the folded «Бусад» list), salty or not for milk tea and soup, and an
+// «Юу уусан бэ?»: the drink sheet (opened by «Уух» on the limit home and by the cup button on the
+// goal home). On top, three quick tiles that add in one tap and close; below («Бусад») a drink (Түгээмэл, or the folded «Бусад» list), salty or not for milk tea and soup, and an
 // amount, then «Нэмэх», which under a limit goes through the over-limit check. Typing or saying what
 // it was ("2 аяга сүүтэй цай") asks the AI to fill the sheet in; it only parses, and the sentence
 // about what fits is built here from the limit. Choosing by hand always works, offline too.
@@ -62,6 +62,8 @@ export function openDrinkSheet(ctx: AddCtx, start: Start = {}): void {
       <span class="hl-grab" aria-hidden="true"></span>
       <div class="hl-dial-head"><h2 id="ds-title">Юу уусан бэ?</h2><span>${ctx.limit ? `Үлдсэн <b>${number(left)}</b> / ${number(ctx.goal)} мл` : `<b>${number(ctx.drink)}</b> / ${number(ctx.goal)} мл`}</span></div>
       <div class="ds-progress" aria-hidden="true"><i style="width: ${Math.min(100, (ctx.drink / ctx.goal) * 100).toFixed(1)}%"></i></div>
+      ${quickTiles(ctx.cup)}
+      <p class="ds-label ds-rest">Бусад</p>
       <form class="ds-ask" data-no-swipe>${SPARK}<input id="ds-text" type="text" enterkeyhint="send" autocomplete="off" maxlength="200" placeholder="Юу уух вэ? Жишээ нь: 2 аяга цай" aria-label="Юу уух вэ? AI-аар бөглөх">
         <button type="button" class="ds-mic" data-mic aria-label="Яриагаар оруулах" ${SpeechCtor ? '' : 'hidden'}>${MIC}</button>
         <button type="submit" class="ds-send" data-send aria-label="AI-д илгээх" hidden>${SEND}</button></form>
@@ -146,7 +148,8 @@ export function openDrinkSheet(ctx: AddCtx, start: Start = {}): void {
   box.addEventListener('click', e => {
     const t = (e.target as Element).closest<HTMLElement>('button');
     if (!t || !box.contains(t)) return;
-    if (t.dataset.kind !== undefined) pick((t.dataset.kind || undefined) as Kind | undefined);
+    if (t.dataset.quick) { close(); quickDrink({ ...ctx, add: ctx.addOnce ?? ctx.add }, t.dataset.quick as Quick, readSaltyChoice()); }
+    else if (t.dataset.kind !== undefined) pick((t.dataset.kind || undefined) as Kind | undefined);
     else if (t.dataset.salty) { salty = t.dataset.salty === '1'; writeSaltyChoice(salty); render(); box.querySelector<HTMLElement>(`[data-salty="${t.dataset.salty}"]`)?.focus(); }
     else if (t.hasAttribute('data-other')) { showOther = !showOther; render(); box.querySelector<HTMLElement>('[data-other]')?.focus(); }
     else if (t.dataset.ml) { ml = Number(t.dataset.ml); render(); box.querySelector<HTMLElement>(`[data-ml="${ml}"]`)?.focus(); }
