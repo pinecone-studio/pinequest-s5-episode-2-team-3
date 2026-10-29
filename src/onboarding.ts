@@ -273,8 +273,9 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       case 2: return question('Таны өндөр, жин?', 'Өдрийн усны хэмжээг голчлон биеийн жин, өндрөөр тооцно.',
         `<div class="ob-pick two">${body(sex, p.weight, p.height)}${wheel('ob-height', range(90, 230), p.height, 'см')}${wheel('ob-weight', range(10, 250), p.weight, 'кг')}</div>`);
       case 3: return question('Хэдэн настай вэ?', 'Нас ахих тусам цангах мэдрэмж сулардаг.', wheel('ob-age', range(4, 110), p.age, 'нас'));
-      case 4: return question('Хэдэн цагт сэрж, унтдаг вэ?', 'Сануулга сэрснээс хойш эхэлж, унтахаас өмнө дуусна.',
-        `<div class="ob-times"><p class="ob-time-label">Сэрэх</p>${timePicker('ob-wake', times.wake)}<p class="ob-time-label">Унтах</p>${timePicker('ob-sleep', times.sleep)}</div>`);
+      case 4: return question('Сэрэх, унтах цаг?', 'Сануулга сэрснээс хойш эхэлж, унтахаас өмнө дуусна.',
+        `<div class="ob-times">${([['ob-wake', 'Сэрэх', '☀', times.wake], ['ob-sleep', 'Унтах', '☾', times.sleep]] as const).map(([id, label, icon, at]) =>
+          `<section class="ob-tcard" aria-label="${label}"><p class="ob-time-label"><span aria-hidden="true">${icon}</span>${label}</p>${timePicker(id, at)}</section>`).join('')}</div>`);
       case 5: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
         `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => `<button type="button" class="ob-card${p.activity === a ? ' on' : ''}" data-act="${a}" aria-pressed="${p.activity === a}"><span class="ob-card-icon">${mdIcon(ACT_ICONS[a])}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small></button>`).join('')}</div>`);
       case 6: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа уур амьсгалыг сонгоно уу.',

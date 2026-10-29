@@ -1366,8 +1366,14 @@ html .ob-pick.two { grid-template-columns: minmax(0, 1fr) 104px 104px; gap: 6px;
 html .ob-pick.two .ob-wheel-item { font-size: 22px; gap: 3px; }
 html .ob-pick.two .ob-wheel-item.on { font-size: 32px; }
 html .ob-pick.two .ob-wheel-item small { font-size: 13px; }
-/* Wake-up and bedtime on one step: two shorter wheels pairs, each under its label. */
-html .ob-times { display: grid; gap: 4px; margin-top: 14px; }
-html .ob-time-label { margin: 6px 0 0; text-align: center; font-size: 15px; font-weight: 700; color: var(--ink); }
-html .ob-times .ob-wheel { height: 160px; padding: 54px 0; mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent); }
-html .ob-times .ob-time { margin-top: 0; }
+/* Wake-up and bedtime on one step: two cards side by side, each with its hour : minute wheels. */
+html .ob-times { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+html .ob-tcard { display: grid; gap: 6px; padding: 14px 8px 10px; border-radius: 20px; background: #f5f8fc; min-width: 0; }
+html .ob-time-label { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; font-size: 15px; font-weight: 700; color: var(--ink); }
+html .ob-time-label span { font-size: 18px; color: var(--sky); }
+html .ob-times .ob-time { gap: 2px; margin-top: 0; }
+html .ob-times .ob-time b { font-size: 26px; }
+html .ob-times .ob-wheel { height: 260px; padding: 104px 0; }
+html .ob-times .ob-wheel-item { font-size: 20px; }
+html .ob-times .ob-wheel-item.on { font-size: 30px; }
+html[data-theme="dark"] .ob-tcard { background: #1f222a; }
