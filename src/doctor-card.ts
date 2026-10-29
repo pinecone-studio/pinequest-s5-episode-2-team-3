@@ -33,7 +33,7 @@ function resultBlock(): string {
   </div>`;
 }
 
-// A card on the home, under the gauge, for anyone with a diagnosis (overview.ts).
+// A card on the home, under the gauge, for everyone (overview.ts).
 export function doctorCard(): string {
   const times = readSettings().times;
   return `<section class="hx-card doctor-card" aria-labelledby="doc-title">

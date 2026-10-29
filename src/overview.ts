@@ -482,7 +482,7 @@ function render() {
         ${hxHeader('Нүүр')}
         ${limit ? '' : weatherChip(state.mode)}
         ${limit ? limitGauge(drink, goal, cup) : hxGauge(drink, goal, state.mode, readCup(), drinking)}${undoLine}
-        ${readProfile().condition === 'none' ? '' : doctorCard()}
+        ${doctorCard()}
         ${watchCard()}
         ${familySection()}
         ${ScalePanel(limit)}
