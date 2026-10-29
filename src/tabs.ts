@@ -1,5 +1,6 @@
 import './tabs.css';
 import { NAV_ICONS, TABS } from './nav';
+import { onWeekendTap } from './native-reminders';
 // Created here first, so every tab frame shares this one Bluetooth link to the base (src/scale.ts).
 import './scale';
 
@@ -142,6 +143,13 @@ window.addEventListener('message', event => {
     }
     go(to);
   }
+});
+
+// A tap on the weekend notice: the home tab, which opens its card (overview.ts, #weekend).
+onWeekendTap(() => {
+  if (frames[0].src) frames[0].contentWindow!.location.hash = '#weekend';
+  else frames[0].dataset.src = `${TABS[0]}?embed=1#weekend`;
+  go(0);
 });
 
 addEventListener('resize', () => place());

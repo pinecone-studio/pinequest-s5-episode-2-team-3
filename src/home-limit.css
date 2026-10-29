@@ -31,6 +31,31 @@ html .hl-tile:active { background: var(--sky-soft); }
 html .hl-tile:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
 html .ds-label.ds-rest { margin: 4px 0 -6px; }
 
+/* The weekend card (weekend-card.ts) */
+/* Floats above the app's tab bar, so «Ойлголоо» is never under it. */
+html .hx-dim:has(.wk-sheet) { padding: 0 8px calc(max(14px, env(safe-area-inset-bottom)) + 84px); }
+html .hx-bottom.hl-sheet.wk-sheet { max-width: 420px; max-height: calc(100dvh - 120px); padding: 10px 16px 16px; border-radius: 26px; box-shadow: 0 18px 40px rgba(9, 16, 29, .25); }
+html .wk-head { display: flex; align-items: center; gap: 14px; }
+html .wk-face { flex: none; width: 56px; height: 56px; }
+html .wk-head h2 { margin: 0; font-size: 21px; line-height: 1.2; }
+html .wk-head p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+html .wk-line { display: flex; margin: 4px 0 0; padding: 0; list-style: none; }
+html .wk-line li { position: relative; display: grid; justify-items: center; gap: 6px; flex: 1; font-size: 12.5px; font-weight: 600; color: var(--muted); text-align: center; }
+html .wk-line li::before { content: ""; position: absolute; top: 6px; left: 50%; width: 100%; height: 3px; background: var(--sky-line); }
+html .wk-line li.end::before { display: none; }
+html .wk-line li.done::before { background: var(--sky); }
+html .wk-line i { position: relative; width: 15px; height: 15px; border: 3px solid var(--sky-line); border-radius: 50%; background: #fff; box-sizing: border-box; }
+html .wk-line li.done i { border-color: var(--sky); background: var(--sky); }
+html .wk-line li.done span { color: var(--ink); }
+html .wk-line li.end i { border-color: var(--sky-deep); }
+html .wk-days { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+html .wk-days li { display: flex; align-items: baseline; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--sky-soft); }
+html .wk-days span { flex: 1; font-size: 15px; font-weight: 600; color: var(--ink); }
+html .wk-days b { font-size: 17px; font-weight: 800; color: var(--sky-deep); font-variant-numeric: tabular-nums; }
+html .wk-days small { font-size: 12.5px; color: var(--muted); }
+html .wk-streak { margin: 0; font-size: 14.5px; color: var(--ink); }
+html .wk-tip { margin: 0; padding: 10px 12px; border-left: 3px solid var(--sky); font-size: 14px; line-height: 1.45; color: var(--ink); }
+
 /* The «⋯» sheet (home-menu.ts) */
 /* A floating card above the tab bar (tabs.css keeps it on screen over the page), not a sheet sunk under it. */
 html .hx-dim:has(.hm-sheet) { align-items: flex-end; padding: 0 8px calc(max(14px, env(safe-area-inset-bottom)) + 84px); }
@@ -223,6 +248,12 @@ html[data-theme="dark"] .hl-over-text, html[data-theme="dark"] .hl-legend { colo
 html[data-theme="dark"] .hl-dial-center .hl-chip { background: #3a2a12; color: #f5b45a; }
 html[data-theme="dark"] .dr-chip:not([aria-pressed="true"]) { background: #2a2d36; }
 html[data-theme="dark"] .hl-grab { background: #35383f; }
+html[data-theme="dark"] .wk-days li { background: #1d2a3a; }
+html[data-theme="dark"] .wk-days b { color: #9cc6fb; }
+html[data-theme="dark"] .wk-line i { background: #1f222a; border-color: #35383f; }
+html[data-theme="dark"] .wk-line li::before { background: #35383f; }
+html[data-theme="dark"] .wk-line li.done::before { background: var(--sky); }
+html[data-theme="dark"] .wk-line li.done i { border-color: var(--sky); background: var(--sky); }
 html[data-theme="dark"] :is(.ds-ask, .ds-tile, .ds-chip, .ds-more) { background: #1f222a; border-color: #35383f; }
 html[data-theme="dark"] :is(.ds-seg, .ds-sizes button:not([aria-pressed="true"]), .ds-mic) { background: #2a2d36; }
 html[data-theme="dark"] :is(.ds-ai, .ds-note, .ds-progress) { background: #1d2a3a; }
