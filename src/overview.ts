@@ -13,14 +13,14 @@ import { openHomeMenu } from './home-menu';
 import { Toast } from './components/Toast';
 import type { Kind } from './drinks';
 import { setKind, setSalty } from './drinks';
-import { bindWatchCard, loadInsight, watchCard } from './watch-card';
+import { bindWatchCard, loadInsight, watchCard, watchLinked } from './watch-card';
 import { health } from './health';
 import { startSync } from './sync';
 import { startDevices } from './devices';
 import { bindWeatherChip, loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
 import { pushWidget } from './widget';
 import { scale } from './scale';
-import { ScalePanel, bindDevicePanel } from './components/DevicePanel';
+import { baseChipHtml, bindBaseChip } from './base-chip';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
 import { readMember, saveMember } from './member';
@@ -172,6 +172,12 @@ function planSection(p: Profile): string {
         ${p.condition === 'other' ? `<label class="wide">Ямар онош вэ?<input id="plan-condition-note" name="conditionNote" type="text" maxlength="60" placeholder="Оношоо энд бичнэ үү" aria-describedby="plan-condition-hint" value="${escape(p.conditionNote)}"/>
           <small id="plan-condition-hint">${aiReady === false ? 'AI идэвхгүй байна. Энэ оношид тохирох хэмжээг эмчээсээ асуугаарай.' : 'Бичээд түр хүлээхэд AI таны оношийг харгалзан тооцно. «Тооцоолсон» хэмжээ өөрчлөгдөхгүй.'}</small></label>` : ''}
       </div>
+      ${aiOff ? '' : `<p class="plan-step">AI-аас асуух <small>заавал биш</small></p>
+      <div class="ai-row">
+        <label class="visually-hidden" for="plan-note">Нэмэлт мэдээлэл</label>
+        <input id="plan-note" name="note" type="text" maxlength="200" placeholder="Жишээ: гүйдэг, халуун" value="${escape(aiNote)}"/>
+        <button type="button" class="ai-button" id="ask-ai" ${aiAsking ? 'disabled' : ''}>${aiAsking ? 'Бодож байна…' : aiPlan ? 'Дахин асуух' : 'Асуух'}</button>
+      </div>`}
       <details class="plan-more" id="plan-more" ${planMore ? 'open' : ''}>
         <summary>Дэлгэрэнгүй тохиргоо</summary>
         <div class="plan-fields">
@@ -187,12 +193,6 @@ function planSection(p: Profile): string {
           <label class="span2">Эмч юу гэж заасан бэ?<select id="plan-doctor-mode" name="doctorMode"><option value="goal" ${p.doctorMode === 'goal' ? 'selected' : ''}>Дор хаяж ийм хэмжээ уух</option><option value="limit" ${p.doctorMode === 'limit' ? 'selected' : ''}>Үүнээс хэтрүүлэхгүй</option></select></label>
         </div>
         </div>
-        <p class="plan-step">AI-аас асуух <small>заавал биш</small></p>
-        ${aiOff ? '<p class="ai-off">AI одоогоор идэвхжээгүй байна.</p>' : `<div class="ai-row">
-          <label class="visually-hidden" for="plan-note">Нэмэлт мэдээлэл</label>
-          <input id="plan-note" name="note" type="text" maxlength="200" placeholder="Жишээ: гүйдэг, халуун" value="${escape(aiNote)}"/>
-          <button type="button" class="ai-button" id="ask-ai" ${aiAsking ? 'disabled' : ''}>${aiAsking ? 'Бодож байна…' : aiPlan ? 'Дахин асуух' : 'Асуух'}</button>
-        </div>`}
         <p class="plan-step">Аль хэмжээг сонгох вэ?</p>
         <div class="plan-options" role="radiogroup" aria-label="Хэмжээ сонгох">${(Object.keys(SOURCES) as Source[]).map(s => optionCard(s, p)).join('')}</div>
       </details>
@@ -484,18 +484,17 @@ function render() {
         ${hxHeader('Нүүр')}
         ${limit ? '' : weatherChip(state.mode)}
         ${limit ? limitGauge(drink, goal, cup) : hxGauge(drink, goal, state.mode, readCup(), drinking)}${undoLine}
-        ${doctorCard()}
-        ${watchCard()}
+        <div class="hx-card home-rows">${readProfile().condition === 'none' ? '' : doctorCard()}${baseChipHtml()}${watchLinked() ? '' : watchCard()}</div>
+        ${watchLinked() ? watchCard() : ''}
         ${familySection()}
-        ${ScalePanel(limit)}
+        ${limit && !demo ? '' : `<div class="demo-line"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button></div>`}
       </div>
-      <footer class="home-footer hx-footer">${limit && !demo ? '' : `<button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button>`}<p><a href="/history.html">Бүх бүртгэл</a> · <a href="/settings.html#linked">Холболт, нөөц ба тохиргоо</a></p></footer>
     </div>
     <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>
       <div class="plan-sheet"><button type="button" class="plan-close" id="plan-close" aria-label="Хаах">${mdIcon('close')}</button>${planSection(readProfile())}</div>
     </div>
   </main>
-  ${limit ? Toast() : ''}`;
+  ${Toast()}`;
   pushWidget(state, drink);
   void reportFamily(state, drink);
   bindFamily();
@@ -520,14 +519,14 @@ function render() {
   });
   bindWeatherChip();
   scale.shareToday(drink, false, { goal, mode: state.mode });  // the base's screen shows the same total
-  bindDevicePanel(() => {});  // the base panel redraws itself on each reading
+  bindBaseChip();  // the chip opens the base's own window (base-chip.ts)
   bindSchedule(() => state, render);
   // The tab bar's middle button ("/#reminders") opens today's schedule here.
   if (location.hash === '#reminders') { history.replaceState(null, '', '/'); openSchedule(() => state, render); }
   // A tap on the weekend notice (tabs.ts sets the hash) opens its card.
   if (location.hash === '#weekend') { history.replaceState(null, '', location.pathname + location.search); showWeekendCard(state); }
   document.querySelector('#undo-entry')?.addEventListener('click', undo);
-  document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
+  document.querySelector('#demo-reset')?.addEventListener('click', () => void resetToday());
   bindPlan();
   // The close button, the backdrop or Esc close the sheet; the openers are bound once, below.
   const sheet = document.querySelector<HTMLElement>('#plan-wrap')!;

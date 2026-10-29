@@ -17,7 +17,6 @@
 .ai-row input { font-size: 16px; }
 .ai-button { min-height: 50px; padding: 0 16px; white-space: nowrap; border: 1px solid #e3e7ee; border-radius: 12px; background: #fff; color: var(--ink-2); font-size: 15px; font-weight: 600; }
 .ai-button:disabled { opacity: .5; }
-.ai-off { padding: 10px 12px; border-radius: 10px; background: #fff6e5; color: #7a4f00; font-size: 15px; }
 
 .plan-kind { margin-top: 8px; font-size: 15px; font-weight: 600; color: var(--ink-2); }
 .plan-vs { margin-top: 4px; font-size: 15px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }

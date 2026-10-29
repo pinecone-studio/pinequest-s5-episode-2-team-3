@@ -79,18 +79,24 @@ const icon = (d: string) => `<span class="hb-icon" aria-hidden="true"><svg viewB
 
 let last: Ctx = { drink: 0, goal: 2000, mode: 'goal', feels: null };
 
+// Not linked yet the card is one row (it sits in the home's group of rows); linked, it is the day's card.
+export const watchLinked = (): boolean => today() !== null;
+
 export function watchCard(): string {
   const day = today();
   if (!day) {
-    const text = health.phase === 'unsupported' ? 'Алхам, зүрхний цохилтоо Android апп-д харна.'
-      : health.phase === 'missing' ? 'Health Connect суулгаж, синк асаагаарай.'
-      : health.phase === 'denied' ? 'Зөвшөөрөл өгөөгүй байна. Дахин оролдоно уу.'
-      : health.message || 'Алхам, зүрхний цохилтоо харж, зөвлөгөө аваарай.';
-    return `<section class="hx-card hx-watch-link" aria-labelledby="hx-watch-title">
-      <span class="hx-watch-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 9v3l2 1"/></svg></span>
-      <div><h2 id="hx-watch-title">Ухаалаг цаг холбох</h2><p>${text}</p></div>
-      <button type="button" class="hx-blue" data-watch-connect>Цаг холбох</button>
-    </section>`;
+    // One short line under the title, like the doctor and base rows.
+    const text = health.phase === 'unsupported' ? 'Android апп-д холбогдоно'
+      : health.phase === 'missing' ? 'Health Connect хэрэгтэй'
+      : health.phase === 'denied' ? 'Зөвшөөрөл өгөөгүй байна'
+      : health.message || 'Алхам, зүрхний цохилт';
+    // One row in the style of «Эмчийн заавар»; the whole row opens «Цаг холбох».
+    return `<section class="hx-card row-card watch-row" aria-labelledby="hx-watch-title">
+      <div class="rc-top" data-watch-connect>
+        <span class="rc-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 9v3l2 1"/></svg></span>
+        <span class="rc-head"><b id="hx-watch-title">Ухаалаг цаг</b><small>${text}</small></span>
+        <button type="button" class="rc-cta" aria-haspopup="dialog" aria-label="Ухаалаг цаг холбох"><span>Холбох</span></button>
+      </div></section>`;
   }
   const head = `<div class="hb-head"><h2 id="hx-watch-title">Өнөөдрийн дадал</h2><span class="hx-badge on">⌚ Холбогдсон</span></div>`;
   const weight = (() => { try { return readProfile().weight; } catch { return null; } })();
