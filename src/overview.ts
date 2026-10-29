@@ -30,6 +30,8 @@ import { askAi, checkAi } from './api';
 import { guardPlan } from '../shared/plan';
 import { needsOnboarding, showOnboarding } from './onboarding';
 import { bindSchedule, openSchedule, startReminders } from './schedule';
+import { onWeekendTap } from './native-reminders';
+import { showWeekendCard, weekendIfDue } from './weekend-card';
 import { bindDoctorCard, doctorCard } from './doctor-card';
 import { startAppIcon } from './app-icon';
 import { dateLabel, escape, number } from './format';
@@ -522,6 +524,8 @@ function render() {
   bindSchedule(() => state, render);
   // The tab bar's middle button ("/#reminders") opens today's schedule here.
   if (location.hash === '#reminders') { history.replaceState(null, '', '/'); openSchedule(() => state, render); }
+  // A tap on the weekend notice (tabs.ts sets the hash) opens its card.
+  if (location.hash === '#weekend') { history.replaceState(null, '', location.pathname + location.search); showWeekendCard(state); }
   document.querySelector('#undo-entry')?.addEventListener('click', undo);
   document.querySelector('#demo-reset')?.addEventListener('click', resetToday);
   bindPlan();
@@ -611,6 +615,11 @@ void reload().then(() => {
     if (result !== 'saved') storageError = saveMessage[result];
     render();
   });
+  // Before the days off: the card once per window (weekend-card.ts). Outside the app's tab host this
+  // page also takes the notice's tap itself.
+  else weekendIfDue(state);
+  if (window.top === window) onWeekendTap(() => showWeekendCard(state));
 });
+window.addEventListener('hashchange', () => { if (location.hash === '#weekend') render(); });
 // The AI option and its button depend on whether the backend has AI turned on.
 checkAi().then(ready => { aiReady = ready; render(); });
