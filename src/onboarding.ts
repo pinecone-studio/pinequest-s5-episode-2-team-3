@@ -225,7 +225,8 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   const times = readSettings();
   let sex: Sex | null = null;
   let climate: Climate = 'mild';
-  let weather = ''; // the line under the climate cards: where the choice came from
+  let temp = 18; // the climate wheel, °C on a usual day where they live; the climate follows it
+  let weather = ''; // the line under the climate wheel: where the value came from
   let unit: Unit = 'ml';
   let custom: number | null = null; // "Тохируулах" on the result
   let screen: Screen = 'walk';
@@ -258,6 +259,12 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     return `<div class="ob-time">${wheel(`${id}-h`, HOURS, h)}<b>:</b>${wheel(`${id}-m`, MINS, MINS.includes(m) ? m : '00')}</div>`;
   };
 
+  // Beside the climate wheel: what the value counts as, and what it adds.
+  const climateBadge = (t: number) => {
+    const c = CLIMATES[climateOf(t)];
+    return `<div class="ob-clim" aria-live="polite"><svg viewBox="0 0 32 32" aria-hidden="true">${c.icon}</svg><b>${c.label}</b><small>${c.extra ? `+${c.extra} мл` : 'Нэмэлтгүй'}</small></div>`;
+  };
+
   const stepHead = () => `<div class="ob-step-top">
       <button type="button" class="ob-back" aria-label="Буцах">←</button>
       <div class="ob-progress" role="progressbar" aria-valuemin="1" aria-valuemax="${QUESTIONS}" aria-valuenow="${step}"><span style="width: ${(step / QUESTIONS) * 100}%"></span></div>
@@ -278,8 +285,8 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
           `<section class="ob-tcard" aria-label="${label}"><p class="ob-time-label"><span aria-hidden="true">${icon}</span>${label}</p>${timePicker(id, at)}</section>`).join('')}</div>`);
       case 5: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
         `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => `<button type="button" class="ob-card${p.activity === a ? ' on' : ''}" data-act="${a}" aria-pressed="${p.activity === a}"><span class="ob-card-icon">${mdIcon(ACT_ICONS[a])}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small></button>`).join('')}</div>`);
-      case 6: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа уур амьсгалыг сонгоно уу.',
-        `<div class="ob-cards">${(Object.keys(CLIMATES) as Climate[]).map(c => `<button type="button" class="ob-climate${climate === c ? ' on' : ''}" data-climate="${c}" aria-pressed="${climate === c}"><svg viewBox="0 0 32 32" aria-hidden="true">${CLIMATES[c].icon}</svg><b>${CLIMATES[c].label}</b>${CLIMATES[c].extra ? `<small>+${CLIMATES[c].extra} мл</small>` : ''}</button>`).join('')}</div>
+      case 6: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа ердийн өдрийн дулааныг сонгоно уу.',
+        `<div class="ob-pick">${climateBadge(temp)}${wheel('ob-temp', range(-30, 45), temp, '°C', v => String(v).replace('-', '−'))}</div>
         ${'geolocation' in navigator ? `<button type="button" class="ob-locate" data-locate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Миний байршлын цаг агаараар</button>` : ''}
         <p class="ob-weather" role="status">${weather}</p>`);
       default: {
@@ -367,12 +374,13 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     if (line) line.textContent = weather;
     try {
       const got = await fetchWeather();
-      climate = climateOf(got.feels);
+      temp = Math.max(-30, Math.min(45, Math.round(got.feels)));
+      climate = climateOf(temp);
       weather = `Өнөөдөр таны байршилд ${got.feels}°C мэт мэдрэгдэнэ → «${CLIMATES[climate].label}». Цаашид нүүр хуудас өдөр бүр шалгана.`;
     } catch (err) {
       weather = (err as GeolocationPositionError)?.code === 1
-        ? 'Байршлын зөвшөөрөл өгөөгүй. Доороос сонгоно уу.'
-        : 'Байршил авч чадсангүй. Доороос сонгоно уу.';
+        ? 'Байршлын зөвшөөрөл өгөөгүй. Дээрээс гүйлгэж сонгоно уу.'
+        : 'Байршил авч чадсангүй. Дээрээс гүйлгэж сонгоно уу.';
     }
     if (screen === 'step' && step === 6) draw();
   }
@@ -399,6 +407,10 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         items.forEach((it, i) => { it.classList.toggle('on', i === idx); it.setAttribute('aria-selected', String(i === idx)); });
       }, 80);
       // The figure follows the value under the band while the wheel is still moving.
+      if (w.id === 'ob-temp') {
+        const badge = box.querySelector('.ob-clim');
+        if (badge) badge.outerHTML = climateBadge(Number(items[Math.max(0, Math.min(items.length - 1, Math.round(w.scrollTop / ITEM)))].dataset.v));
+      }
       if (w.id === 'ob-height' || w.id === 'ob-weight') {
         const v = items[Math.max(0, Math.min(items.length - 1, Math.round(w.scrollTop / ITEM)))].dataset.v!;
         redrawBody(w.id === 'ob-height' ? { height: Number(v) } : { weight: Number(v) });
@@ -428,6 +440,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     if (step === 2 && w) p.weight = Number(w);
     if (step === 3) p.age = Number(picked('ob-age') ?? p.age);
     if (step === 4) times.wake = `${picked('ob-wake-h') ?? '07'}:${picked('ob-wake-m') ?? '00'}`;
+    if (step === 6 && picked('ob-temp')) { temp = Number(picked('ob-temp')); climate = climateOf(temp); }
     if (step === 4) times.sleep = `${picked('ob-sleep-h') ?? '22'}:${picked('ob-sleep-m') ?? '00'}`;
     const limit = box.querySelector<HTMLInputElement>('#ob-limit');
     if (limit) { const v = Math.round(Number(limit.value) / 50) * 50; if (v >= 500 && v <= 4000) p.doctorLimit = v; }
@@ -476,7 +489,6 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       screen = 'step'; step = 1; draw();
     });
     on('[data-sex]', el => { sex = el.dataset.sex as Sex; if (sex !== 'female' && FOR_WOMEN.includes(p.condition)) p.condition = 'none'; draw(); });
-    on('[data-climate]', el => { climate = el.dataset.climate as Climate; weather = ''; draw(); });
     on('[data-locate]', () => void locate());
     on('[data-unit]', el => { unit = el.dataset.unit as Unit; draw(); });
     on('[data-adjust]', () => openAmountSheet('Өдрийн зорилт', '💧', result().ml, ml => { custom = Math.max(500, Math.min(5000, Math.round(ml / 50) * 50)); draw(); }));

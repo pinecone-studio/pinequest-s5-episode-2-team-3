@@ -947,13 +947,6 @@ html .ob-units button { min-width: 64px; min-height: 36px; border: 0; border-rad
 html .ob-units button.on { background: var(--sky); color: #fff; }
 html .ob-units.wide { margin: 10px 0 18px; }
 html .ob-body { width: 100%; max-height: 320px; }
-html .ob-climate { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 64px; padding: 0 18px; border: 1.5px solid #eeeeee; border-radius: 14px; background: #fff; font: inherit; text-align: left; color: var(--ink); cursor: pointer; }
-html .ob-climate svg { flex-shrink: 0; width: 32px; height: 32px; }
-html .ob-climate b { flex: 1; font-size: 17px; font-weight: 700; }
-html .ob-climate small { font-size: 13px; font-weight: 600; color: var(--sky); }
-html .ob-climate.on { border-color: var(--sky); background: var(--sky-soft); }
-html[data-theme="dark"] .ob-climate { background: #1f222a; border-color: #35383f; }
-html[data-theme="dark"] .ob-climate.on { border-color: #4aa8ff; background: #1d2a3a; }
 html[data-theme="dark"] .ob-hero { background: linear-gradient(180deg, #1d2a3a, #1f222a); }
 html[data-theme="dark"] .ob-hero::after { background: #1f222a; }
 html[data-theme="dark"] .ob-walk-text p { color: #bdbdbd; }
@@ -1377,3 +1370,8 @@ html .ob-times .ob-wheel { height: 260px; padding: 104px 0; }
 html .ob-times .ob-wheel-item { font-size: 20px; }
 html .ob-times .ob-wheel-item.on { font-size: 30px; }
 html[data-theme="dark"] .ob-tcard { background: #1f222a; }
+/* Climate step: a °C wheel, and beside it what that counts as. */
+html .ob-clim { display: grid; justify-items: center; gap: 8px; text-align: center; }
+html .ob-clim svg { width: 96px; height: 96px; }
+html .ob-clim b { font-size: 20px; font-weight: 800; color: var(--ink); }
+html .ob-clim small { font-size: 15px; font-weight: 700; color: var(--sky); }
