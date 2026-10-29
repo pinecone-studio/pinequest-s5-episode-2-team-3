@@ -1,5 +1,5 @@
 // Account settings of the Hydrify demo that live only on this phone: the onboarding answers the
-// profile does not keep (sex, climate), preferences, the reminder mode, security switches, theme and
+// profile does not keep (sex, climate, what the activity level is made of), preferences, the reminder mode, security switches, theme and
 // language. Each is one JSON object read with its defaults filled in.
 function store<T extends object>(key: string, defaults: T) {
   return {
@@ -14,7 +14,8 @@ function store<T extends object>(key: string, defaults: T) {
   };
 }
 
-export const about = store('dusal-profile-extra-v1', { sex: 'none' as 'male' | 'female' | 'none', climate: 'mild' as 'hot' | 'mild' | 'cold' });
+export const about = store('dusal-profile-extra-v1', { sex: 'none' as 'male' | 'female' | 'none', climate: 'mild' as 'hot' | 'mild' | 'cold',
+  move: { kinds: [] as string[], time: '' } });
 
 export const prefs = store('dusal-prefs-v1', {
   cupUnit: 'мл', weightUnit: 'кг', heightUnit: 'см', weekStart: 'Даваа', timeFormat: 'Системийн', dayReset: '00:00',

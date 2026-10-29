@@ -11,8 +11,8 @@ import { climateOf, fetchWeather } from './weather';
 import { gaugeArt } from './hydrify';
 
 // First visit, Hydrify layout (demo): two walkthrough slides, a sign-up form (name kept on this
-// phone; email and password are not sent anywhere), nine one-question steps with a progress bar
-// (sex, height, weight, age, wake-up, bedtime, activity, climate, condition), a "making your plan"
+// phone; email and password are not sent anywhere), seven steps with a progress bar
+// (sex, height and weight together, age, wake-up and bedtime together, activity, climate, condition), a "making your plan"
 // ring, then the daily amount from calcPlan (+500 мл in a hot climate), shown in the unit picked.
 const SEEN_KEY = 'dusal-onboarded-v1';
 
@@ -23,7 +23,7 @@ const markSeen = () => { try { localStorage.setItem(SEEN_KEY, '1'); } catch { /*
 
 type Sex = 'male' | 'female' | 'none';
 type Screen = 'walk' | 'signup' | 'step' | 'making' | 'ready';
-const QUESTIONS = 9;
+const QUESTIONS = 7;
 type Climate = 'hot' | 'mild' | 'cold';
 const CLIMATES: Record<Climate, { label: string; icon: string; extra: number }> = {
   hot: { label: 'Халуун', icon: '<circle cx="16" cy="16" r="6.5" fill="#ffb300"/><g stroke="#ffb300" stroke-width="2.4" stroke-linecap="round"><path d="M16 2.5v4M16 25.5v4M2.5 16h4M25.5 16h4M6.5 6.5l2.8 2.8M22.7 22.7l2.8 2.8M6.5 25.5l2.8-2.8M22.7 9.3l2.8-2.8"/></g>', extra: 500 },
@@ -34,7 +34,7 @@ const CLIMATES: Record<Climate, { label: string; icon: string; extra: number }> 
 const UNITS = { ml: { label: 'мл', per: 1, digits: 0 }, l: { label: 'л', per: 1000, digits: 2 }, us: { label: 'US oz', per: 29.5735, digits: 0 }, uk: { label: 'UK oz', per: 28.4131, digits: 0 } } as const;
 type Unit = keyof typeof UNITS;
 
-// The figure on the height and weight steps (kit 10–12), drawn from the numbers so it changes as
+// The figure on the height and weight step (kit 10–12), drawn from the numbers so it changes as
 // the wheel turns: BMI widens the shoulders, chest, waist (a belly from about BMI 25), hips, arms
 // and legs; height scales the whole figure from the feet up. Women get narrower shoulders, wider
 // hips, longer hair and a top. Height 175 cm and BMI 22 is the drawing's base size. Every part is a
@@ -153,6 +153,15 @@ function body(sex: Sex | null, weight: number, height: number): string {
 const FOR_ALL: Condition[] = ['none', 'stones', 'kidney', 'heart', 'other'];
 const FOR_WOMEN: Condition[] = ['pregnant', 'breastfeeding'];
 const ACT_ICONS = { low: 'weekend', medium: 'directions_walk', high: 'directions_run' } as const satisfies Record<Activity, string>;
+// The picked level opens with two questions of its own: what fills the day (several), and how long.
+const ACT_MORE: Record<Activity, { kinds: [string, string[]]; time: [string, string[]] }> = {
+  low: { kinds: ['Өдрийн ихэнх цагаа юу хийж өнгөрөөдөг вэ?', ['Оффисын ажил', 'Гэртээ', 'Сурдаг', 'Жолооддог']],
+    time: ['Өдөрт хэр удаан алхдаг вэ?', ['15 мин хүрэхгүй', '15–30 мин', '30 мин+']] },
+  medium: { kinds: ['Ямар дасгал хийдэг вэ?', ['Алхалт', 'Гүйлт', 'Фитнес', 'Йог', 'Дугуй', 'Бөмбөг', 'Сэлэлт']],
+    time: ['Нэг удаад хэр удаан?', ['30 мин', '45 мин', '1 цаг', '1.5 цаг+']] },
+  high: { kinds: ['Юу хийдэг вэ?', ['Мэргэжлийн спорт', 'Хүнд биеийн ажил', 'Гүйлт', 'Фитнес', 'Бөх', 'Бусад']],
+    time: ['Өдөрт хэр удаан?', ['1 цаг', '2 цаг', '3 цаг+']] },
+};
 
 const SLIDES = [
   { title: 'Дусал – таны усны туслах!', text: 'Биеийн жингийн 1–2%-ийн ус алдахад л ядаргаа, толгой өвдөлт эхэлдэг. Усаа бүртгэж, зорилтоо биелүүлээрэй.' },
@@ -228,9 +237,9 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   const times = readSettings();
   let sex: Sex | null = null;
   let climate: Climate = 'mild';
-  let weather = ''; // the line under the climate cards: where the choice came from
-  let hUnit: 'cm' | 'ft' = 'cm';
-  let wUnit: 'kg' | 'lb' = 'kg';
+  let move = { kinds: [] as string[], time: '' }; // the opened activity card's answers
+  let temp = 18; // the climate wheel, °C on a usual day where they live; the climate follows it
+  let weather = ''; // the line under the climate wheel: where the value came from
   let unit: Unit = 'ml';
   let custom: number | null = null; // "Тохируулах" on the result
   let screen: Screen = 'walk';
@@ -246,7 +255,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   document.body.append(box);
 
   const finish = (plan: Plan | null) => {
-    if (plan) { writeProfile(p); writeSettings(times); about.write({ sex: sex ?? 'none', climate }); }
+    if (plan) { writeProfile(p); writeSettings(times); about.write({ sex: sex ?? 'none', climate, move }); }
     markSeen();
     box.remove();
     if (plan) onDone(plan);
@@ -255,16 +264,18 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   // A scroll-snap wheel of values; the one in the middle band is chosen (read on "continue").
   const wheel = (id: string, values: (string | number)[], current: string | number, unit = '', label: (v: string | number) => string = String) =>
     `<div class="ob-wheel" id="${id}" tabindex="0" role="listbox" aria-label="${unit || 'Сонголт'}">${values.map(v => `<div role="option" class="ob-wheel-item${v === current ? ' on' : ''}" aria-selected="${v === current}" data-v="${v}">${label(v)}${unit ? `<small>${unit}</small>` : ''}</div>`).join('')}</div>`;
-  const toggle = (name: string, current: string, opts: [string, string][]) =>
-    `<div class="ob-units" role="radiogroup" aria-label="Нэгж">${opts.map(([v, l]) => `<button type="button" role="radio" aria-checked="${v === current}" class="${v === current ? 'on' : ''}" data-${name}="${v}">${l}</button>`).join('')}</div>`;
-  const inches = (cm: number) => Math.round(cm / 2.54);
-  const pounds = (kg: number) => Math.round(kg / 0.4536);
   const range = (lo: number, hi: number) => Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
   const HOURS = range(0, 23).map(h => String(h).padStart(2, '0'));
   const MINS = range(0, 59).map(m => String(m).padStart(2, '0'));
   const timePicker = (id: string, value: string) => {
     const [h, m] = value.split(':');
     return `<div class="ob-time">${wheel(`${id}-h`, HOURS, h)}<b>:</b>${wheel(`${id}-m`, MINS, MINS.includes(m) ? m : '00')}</div>`;
+  };
+
+  // Beside the climate wheel: what the value counts as, and what it adds.
+  const climateBadge = (t: number) => {
+    const c = CLIMATES[climateOf(t)];
+    return `<div class="ob-clim" aria-live="polite"><svg viewBox="0 0 32 32" aria-hidden="true">${c.icon}</svg><b>${c.label}</b><small>${c.extra ? `+${c.extra} мл` : 'Нэмэлтгүй'}</small></div>`;
   };
 
   const stepHead = () => `<div class="ob-step-top">
@@ -279,21 +290,24 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       case 1: return question('Таны хүйс?', 'Дусал таны усны төлөвлөгөөг тохируулна. Өөрийнхөө тухай бага зэрэг хэлээрэй.',
         `<div class="ob-sex">${(['male', 'female'] as const).map(s => `<button type="button" class="ob-sex-opt${sex === s ? ' on' : ''}" data-sex="${s}" aria-pressed="${sex === s}"><span aria-hidden="true">${s === 'male' ? '♂' : '♀'}</span>${s === 'male' ? 'Эрэгтэй' : 'Эмэгтэй'}</button>`).join('')}</div>
         <button type="button" class="ob-sex-skip${sex === 'none' ? ' on' : ''}" data-sex="none" aria-pressed="${sex === 'none'}">Бусад</button>`);
-      case 2: return question('Таны өндөр?', 'Өндөр нь усны төлөвлөгөөг тань тохируулахад чухал. Өндрөө сонгоно уу.',
-        `${toggle('hunit', hUnit, [['cm', 'см'], ['ft', 'фут']])}<div class="ob-pick">${body(sex, p.weight, p.height)}${hUnit === 'cm'
-          ? wheel('ob-height', range(90, 230), p.height, 'см')
-          : wheel('ob-height', range(36, 90), inches(p.height), '', v => `${Math.floor(Number(v) / 12)}′${Number(v) % 12}″`)}</div>`);
-      case 3: return question('Таны жин?', 'Өдрийн усны хэмжээг голчлон биеийн жингээр тооцно. Жингээ сонгоно уу.',
-        `${toggle('wunit', wUnit, [['kg', 'кг'], ['lb', 'lb']])}<div class="ob-pick">${body(sex, p.weight, p.height)}${wUnit === 'kg'
-          ? wheel('ob-weight', range(10, 250), p.weight, 'кг')
-          : wheel('ob-weight', range(22, 550), pounds(p.weight), 'lb')}</div>`);
-      case 4: return question('Хэдэн настай вэ?', 'Нас ахих тусам цангах мэдрэмж сулардаг.', wheel('ob-age', range(4, 110), p.age, 'нас'));
-      case 5: return question('Хэдэн цагт сэрдэг вэ?', 'Сануулга сэрснээс хойш эхэлнэ.', timePicker('ob-wake', times.wake));
-      case 6: return question('Хэдэн цагт унтдаг вэ?', 'Унтахын өмнө сануулга ирэхгүй.', timePicker('ob-sleep', times.sleep));
-      case 7: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
-        `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => `<button type="button" class="ob-card${p.activity === a ? ' on' : ''}" data-act="${a}" aria-pressed="${p.activity === a}"><span class="ob-card-icon">${mdIcon(ACT_ICONS[a])}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small></button>`).join('')}</div>`);
-      case 8: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа уур амьсгалыг сонгоно уу.',
-        `<div class="ob-cards">${(Object.keys(CLIMATES) as Climate[]).map(c => `<button type="button" class="ob-climate${climate === c ? ' on' : ''}" data-climate="${c}" aria-pressed="${climate === c}"><svg viewBox="0 0 32 32" aria-hidden="true">${CLIMATES[c].icon}</svg><b>${CLIMATES[c].label}</b>${CLIMATES[c].extra ? `<small>+${CLIMATES[c].extra} мл</small>` : ''}</button>`).join('')}</div>
+      case 2: return question('Таны өндөр, жин?', 'Өдрийн усны хэмжээг голчлон биеийн жин, өндрөөр тооцно.',
+        `<div class="ob-pick two">${body(sex, p.weight, p.height)}${wheel('ob-height', range(90, 230), p.height, 'см')}${wheel('ob-weight', range(10, 250), p.weight, 'кг')}</div>`);
+      case 3: return question('Хэдэн настай вэ?', 'Нас ахих тусам цангах мэдрэмж сулардаг.', wheel('ob-age', range(4, 110), p.age, 'нас'));
+      case 4: return question('Сэрэх, унтах цаг?', 'Сануулга сэрснээс хойш эхэлж, унтахаас өмнө дуусна.',
+        `<div class="ob-times">${([['ob-wake', 'Сэрэх', '☀', times.wake], ['ob-sleep', 'Унтах', '☾', times.sleep]] as const).map(([id, label, icon, at]) =>
+          `<section class="ob-tcard" aria-label="${label}"><p class="ob-time-label"><span aria-hidden="true">${icon}</span>${label}</p>${timePicker(id, at)}</section>`).join('')}</div>`);
+      case 5: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
+        `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => {
+          const on = p.activity === a;
+          const chips = (field: 'kinds' | 'time', [label, opts]: [string, string[]]) => `<fieldset class="ob-chips"><legend>${label}</legend>${opts.map(o => {
+            const picked = field === 'kinds' ? move.kinds.includes(o) : move.time === o;
+            return `<button type="button" class="ob-chip${picked ? ' on' : ''}" data-${field}="${escape(o)}" aria-pressed="${picked}">${escape(o)}</button>`;
+          }).join('')}</fieldset>`;
+          return `<div class="ob-acc${on ? ' on' : ''}"><button type="button" class="ob-card${on ? ' on' : ''}" data-act="${a}" aria-pressed="${on}" aria-expanded="${on}"><span class="ob-card-icon">${mdIcon(ACT_ICONS[a])}</span><b>${ACTIVITIES[a].label}</b><small>${ACTIVITIES[a].hint}</small><span class="ob-acc-arrow" aria-hidden="true"></span></button>
+            ${on ? `<div class="ob-acc-body">${chips('kinds', ACT_MORE[a].kinds)}${chips('time', ACT_MORE[a].time)}</div>` : ''}</div>`;
+        }).join('')}</div>`);
+      case 6: return question('Таны амьдардаг газрын уур амьсгал?', 'Халуунд хөлсөөр илүү их ус алдана. Ихэнх цагаа өнгөрөөдөг газрынхаа ердийн өдрийн дулааныг сонгоно уу.',
+        `<div class="ob-pick">${climateBadge(temp)}${wheel('ob-temp', range(-30, 45), temp, '°C', v => String(v).replace('-', '−'))}</div>
         ${'geolocation' in navigator ? `<button type="button" class="ob-locate" data-locate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Миний байршлын цаг агаараар</button>` : ''}
         <p class="ob-weather" role="status">${weather}</p>`);
       default: {
@@ -381,17 +395,19 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     if (line) line.textContent = weather;
     try {
       const got = await fetchWeather();
-      climate = climateOf(got.feels);
+      temp = Math.max(-30, Math.min(45, Math.round(got.feels)));
+      climate = climateOf(temp);
       weather = `Өнөөдөр таны байршилд ${got.feels}°C мэт мэдрэгдэнэ → «${CLIMATES[climate].label}». Цаашид нүүр хуудас өдөр бүр шалгана.`;
     } catch (err) {
       weather = (err as GeolocationPositionError)?.code === 1
-        ? 'Байршлын зөвшөөрөл өгөөгүй. Доороос сонгоно уу.'
-        : 'Байршил авч чадсангүй. Доороос сонгоно уу.';
+        ? 'Байршлын зөвшөөрөл өгөөгүй. Дээрээс гүйлгэж сонгоно уу.'
+        : 'Байршил авч чадсангүй. Дээрээс гүйлгэж сонгоно уу.';
     }
-    if (screen === 'step' && step === 8) draw();
+    if (screen === 'step' && step === 6) draw();
   }
 
   function draw(): void {
+    live = { height: p.height, weight: p.weight };
     box.innerHTML = `<div class="ob-screen">${view()}</div>`;
     bind();
     box.querySelectorAll<HTMLElement>('.ob-wheel').forEach(centerWheel);
@@ -412,9 +428,13 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         items.forEach((it, i) => { it.classList.toggle('on', i === idx); it.setAttribute('aria-selected', String(i === idx)); });
       }, 80);
       // The figure follows the value under the band while the wheel is still moving.
+      if (w.id === 'ob-temp') {
+        const badge = box.querySelector('.ob-clim');
+        if (badge) badge.outerHTML = climateBadge(Number(items[Math.max(0, Math.min(items.length - 1, Math.round(w.scrollTop / ITEM)))].dataset.v));
+      }
       if (w.id === 'ob-height' || w.id === 'ob-weight') {
         const v = items[Math.max(0, Math.min(items.length - 1, Math.round(w.scrollTop / ITEM)))].dataset.v!;
-        redrawBody(w.id === 'ob-height' ? { height: hUnit === 'cm' ? Number(v) : Math.round(Number(v) * 2.54) } : { weight: wUnit === 'kg' ? Number(v) : Math.round(Number(v) * 0.4536) });
+        redrawBody(w.id === 'ob-height' ? { height: Number(v) } : { weight: Number(v) });
       }
     }, { passive: true });
     w.addEventListener('keydown', e => {
@@ -424,22 +444,25 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     });
   }
   let bodyFrame = 0;
+  let live = { height: p.height, weight: p.weight };
   function redrawBody(change: { height?: number; weight?: number }): void {
+    Object.assign(live, change);
     cancelAnimationFrame(bodyFrame);
     bodyFrame = requestAnimationFrame(() => {
       const fig = box.querySelector('.ob-body');
-      if (fig) fig.outerHTML = body(sex, change.weight ?? p.weight, change.height ?? p.height);
+      if (fig) fig.outerHTML = body(sex, live.weight, live.height);
     });
   }
   const picked = (id: string) => box.querySelector<HTMLElement>(`#${id} .ob-wheel-item.on`)?.dataset.v;
 
   const readStep = () => {
     const h = picked('ob-height'), w = picked('ob-weight');
-    if (step === 2 && h) p.height = hUnit === 'cm' ? Number(h) : Math.round(Number(h) * 2.54);
-    if (step === 3 && w) p.weight = wUnit === 'kg' ? Number(w) : Math.round(Number(w) * 0.4536);
-    if (step === 4) p.age = Number(picked('ob-age') ?? p.age);
-    if (step === 5) times.wake = `${picked('ob-wake-h') ?? '07'}:${picked('ob-wake-m') ?? '00'}`;
-    if (step === 6) times.sleep = `${picked('ob-sleep-h') ?? '22'}:${picked('ob-sleep-m') ?? '00'}`;
+    if (step === 2 && h) p.height = Number(h);
+    if (step === 2 && w) p.weight = Number(w);
+    if (step === 3) p.age = Number(picked('ob-age') ?? p.age);
+    if (step === 4) times.wake = `${picked('ob-wake-h') ?? '07'}:${picked('ob-wake-m') ?? '00'}`;
+    if (step === 6 && picked('ob-temp')) { temp = Number(picked('ob-temp')); climate = climateOf(temp); }
+    if (step === 4) times.sleep = `${picked('ob-sleep-h') ?? '22'}:${picked('ob-sleep-m') ?? '00'}`;
     const limit = box.querySelector<HTMLInputElement>('#ob-limit');
     if (limit) { const v = Math.round(Number(limit.value) / 50) * 50; if (v >= 500 && v <= 4000) p.doctorLimit = v; }
     const note = box.querySelector<HTMLInputElement>('#ob-note');
@@ -487,20 +510,32 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       screen = 'step'; step = 1; draw();
     });
     on('[data-sex]', el => { sex = el.dataset.sex as Sex; if (sex !== 'female' && FOR_WOMEN.includes(p.condition)) p.condition = 'none'; draw(); });
-    on('[data-hunit]', el => { readStep(); hUnit = el.dataset.hunit as 'cm' | 'ft'; draw(); });
-    on('[data-wunit]', el => { readStep(); wUnit = el.dataset.wunit as 'kg' | 'lb'; draw(); });
-    on('[data-climate]', el => { climate = el.dataset.climate as Climate; weather = ''; draw(); });
     on('[data-locate]', () => void locate());
     on('[data-unit]', el => { unit = el.dataset.unit as Unit; draw(); });
     on('[data-adjust]', () => openAmountSheet('Өдрийн зорилт', '💧', result().ml, ml => { custom = Math.max(500, Math.min(5000, Math.round(ml / 50) * 50)); draw(); }));
-    on('[data-act]', el => { p.activity = el.dataset.act as Activity; draw(); });
+    on('[data-act]', el => {
+      const a = el.dataset.act as Activity;
+      if (a !== p.activity) move = { kinds: [], time: '' };
+      p.activity = a; draw();
+      box.querySelector<HTMLElement>(`[data-act="${a}"]`)?.focus();
+    });
+    // Chips change in place, so the page keeps its scroll.
+    on('[data-kinds]', el => {
+      const k = el.dataset.kinds!;
+      move.kinds = move.kinds.includes(k) ? move.kinds.filter(x => x !== k) : [...move.kinds, k];
+      el.classList.toggle('on'); el.setAttribute('aria-pressed', String(move.kinds.includes(k)));
+    });
+    on('[data-time]', el => {
+      move.time = move.time === el.dataset.time ? '' : el.dataset.time!;
+      box.querySelectorAll<HTMLElement>('[data-time]').forEach(b => { const yes = b.dataset.time === move.time; b.classList.toggle('on', yes); b.setAttribute('aria-pressed', String(yes)); });
+    });
     on('[data-cond]', el => { readStep(); p.condition = el.dataset.cond as Condition; draw(); });
     on('[data-continue]', () => {
       readStep();
       if (step < QUESTIONS) {
         step += 1; draw();
         // Already allowed once: fill the climate in without asking again.
-        if (step === 8 && !weather) void navigator.permissions?.query({ name: 'geolocation' }).then(r => { if (r.state === 'granted') void locate(); }).catch(() => {});
+        if (step === 6 && !weather) void navigator.permissions?.query({ name: 'geolocation' }).then(r => { if (r.state === 'granted') void locate(); }).catch(() => {});
         return;
       }
       screen = 'making'; draw(); making();
