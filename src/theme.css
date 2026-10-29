@@ -1361,12 +1361,8 @@ html .wt-badge.pop { animation: wt-pop .45s cubic-bezier(.3, 1.6, .5, 1) both; }
 @media (prefers-reduced-motion: reduce) { html .wt-badge.pop { animation: none; } }
 
 /* «Зорилтоо тохируулах» under the gauge on both homes: opens the same sheet as the goal pill (overview.ts). */
-/* Height and weight on one step: the figure, then a unit switch over each wheel. */
+/* Height (см) and weight (кг) on one step: the figure and two wheels. */
 html .ob-pick.two { grid-template-columns: minmax(0, 1fr) 104px 104px; gap: 6px; }
-html .ob-col { display: grid; justify-items: center; gap: 8px; min-width: 0; }
-html .ob-col .ob-units { margin-top: 0; gap: 2px; padding: 3px; }
-html .ob-col .ob-units button { min-width: 44px; min-height: 32px; padding: 0 6px; font-size: 13px; }
-html .ob-col .ob-wheel { width: 100%; }
 html .ob-pick.two .ob-wheel-item { font-size: 22px; gap: 3px; }
 html .ob-pick.two .ob-wheel-item.on { font-size: 32px; }
 html .ob-pick.two .ob-wheel-item small { font-size: 13px; }

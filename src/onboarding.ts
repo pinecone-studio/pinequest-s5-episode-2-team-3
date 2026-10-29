@@ -226,8 +226,6 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   let sex: Sex | null = null;
   let climate: Climate = 'mild';
   let weather = ''; // the line under the climate cards: where the choice came from
-  let hUnit: 'cm' | 'ft' = 'cm';
-  let wUnit: 'kg' | 'lb' = 'kg';
   let unit: Unit = 'ml';
   let custom: number | null = null; // "Тохируулах" on the result
   let screen: Screen = 'walk';
@@ -252,10 +250,6 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   // A scroll-snap wheel of values; the one in the middle band is chosen (read on "continue").
   const wheel = (id: string, values: (string | number)[], current: string | number, unit = '', label: (v: string | number) => string = String) =>
     `<div class="ob-wheel" id="${id}" tabindex="0" role="listbox" aria-label="${unit || 'Сонголт'}">${values.map(v => `<div role="option" class="ob-wheel-item${v === current ? ' on' : ''}" aria-selected="${v === current}" data-v="${v}">${label(v)}${unit ? `<small>${unit}</small>` : ''}</div>`).join('')}</div>`;
-  const toggle = (name: string, current: string, opts: [string, string][]) =>
-    `<div class="ob-units" role="radiogroup" aria-label="Нэгж">${opts.map(([v, l]) => `<button type="button" role="radio" aria-checked="${v === current}" class="${v === current ? 'on' : ''}" data-${name}="${v}">${l}</button>`).join('')}</div>`;
-  const inches = (cm: number) => Math.round(cm / 2.54);
-  const pounds = (kg: number) => Math.round(kg / 0.4536);
   const range = (lo: number, hi: number) => Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
   const HOURS = range(0, 23).map(h => String(h).padStart(2, '0'));
   const MINS = range(0, 59).map(m => String(m).padStart(2, '0'));
@@ -277,13 +271,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         `<div class="ob-sex">${(['male', 'female'] as const).map(s => `<button type="button" class="ob-sex-opt${sex === s ? ' on' : ''}" data-sex="${s}" aria-pressed="${sex === s}"><span aria-hidden="true">${s === 'male' ? '♂' : '♀'}</span>${s === 'male' ? 'Эрэгтэй' : 'Эмэгтэй'}</button>`).join('')}</div>
         <button type="button" class="ob-sex-skip${sex === 'none' ? ' on' : ''}" data-sex="none" aria-pressed="${sex === 'none'}">Бусад</button>`);
       case 2: return question('Таны өндөр, жин?', 'Өдрийн усны хэмжээг голчлон биеийн жин, өндрөөр тооцно.',
-        `<div class="ob-pick two">${body(sex, p.weight, p.height)}
-          <div class="ob-col">${toggle('hunit', hUnit, [['cm', 'см'], ['ft', 'фут']])}${hUnit === 'cm'
-            ? wheel('ob-height', range(90, 230), p.height, 'см')
-            : wheel('ob-height', range(36, 90), inches(p.height), '', v => `${Math.floor(Number(v) / 12)}′${Number(v) % 12}″`)}</div>
-          <div class="ob-col">${toggle('wunit', wUnit, [['kg', 'кг'], ['lb', 'lb']])}${wUnit === 'kg'
-            ? wheel('ob-weight', range(10, 250), p.weight, 'кг')
-            : wheel('ob-weight', range(22, 550), pounds(p.weight), 'lb')}</div></div>`);
+        `<div class="ob-pick two">${body(sex, p.weight, p.height)}${wheel('ob-height', range(90, 230), p.height, 'см')}${wheel('ob-weight', range(10, 250), p.weight, 'кг')}</div>`);
       case 3: return question('Хэдэн настай вэ?', 'Нас ахих тусам цангах мэдрэмж сулардаг.', wheel('ob-age', range(4, 110), p.age, 'нас'));
       case 4: return question('Хэдэн цагт сэрж, унтдаг вэ?', 'Сануулга сэрснээс хойш эхэлж, унтахаас өмнө дуусна.',
         `<div class="ob-times"><p class="ob-time-label">Сэрэх</p>${timePicker('ob-wake', times.wake)}<p class="ob-time-label">Унтах</p>${timePicker('ob-sleep', times.sleep)}</div>`);
@@ -412,7 +400,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       // The figure follows the value under the band while the wheel is still moving.
       if (w.id === 'ob-height' || w.id === 'ob-weight') {
         const v = items[Math.max(0, Math.min(items.length - 1, Math.round(w.scrollTop / ITEM)))].dataset.v!;
-        redrawBody(w.id === 'ob-height' ? { height: hUnit === 'cm' ? Number(v) : Math.round(Number(v) * 2.54) } : { weight: wUnit === 'kg' ? Number(v) : Math.round(Number(v) * 0.4536) });
+        redrawBody(w.id === 'ob-height' ? { height: Number(v) } : { weight: Number(v) });
       }
     }, { passive: true });
     w.addEventListener('keydown', e => {
@@ -435,8 +423,8 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
 
   const readStep = () => {
     const h = picked('ob-height'), w = picked('ob-weight');
-    if (step === 2 && h) p.height = hUnit === 'cm' ? Number(h) : Math.round(Number(h) * 2.54);
-    if (step === 2 && w) p.weight = wUnit === 'kg' ? Number(w) : Math.round(Number(w) * 0.4536);
+    if (step === 2 && h) p.height = Number(h);
+    if (step === 2 && w) p.weight = Number(w);
     if (step === 3) p.age = Number(picked('ob-age') ?? p.age);
     if (step === 4) times.wake = `${picked('ob-wake-h') ?? '07'}:${picked('ob-wake-m') ?? '00'}`;
     if (step === 4) times.sleep = `${picked('ob-sleep-h') ?? '22'}:${picked('ob-sleep-m') ?? '00'}`;
@@ -487,8 +475,6 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       screen = 'step'; step = 1; draw();
     });
     on('[data-sex]', el => { sex = el.dataset.sex as Sex; if (sex !== 'female' && FOR_WOMEN.includes(p.condition)) p.condition = 'none'; draw(); });
-    on('[data-hunit]', el => { readStep(); hUnit = el.dataset.hunit as 'cm' | 'ft'; draw(); });
-    on('[data-wunit]', el => { readStep(); wUnit = el.dataset.wunit as 'kg' | 'lb'; draw(); });
     on('[data-climate]', el => { climate = el.dataset.climate as Climate; weather = ''; draw(); });
     on('[data-locate]', () => void locate());
     on('[data-unit]', el => { unit = el.dataset.unit as Unit; draw(); });
