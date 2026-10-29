@@ -9,6 +9,7 @@ import { readDoctorNote } from './doctor.js';
 import { parseDrink } from './drink.js';
 import { rateLimit } from './rate-limit.js';
 import { weatherAdjust } from './weather.js';
+import { AuthError, getAccount, googleSignIn, putData, signIn, signOut, signUp } from './accounts.js';
 
 import { CONTRACT_VERSION, ContractError, validateId, validateSettings, validateEntry, validateEventPatch } from '../../shared/contracts.ts';
 
@@ -49,6 +50,18 @@ async function route(request, env) {
     return json(await ai(await readJson(request), env));
   }
   if (pathname === '/api/weather' && method === 'GET') return json(await weatherAdjust(searchParams, env));
+
+  // Accounts (accounts.js): signing in is limited per caller per hour like the AI routes, against guessing.
+  const auth = { '/api/auth/signup': signUp, '/api/auth/login': signIn, '/api/auth/google': googleSignIn }[pathname];
+  if (auth && method === 'POST') {
+    await rateLimit(db, request, '/api/auth');
+    return json(await auth(request, db, env));
+  }
+  if (pathname === '/api/auth/logout' && method === 'POST') { await signOut(request, db); return new Response(null, { status: 204, headers: cors }); }
+  if (pathname === '/api/account') {
+    if (method === 'GET') return json(await getAccount(request, db));
+    if (method === 'PUT') return json(await putData(request, db));
+  }
 
   if (pathname === '/api/devices' && method === 'GET') return json(await listDevices(db));
   const readingPath = pathname.match(/^\/api\/devices\/([a-zA-Z0-9-]{1,64})\/readings$/);
@@ -129,7 +142,7 @@ export default {
     try {
       return await route(request, env);
     } catch (err) {
-      if (err instanceof BodyError) return fail(err.status, err.message);
+      if (err instanceof BodyError || err instanceof AuthError) return fail(err.status, err.message);
       if (err instanceof ContractError) return fail(400, err.message);
       if (err instanceof PlanError) return fail(err.status, err.message);
       console.error(err);

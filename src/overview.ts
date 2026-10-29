@@ -16,6 +16,7 @@ import { setKind, setSalty } from './drinks';
 import { loadInsight, watchCard } from './watch-card';
 import { health } from './health';
 import { startSync } from './sync';
+import { pushSnapshot, startAccountSync } from './session';
 import { startDevices } from './devices';
 import { bindWeatherChip, loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
 import { pushWidget } from './widget';
@@ -608,6 +609,7 @@ void reload().then(() => {
   render();
   // Keep pulling while home is open so a sip on the base shows up here within seconds.
   startSync();
+  startAccountSync();  // signed in: the snapshot goes up to the account (session.ts)
   startDevices();
   void loadWeather(state.goal, render);
   // Connecting to a base joins its family; the board redraws when the server answers.
@@ -626,6 +628,7 @@ void reload().then(() => {
     await reload();
     if (result !== 'saved') storageError = saveMessage[result];
     render();
+    void pushSnapshot();  // a new account keeps its answers from the first minute
   });
   // Before the days off: the card once per window (weekend-card.ts). Outside the app's tab host this
   // page also takes the notice's tap itself.

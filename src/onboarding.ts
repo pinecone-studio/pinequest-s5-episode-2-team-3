@@ -4,14 +4,16 @@ import { mdIcon } from './components/Icon';
 import { ACTIVITIES, CONDITIONS, PROFILE_KEY, calcPlan, readProfile, writeProfile, type Activity, type Condition, type Plan, type Profile } from './plan';
 import { saveMember, readMember } from './member';
 import { signInWithGoogle } from './google-signin';
+import { restoreSnapshot, signInEmail, signInGoogle, signUpEmail, type Account, type Snapshot } from './session';
 import { readSettings, writeSettings } from './schedule';
 import { openAmountSheet } from './hx-edit';
 import { about } from './prefs';
 import { climateOf, fetchWeather } from './weather';
 import { gaugeArt } from './hydrify';
 
-// First visit, Hydrify layout (demo): two walkthrough slides, a sign-up form (name kept on this
-// phone; email and password are not sent anywhere), seven steps with a progress bar
+// First visit, Hydrify layout: two walkthrough slides, a sign-up form (an account on our server, by email
+// and password or Google: src/session.ts) or «Нэвтрэх» for someone who already has one, whose data comes
+// back without asking again; then seven steps with a progress bar
 // (sex, height and weight together, age, wake-up and bedtime together, activity, climate, condition), a "making your plan"
 // ring, then the daily amount from calcPlan (+500 мл in a hot climate), shown in the unit picked.
 const SEEN_KEY = 'dusal-onboarded-v1';
@@ -22,7 +24,8 @@ export function needsOnboarding(): boolean {
 const markSeen = () => { try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* private mode: ask again next time */ } };
 
 type Sex = 'male' | 'female' | 'none';
-type Screen = 'walk' | 'signup' | 'step' | 'making' | 'ready';
+type Screen = 'walk' | 'signup' | 'login' | 'step' | 'making' | 'ready';
+const GOOGLE_BUTTON = `<button type="button" class="ob-social" data-google><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285f4"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" fill="#34a853"/><path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2z" fill="#fbbc05"/><path d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10c.8-2.3 3-4.1 5.6-4.1z" fill="#ea4335"/></svg>Google-ээр үргэлжлүүлэх</button>`;
 const QUESTIONS = 7;
 type Climate = 'hot' | 'mild' | 'cold';
 const CLIMATES: Record<Climate, { label: string; icon: string; extra: number }> = {
@@ -247,6 +250,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   let step = 1;
   let name = readMember()?.name ?? '';
   let agreed = false;
+  let email = '';
   const box = document.createElement('div');
   box.className = 'onb ob';
   box.setAttribute('role', 'dialog');
@@ -327,20 +331,33 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       return `<div class="ob-walk"><div class="ob-hero">${cast(slide)}</div>
         <div class="ob-walk-text"><h2 id="onb-title">${s.title}</h2><p>${s.text}</p>
           <ol class="ob-dots" aria-label="${slide + 1} / ${SLIDES.length}">${SLIDES.map((_, i) => `<li class="${i === slide ? 'on' : ''}"></li>`).join('')}</ol></div>
-        <div class="ob-actions"><button type="button" class="ob-ghost" data-skip>Алгасах</button><button type="button" class="ob-primary" data-next>Үргэлжлүүлэх</button></div></div>`;
+        <div class="ob-actions"><button type="button" class="ob-ghost" data-skip>Алгасах</button><button type="button" class="ob-primary" data-next>Үргэлжлүүлэх</button></div>
+        <p class="ob-switch">Бүртгэлтэй юу? <button type="button" data-to="login">Нэвтрэх</button></p></div>`;
     }
     if (screen === 'signup') {
       return `<div class="ob-form"><button type="button" class="ob-back" aria-label="Буцах">←</button>
         <h2 id="onb-title">Дусалд нэгдээрэй ✨</h2><p class="ob-lead left">Уусан усаа бүртгэж, сануулга тавьж, амжилтаа нээхийн тулд бүртгүүлээрэй.</p>
         <label class="ob-field">Нэр<input id="ob-name" maxlength="24" autocomplete="nickname" placeholder="Жишээ нь: Сараа" value="${escape(name)}"/></label>
-        <label class="ob-field">Имэйл<input id="ob-email" type="email" autocomplete="email" placeholder="Имэйл"/></label>
+        <label class="ob-field">Имэйл<input id="ob-email" type="email" autocomplete="email" placeholder="Имэйл" value="${escape(email)}"/></label>
         <label class="ob-field">Нууц үг<input id="ob-pass" type="password" autocomplete="new-password" placeholder="Нууц үг"/></label>
         <label class="ob-check"><input type="checkbox" id="ob-agree" ${agreed ? 'checked' : ''}/> <span>Дусалын <a href="/privacypolicy.html" target="_blank">үйлчилгээний нөхцөл</a>-ийг зөвшөөрч байна.</span></label>
         <p class="ob-or"><span>эсвэл</span></p>
-        <button type="button" class="ob-social" data-google><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285f4"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" fill="#34a853"/><path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2z" fill="#fbbc05"/><path d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10c.8-2.3 3-4.1 5.6-4.1z" fill="#ea4335"/></svg>Google-ээр үргэлжлүүлэх</button>
-        <p class="ob-demo">Demo: имэйл, нууц үг хаашаа ч илгээгдэхгүй. Нэр зөвхөн энэ утсанд хадгалагдана.</p>
+        ${GOOGLE_BUTTON}
+        <p class="ob-demo">Бүртгэл таны усны мэдээллийг хадгалж, өөр утсанд нэвтрэхэд буцааж өгнө. «Demo» бол зөвхөн энэ утсанд.</p>
         <p class="ob-error" role="alert" hidden></p>
-        <div class="ob-actions"><button type="button" class="ob-ghost" data-demo>Demo</button><button type="button" class="ob-primary" data-signup>Бүртгүүлэх</button></div></div>`;
+        <div class="ob-actions"><button type="button" class="ob-ghost" data-demo>Demo</button><button type="button" class="ob-primary" data-signup>Бүртгүүлэх</button></div>
+        <p class="ob-switch">Бүртгэлтэй юу? <button type="button" data-to="login">Нэвтрэх</button></p></div>`;
+    }
+    if (screen === 'login') {
+      return `<div class="ob-form"><button type="button" class="ob-back" aria-label="Буцах">←</button>
+        <h2 id="onb-title">Тавтай морил 👋</h2><p class="ob-lead left">Бүртгэлээрээ нэвтэрвэл таны усны мэдээлэл, тохиргоо буцаж ирнэ.</p>
+        <label class="ob-field">Имэйл<input id="ob-email" type="email" autocomplete="email" placeholder="Имэйл" value="${escape(email)}"/></label>
+        <label class="ob-field">Нууц үг<input id="ob-pass" type="password" autocomplete="current-password" placeholder="Нууц үг"/></label>
+        <p class="ob-or"><span>эсвэл</span></p>
+        ${GOOGLE_BUTTON}
+        <p class="ob-error" role="alert" hidden></p>
+        <div class="ob-actions"><button type="button" class="ob-primary wide" data-login>Нэвтрэх</button></div>
+        <p class="ob-switch">Бүртгэлгүй юу? <button type="button" data-to="signup">Бүртгүүлэх</button></p></div>`;
     }
     if (screen === 'making') {
       return `<div class="ob-making"><h2 id="onb-title">Таны усны төлөвлөгөөг гаргаж байна…</h2><p class="ob-lead">Түр хүлээнэ үү.</p>
@@ -473,36 +490,43 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     const on = (sel: string, fn: (el: HTMLElement) => void) => box.querySelectorAll<HTMLElement>(sel).forEach(el => el.addEventListener('click', () => fn(el)));
     on('[data-skip]', () => { screen = 'signup'; draw(); });
     on('[data-next]', () => { if (slide < SLIDES.length - 1) slide += 1; else screen = 'signup'; draw(); });
+    on('[data-to]', el => { email = box.querySelector<HTMLInputElement>('#ob-email')?.value.trim() ?? email; screen = el.dataset.to as Screen; draw(); });
     on('.ob-back', () => {
-      if (screen === 'signup') screen = 'walk';
+      if (screen === 'signup' || screen === 'login') screen = 'walk';
       else if (screen === 'step') { readStep(); if (step > 1) step -= 1; else screen = 'signup'; }
       draw();
     });
-    // Google fills the name from the picked account; choosing it counts as accepting the terms.
-    on('[data-google]', el => void (async () => {
-      const error = box.querySelector<HTMLElement>('.ob-error')!;
-      error.hidden = true;
-      (el as HTMLButtonElement).disabled = true;
-      try {
-        const user = await signInWithGoogle();
-        name = user.name || box.querySelector<HTMLInputElement>('#ob-name')!.value.trim() || 'Найз';
-        agreed = true;
-        saveMember(name);
-        screen = 'step'; step = 1; draw();
-      } catch (e) {
-        error.textContent = e instanceof Error ? e.message : 'Google-ээр нэвтэрч чадсангүй.';
-        error.hidden = false;
-        (el as HTMLButtonElement).disabled = false;
-      }
-    })());
-    on('[data-signup]', () => {
-      name = box.querySelector<HTMLInputElement>('#ob-name')!.value;
-      agreed = box.querySelector<HTMLInputElement>('#ob-agree')!.checked;
-      const error = box.querySelector<HTMLElement>('.ob-error')!;
-      if (!name.trim()) { error.textContent = 'Нэрээ бичнэ үү.'; error.hidden = false; return; }
-      if (!agreed) { error.textContent = 'Үйлчилгээний нөхцөлийг зөвшөөрнө үү.'; error.hidden = false; return; }
+    // Signed up or in: an account with saved data gets it back and skips the questions; a new one goes on to them.
+    const error = (text: string) => { const el = box.querySelector<HTMLElement>('.ob-error')!; el.textContent = text; el.hidden = !text; };
+    const busy = (on: boolean) => box.querySelectorAll<HTMLButtonElement>('.ob-actions button, [data-google]').forEach(b => { b.disabled = on; });
+    const signed = async (r: { account: Account; data: Snapshot | null }) => {
+      if (r.data && await restoreSnapshot(r.data)) { markSeen(); box.remove(); location.reload(); return; }
+      name = r.account.name;
       saveMember(name);
       screen = 'step'; step = 1; draw();
+    };
+    const attempt = async (run: () => Promise<{ account: Account; data: Snapshot | null }>) => {
+      error(''); busy(true);
+      try { await signed(await run()); } catch (e) { error(e instanceof Error ? e.message : 'Алдаа гарлаа. Дахин оролдоно уу.'); busy(false); }
+    };
+    // Google: the name comes from the picked account; choosing it counts as accepting the terms.
+    on('[data-google]', () => void attempt(async () => signInGoogle((await signInWithGoogle()).idToken)));
+    on('[data-signup]', () => {
+      name = box.querySelector<HTMLInputElement>('#ob-name')!.value.trim();
+      email = box.querySelector<HTMLInputElement>('#ob-email')!.value.trim();
+      const password = box.querySelector<HTMLInputElement>('#ob-pass')!.value;
+      agreed = box.querySelector<HTMLInputElement>('#ob-agree')!.checked;
+      if (!name) { error('Нэрээ бичнэ үү.'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { error('Имэйл хаягаа зөв бичнэ үү.'); return; }
+      if (password.length < 8) { error('Нууц үг дор хаяж 8 тэмдэгт байна.'); return; }
+      if (!agreed) { error('Үйлчилгээний нөхцөлийг зөвшөөрнө үү.'); return; }
+      void attempt(() => signUpEmail(name, email, password));
+    });
+    on('[data-login]', () => {
+      email = box.querySelector<HTMLInputElement>('#ob-email')!.value.trim();
+      const password = box.querySelector<HTMLInputElement>('#ob-pass')!.value;
+      if (!email || !password) { error('Имэйл, нууц үгээ бичнэ үү.'); return; }
+      void attempt(() => signInEmail(email, password));
     });
     // Demo: skip the form; the typed name is kept, otherwise "Demo".
     on('[data-demo]', () => {

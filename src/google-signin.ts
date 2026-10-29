@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 
-// "Google-ээр үргэлжлүүлэх" on the signup screen. Only the name and email are read to fill the profile;
-// no token is sent anywhere, the app has no accounts on the server yet.
+// "Google-ээр үргэлжлүүлэх" on the sign-up and sign-in screens. The ID token goes to our server, which has
+// Google check it and opens or finds the account (backend/src/accounts.js); the name fills the profile.
 // - Web: Google Identity Services shows the account picker and hands back an ID token.
 // - Android app: Google does not allow that inside a WebView, so the native account picker
 //   (@capgo/capacitor-social-login, Credential Manager) is used. It needs an Android OAuth client in the
@@ -11,7 +11,7 @@ import { Capacitor } from '@capacitor/core';
 export const GOOGLE_CLIENT_ID: string = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '253911522297-p7ulev5jt6lo8qv674m50j6h5776gr3h.apps.googleusercontent.com';
 const native = () => Capacitor.getPlatform() === 'android';
 
-export interface GoogleUser { name: string; email: string }
+export interface GoogleUser { name: string; email: string; idToken: string }
 
 type Gsi = {
   accounts: { id: {
@@ -37,7 +37,7 @@ function readToken(credential: string): GoogleUser {
   const part = credential.split('.')[1] ?? '';
   const json = decodeURIComponent(Array.from(atob(part.replace(/-/g, '+').replace(/_/g, '/')), c => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`).join(''));
   const p = JSON.parse(json) as { name?: string; given_name?: string; email?: string };
-  return { name: (p.given_name || p.name || '').slice(0, 24), email: p.email ?? '' };
+  return { name: (p.given_name || p.name || '').slice(0, 24), email: p.email ?? '', idToken: credential };
 }
 
 function webSignIn(): Promise<GoogleUser> {
@@ -69,9 +69,10 @@ async function nativeSignIn(): Promise<GoogleUser> {
   }
   const r = res.result;
   if (r.responseType !== 'online') throw new Error('Google-ийн хариуг уншиж чадсангүй.');
+  if (!r.idToken) throw new Error('Google-ийн хариуг уншиж чадсангүй.');
   const name = r.profile.givenName || r.profile.name || '';
-  if (!name && r.idToken) return readToken(r.idToken);
-  return { name: name.slice(0, 24), email: r.profile.email ?? '' };
+  if (!name) return readToken(r.idToken);
+  return { name: name.slice(0, 24), email: r.profile.email ?? '', idToken: r.idToken };
 }
 
 // Resolves with the picked account, or rejects with a message for the person.
