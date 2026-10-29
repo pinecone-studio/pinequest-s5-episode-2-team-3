@@ -30,15 +30,23 @@ html .hl-tile:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px
 html .ds-label.ds-rest { margin: 4px 0 -6px; }
 
 /* The «⋯» sheet (home-menu.ts) */
+/* A floating card above the tab bar (tabs.css keeps it on screen over the page), not a sheet sunk under it. */
+html .hx-dim:has(.hm-sheet) { align-items: flex-end; padding: 0 8px calc(max(14px, env(safe-area-inset-bottom)) + 84px); }
+html .hx-bottom.hl-sheet.hm-sheet { max-width: 420px; gap: 8px; padding: 10px 14px 12px; border-radius: 26px; box-shadow: 0 18px 40px rgba(9, 16, 29, .25); }
+html .hm-sheet .hm-row { gap: 10px; }
+html .hm-sheet .hm-row small { padding: 3px 8px; font-size: 12px; }
 html .hm-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 html .hm-close { display: grid; place-items: center; flex: none; width: 44px; height: 44px; margin-right: -8px; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
 html .hm-close .md-icon { width: 24px; height: 24px; fill: currentColor; }
-html .hm-list { display: grid; margin: 0; padding: 0; list-style: none; }
+html .hm-list { display: grid; grid-template-columns: minmax(0, 1fr); margin: 0; padding: 0; list-style: none; }
 html .hm-list li + li { border-top: 1px solid var(--sky-line); }
 html .hm-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 60px; padding: 8px 2px; border: 0; background: none; font: inherit; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer; touch-action: manipulation; }
 html .hm-icon { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 14px; background: var(--sky-soft); color: var(--sky); }
 html .hm-icon .md-icon { width: 24px; height: 24px; fill: currentColor; }
-html .hm-row b { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; }
+html .hm-text { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: 1; min-width: 0; }
+html .hm-row b { min-width: 0; font-size: 16px; font-weight: 700; }
+/* Narrow phones: the note goes under the title instead of squeezing it. */
+@media (max-width: 380px) { html .hm-text { flex-direction: column; align-items: flex-start; gap: 3px; } }
 html .hm-row small { flex: none; padding: 4px 10px; border-radius: 999px; background: var(--sky-soft); font-size: 12.5px; font-weight: 700; color: var(--sky-deep); white-space: nowrap; font-variant-numeric: tabular-nums; }
 html .hm-row i { flex: none; font-style: normal; font-size: 24px; line-height: 1; color: var(--muted); }
 html .hm-row:active { background: var(--sky-soft); }

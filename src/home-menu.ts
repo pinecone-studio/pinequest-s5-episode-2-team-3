@@ -13,7 +13,7 @@ const ICONS = { thirst: mdIcon('water_drop'), dialysis: mdIcon('calendar_month')
 
 function row(action: HomeAction, goal: number): string {
   const line = (title: string, note = '') =>
-    `<span class="hm-icon">${ICONS[action]}</span><b>${title}</b>${note ? `<small>${note}</small>` : ''}<i aria-hidden="true">›</i>`;
+    `<span class="hm-icon">${ICONS[action]}</span><span class="hm-text"><b>${title}</b>${note ? `<small>${note}</small>` : ''}</span><i aria-hidden="true">›</i>`;
   if (action === 'dialysis') {
     // The days live on «Эмчийн зөвлөмж»; in the app's tab host the hash goes along (tabs.ts).
     const d = readDialysis(), at = nextDialysis(d);
