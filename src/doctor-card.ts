@@ -15,8 +15,11 @@ let asking = false;
 let read: DoctorRead | null = null;
 let error = '';
 let done = '';
-// Folded to one row until tapped; it stays open while the AI is asked or its answer waits.
+// A one-row card with an «Оруулах» button; the form opens as a pop-up over the home, and stays
+// open while the AI is asked or its answer waits. `fresh` plays the opening only once, not on each
+// redraw while it is open.
 let open = false;
+let fresh = false;
 
 const kind = (mode: 'goal' | 'limit') => (mode === 'limit' ? 'хамгийн ихдээ' : 'дор хаяж');
 
@@ -40,21 +43,28 @@ export function doctorCard(): string {
   const times = readSettings().times;
   const shown = open || asking || !!read || !!error;
   const sub = done || (times ? `Хуваарь: ${times.map(t => t.at).join(', ')}` : 'Бичээд эсвэл зургаар AI-д өгөх');
-  return `<section class="hx-card doctor-card${shown ? '' : ' folded'}" aria-labelledby="doc-title">
-    <h2 id="doc-title"><button type="button" class="doc-toggle" id="doc-toggle" aria-expanded="${shown}" aria-controls="doc-body">
-      <span class="doc-icon">${mdIcon('stethoscope')}</span><span class="doc-head"><b>Эмчийн заавар</b><small>${escape(sub)}</small></span><i aria-hidden="true">›</i></button></h2>
-    <div class="doc-body" id="doc-body" ${shown ? '' : 'hidden'}>
-    <p class="doc-intro">Бичээд эсвэл зургийг нь оруулаад AI-д өгвөл хэмжээ, уух цагийг тань тохируулна.</p>
-    ${times ? `<p class="doc-now">Одоогийн хуваарь: ${times.map(t => `${t.at} · ${number(t.ml)} мл`).join(', ')}</p>` : ''}
-    <label class="visually-hidden" for="doc-text">Эмчийн заавар</label>
-    <textarea id="doc-text" rows="3" maxlength="2000" placeholder="Жишээ: Өдөрт 1.5 литрээс хэтрүүлэхгүй. Өглөө 8, өдөр 12, орой 18 цагт 300 мл.">${escape(text)}</textarea>
-    <div class="doc-row">
-      <label class="file-button doc-photo"><span aria-hidden="true">📷</span><span>${photo ? escape(photo.name) : 'Зураг'}</span><input type="file" id="doc-photo" accept="image/*"/></label>
-      ${photo ? '<button type="button" class="text-button" data-doc-unphoto>Зураг хасах</button>' : ''}
-      <button type="button" class="hx-blue doc-ask" data-doc-ask ${asking ? 'disabled' : ''}>${asking ? 'Уншиж байна…' : 'AI-д өгөх'}</button>
+  const still = !fresh;
+  fresh = false;
+  return `<section class="hx-card doctor-card" aria-labelledby="doc-title">
+    <div class="doc-top" data-doc-open>
+      <span class="doc-icon">${mdIcon('stethoscope')}</span><span class="doc-head"><b id="doc-title">Эмчийн заавар</b><small>${escape(sub)}</small></span>
+      <button type="button" class="hx-blue doc-cta" id="doc-toggle" aria-haspopup="dialog" aria-label="Эмчийн заавар оруулах">Оруулах</button>
     </div>
-    ${resultBlock()}
-    </div>
+    ${shown ? `<div class="hx-dim doc-dim${still ? ' still' : ''}" data-doc-dim>
+      <div class="hx-bottom doc-sheet" role="dialog" aria-modal="true" aria-labelledby="doc-sheet-title">
+      <span class="hl-grab" aria-hidden="true"></span>
+      <div class="hm-head"><h2 id="doc-sheet-title">Эмчийн заавар</h2><button type="button" class="hm-close" data-doc-close aria-label="Хаах">${mdIcon('close')}</button></div>
+      <p class="doc-intro">Бичээд эсвэл зургийг нь оруулаад AI-д өгвөл хэмжээ, уух цагийг тань тохируулна.</p>
+      ${times ? `<p class="doc-now">Одоогийн хуваарь: ${times.map(t => `${t.at} · ${number(t.ml)} мл`).join(', ')}</p>` : ''}
+      <label class="visually-hidden" for="doc-text">Эмчийн заавар</label>
+      <textarea id="doc-text" rows="3" maxlength="2000" placeholder="Жишээ: Өдөрт 1.5 литрээс хэтрүүлэхгүй. Өглөө 8, өдөр 12, орой 18 цагт 300 мл.">${escape(text)}</textarea>
+      <div class="doc-row">
+        <label class="file-button doc-photo"><span aria-hidden="true">📷</span><span>${photo ? escape(photo.name) : 'Зураг'}</span><input type="file" id="doc-photo" accept="image/*"/></label>
+        ${photo ? '<button type="button" class="text-button" data-doc-unphoto>Зураг хасах</button>' : ''}
+        <button type="button" class="hx-blue doc-ask" data-doc-ask ${asking ? 'disabled' : ''}>${asking ? 'Уншиж байна…' : 'AI-д өгөх'}</button>
+      </div>
+      ${resultBlock()}
+    </div></div>` : ''}
   </section>`;
 }
 
@@ -74,16 +84,20 @@ async function shrink(file: File): Promise<{ mediaType: string; data: string }> 
 export function bindDoctorCard(redraw: () => void, apply: (ml: number, mode: 'goal' | 'limit') => Promise<boolean>): void {
   const card = document.querySelector<HTMLElement>('.doctor-card');
   if (!card) return;
-  // Folding drops a pending answer or error; nothing is saved until «Батлах».
-  card.querySelector('#doc-toggle')!.addEventListener('click', () => {
-    if (asking) return;
-    const shown = card.querySelector('#doc-toggle')!.getAttribute('aria-expanded') === 'true';
-    open = !shown;
-    if (shown) { read = null; error = ''; }
-    done = '';
+  // The whole row opens the pop-up (an easy target); ×, a tap outside or Escape closes it and drops a
+  // pending answer or error, since nothing is saved until «Батлах».
+  const show = (yes: boolean) => {
+    open = yes; fresh = yes; done = '';
+    if (!yes) { read = null; error = ''; }
     redraw();
-    if (open) document.querySelector<HTMLElement>('#doc-text')?.focus({ preventScroll: true });
-  });
+    document.querySelector<HTMLElement>(yes ? '#doc-text' : '#doc-toggle')?.focus({ preventScroll: true });
+  };
+  card.querySelector('[data-doc-open]')!.addEventListener('click', () => show(true));
+  const dim = card.querySelector<HTMLElement>('[data-doc-dim]');
+  if (!dim) return;
+  card.querySelector('[data-doc-close]')!.addEventListener('click', () => show(false));
+  dim.addEventListener('click', e => { if (e.target === dim) show(false); });
+  dim.addEventListener('keydown', e => { if (e.key === 'Escape') show(false); });
   card.querySelector<HTMLTextAreaElement>('#doc-text')!.addEventListener('input', e => { text = (e.target as HTMLTextAreaElement).value; });
   card.querySelector<HTMLInputElement>('#doc-photo')!.addEventListener('change', async e => {
     const file = (e.target as HTMLInputElement).files?.[0];
