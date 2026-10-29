@@ -54,12 +54,6 @@ html .hm-row i { flex: none; font-style: normal; font-size: 24px; line-height: 1
 html .hm-row:active { background: var(--sky-soft); }
 html :is(.hm-row, .hm-close):focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 12px; }
 
-/* The base, connected: one row. */
-html .device-panel.compact { padding: 12px 16px; border: 0; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20, 40, 70, .06); }
-html .scale-row { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
-html .scale-row i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #2e9e5b; }
-html .scale-row span { flex: 1; }
-html .scale-row small { font-size: 13px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* Bottom sheets: 26px corners and a grab handle. */
 html .hx-bottom.hl-sheet { display: flex; flex-direction: column; gap: 14px; padding: 10px 16px max(24px, env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; text-align: left; }
@@ -213,7 +207,7 @@ html .dr-rule b { font-size: 15px; font-weight: 600; color: var(--ink); }
 html .dr-rule small { font-size: 12px; color: var(--muted); }
 
 /* Dark theme */
-html[data-theme="dark"] :is(.hl-tile, .device-panel.compact, .hl-outline, .hl-round, .hl-knob) { background: #1f222a; box-shadow: none; }
+html[data-theme="dark"] :is(.hl-tile, .hl-outline, .hl-round, .hl-knob) { background: #1f222a; box-shadow: none; }
 html[data-theme="dark"] :is(.hl-left-box, .hm-icon, .hm-row small, .hl-tip-icon, .dr-lock) { background: #1d2a3a; }
 html[data-theme="dark"] .hl-left-box { color: #9cc6fb; }
 html[data-theme="dark"] :is(.hl-over-card, .hl-tips li, .dr-time, .hm-list li + li, .hl-tile) { border-color: #35383f; }
@@ -230,3 +224,70 @@ html[data-theme="dark"] .ds-ai-head span { background: #1f222a; color: #fff; }
 html[data-theme="dark"] .ds-warn { background: #3a2a12; color: #f5d29a; }
 html[data-theme="dark"] .ds-warn.stop { background: #3a1f22; color: #ff8a8d; }
 html[data-theme="dark"] .dr-rule { border-color: #35383f; }
+/* «Аягаа хэмжүүлэх» over the home (base-chip.ts openBaseSheet): full screen, scrolling inside. */
+html .hx-dim:has(.base-sheet) { align-items: stretch; }
+html .hx-bottom.hl-sheet.base-sheet { position: relative; max-height: none; height: 100%; padding-top: max(10px, env(safe-area-inset-top)); border-radius: 0; overflow-y: auto; }
+/* On a computer, the same phone-sized frame as the pages and the drink sheet (theme.css). */
+@media (min-width: 561px) {
+  html .hx-dim:has(.base-sheet) { align-items: flex-start; }
+  html .hx-bottom.hl-sheet.base-sheet { margin-top: 20px; height: min(932px, calc(100dvh - 40px)); border-radius: 30px; }
+}
+
+
+/* «Аягаа хэмжүүлэх» (cup-calibrate.ts): numbered steps that turn into checks, the live reading, the cups. */
+html .cc-steps ol { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+html .cc-step { display: flex; align-items: flex-start; gap: 14px; }
+html .cc-num { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; background: #f1f3f6; font-size: 14px; font-weight: 800; color: #8a8a8a; }
+html .cc-num svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+html .cc-step.done .cc-num { background: #2e9e5b; } html .cc-step.now .cc-num { background: var(--sky); color: #fff; }
+html .cc-text { display: grid; gap: 2px; flex: 1; min-width: 0; padding-top: 4px; }
+html .cc-text b { font-size: 15.5px; color: var(--ink); } html .cc-step.later b { color: #8a8a8a; }
+html .cc-text small { font-size: 13px; color: var(--muted); }
+html .hx-blue.cc-act { justify-self: start; min-height: 44px; margin-top: 8px; padding: 0 18px; font-size: 14px; }
+html .hx-blue.cc-act:disabled { opacity: .45; }
+html .cc-name, html .cc-manual { display: flex; gap: 8px; margin-top: 8px; }
+html :is(.cc-name, .cc-manual) input { flex: 1; min-width: 0; min-height: 44px; padding: 0 14px; border: 1.5px solid var(--sky-line); border-radius: 999px; background: #fff; font: inherit; font-size: 15px; color: var(--ink); }
+html :is(.cc-name, .cc-manual) .hx-blue { min-height: 44px; padding: 0 16px; font-size: 14px; }
+html .hl-text.cc-again { justify-self: start; min-height: 44px; padding: 0; font-size: 14px; }
+html .cc-live { display: grid; justify-items: center; gap: 4px; background: var(--sky-soft); box-shadow: none; text-align: center; }
+html .cc-live > small { font-size: 13px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--sky-deep); }
+html .cc-live [data-live] { font-size: 48px; font-weight: 800; line-height: 1.1; color: var(--sky-deep); font-variant-numeric: tabular-nums; }
+html .cc-live [data-live-hint] { font-size: 13px; color: var(--sky-deep); }
+html .cc-live.off { justify-items: stretch; text-align: left; }
+html .cc-live.off > b { font-size: 16px; color: var(--ink); } html .cc-live.off > small { text-transform: none; font-weight: 500; color: var(--muted); }
+html .cc-manual input[type="number"] { flex: 0 1 90px; } html .cc-manual > span { align-self: center; font-size: 14px; color: var(--muted); }
+html .cc-link { justify-self: start; min-height: 44px; margin: 6px 0 4px; padding: 0 20px; font-size: 14px; }
+html .cc-live ~ .device-panel, html .cc-list ~ .device-panel { width: 100%; margin: 0; }
+html .cc-list ~ .device-panel .bottle-add button { flex: none; white-space: nowrap; }
+html .cc-list { padding-bottom: 8px; }
+html .cc-list h2 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: var(--ink); }
+html .cc-list ul { margin: 0; padding: 0; list-style: none; }
+html .cc-cup { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0; border: 0; border-top: 1px solid var(--hair); background: none; font: inherit; text-align: left; color: var(--ink); cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html .cc-cup svg { flex: none; width: 32px; height: 32px; }
+html .cc-cup span { flex: 1; font-size: 15px; font-weight: 600; }
+html .cc-cup b { font-size: 15px; font-variant-numeric: tabular-nums; }
+html .cc-cup[aria-pressed="true"] span { color: var(--sky-deep); }
+html .cc-cup:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+html .cc-tip, html .cc-empty { display: block; margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+html .cc-foot { margin: 0; font-size: 12.5px; text-align: center; color: var(--muted); }
+html[data-theme="dark"] :is(.cc-live, .wk-days div) { background: #1a2442; }
+html[data-theme="dark"] :is(.cc-name, .cc-manual) input { background: #1f222a; border-color: #35383f; color: #fff; }
+html[data-theme="dark"] :is(.cc-cup, .dr-switch) { border-color: #35383f; }
+html[data-theme="dark"] .cc-num { background: #2a2d36; }
+html .cc-done { margin: 16px 0 0; padding: 10px 14px; border-radius: 12px; background: #e8f6ee; font-size: 14px; font-weight: 700; color: #1f7a45; }
+html .cc-steps > .cc-again { display: block; margin: 8px auto 0; }
+@keyframes cc-pop { from { transform: scale(.3); opacity: 0; } }
+html .cc-step.done .cc-num svg { animation: cc-pop .35s cubic-bezier(.3, 1.6, .5, 1); }
+@media (prefers-reduced-motion: reduce) { html .cc-step.done .cc-num svg { animation: none; } }
+html[data-theme="dark"] .cc-done { background: #16301f; color: #7ee2a4; }
+/* «Суурийн тохиргоо»: the base panel folded under the cups. */
+html .cc-base { border-top: 1px solid var(--hair); }
+html .cc-base > summary { display: flex; align-items: center; justify-content: space-between; min-height: 48px; cursor: pointer; list-style: none; font-size: 15px; font-weight: 700; color: var(--sky-deep); }
+html .cc-base > summary::-webkit-details-marker { display: none; }
+html .cc-base > summary::after { content: ""; width: 9px; height: 9px; margin-right: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .2s; }
+html .cc-base[open] > summary::after { transform: rotate(-135deg); }
+html .cc-base > summary:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 8px; }
+html .cc-base .device-panel { margin: 0 0 8px; padding: 0; border: 0; background: none; box-shadow: none; }
+html .base-sheet .bs-body { display: grid; gap: 12px; }
+html .base-sheet .hl-grab { display: none; }
+html .hl-text.cc-all { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; font-size: 14px; text-decoration: none; }

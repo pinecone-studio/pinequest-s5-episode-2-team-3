@@ -3,7 +3,8 @@ import { BasePanel, DevicePanel, bindDevicePanel } from './components/DevicePane
 import { WatchPanel, bindWatchPanel } from './components/WatchPanel';
 import { ProfilePanel, bindProfilePanel } from './components/ProfilePanel';
 import { hxHeader } from './hydrify';
-import { bindWatchCard, watchCard } from './watch-card';
+import { bindWatchCard, watchCard, watchLinked } from './watch-card';
+import { baseChipHtml, bindBaseChip } from './base-chip';
 import { accountViews } from './account';
 import { confirmSheet } from './hx-edit';
 import './style.css';
@@ -151,7 +152,7 @@ function render(): void {
         <div class="hydro hx-page">
           ${view ? `<div class="hx-header"><a class="hx-back" href="#${view.back}" aria-label="Буцах">‹</a><h1>${view.title}</h1>${view.right ?? '<span></span>'}</div>` : hxHeader('Профайл')}
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-          ${view ? view.body() : menu() + watchCard()}
+          ${view ? view.body() : menu() + devicesGroup()}
           ${view?.foot ? `<div class="ac-foot">${view.foot}</div>` : ''}
         </div>
       </div>
@@ -164,8 +165,13 @@ function render(): void {
   bindWatchPanel();
   bindProfilePanel();
   bindWatchCard();
+  bindBaseChip();
 }
 window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
+
+// Under the menu: «Ухаалаг цаг» and «Ухаалаг суурь» as one card of rows, the same as on the home; a linked
+// watch shows its day's card on its own.
+const devicesGroup = () => `<div class="hx-card home-rows">${watchLinked() ? '' : watchCard()}${baseChipHtml()}</div>${watchLinked() ? watchCard() : ''}`;
 
 async function reload(): Promise<void> {
   ({ state, error: storageError, corrupt } = await load());

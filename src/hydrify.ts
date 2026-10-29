@@ -52,7 +52,7 @@ export const CUP_ICONS = [
 ];
 export interface Cup { ml: number; icon: number; main?: boolean; name?: string }
 const CUPS_KEY = 'dusal-cups-v1';
-const defaultIcon = (ml: number) => (ml <= 125 ? 0 : ml <= 150 ? 2 : ml <= 200 ? 1 : ml <= 250 ? 4 : ml <= 350 ? 5 : ml <= 400 ? 7 : ml <= 500 ? 8 : 9);
+export const defaultIcon = (ml: number) => (ml <= 125 ? 0 : ml <= 150 ? 2 : ml <= 200 ? 1 : ml <= 250 ? 4 : ml <= 350 ? 5 : ml <= 400 ? 7 : ml <= 500 ? 8 : 9);
 export function readCups(): Cup[] {
   try {
     const list = JSON.parse(localStorage.getItem(CUPS_KEY) ?? 'null');
@@ -68,11 +68,12 @@ export const mainCup = (): number => readCups().find(c => c.main)?.ml ?? 250;
 export const iconFor = (ml: number): string => CUP_ICONS[readCups().find(c => c.ml === ml)?.icon ?? defaultIcon(ml)];
 export { writeCup };
 
+// Logo, title, and an empty right cell that keeps the title centred; «Профайл» in the tab bar holds the settings.
 export function hxHeader(title: string): string {
   return `<div class="hx-header">
     <span class="hx-logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5C8 8 5 11.6 5 15.5a7 7 0 0 0 14 0c0-3.9-3-7.5-7-13z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.2 15.5a3.8 3.8 0 0 0 7.6 0c0-1-.4-1.8-1-2.6-1.2.9-3.4 1.4-6.6 2.6z" fill="currentColor"/></svg></span>
     <h1>${escape(title)}</h1>
-    <a class="hx-more" href="/settings.html" aria-label="Тохиргоо"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></a>
+    <span aria-hidden="true"></span>
   </div>`;
 }
 
