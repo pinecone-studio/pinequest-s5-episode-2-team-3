@@ -1267,9 +1267,21 @@ html .hydro .device-panel .scale-actions button { min-height: 40px; padding: 0 1
 html[data-theme="dark"] .hydro .device-panel { background: #1f222a; }
 
 /* Home: the doctor's instructions, read by the AI (doctor-card.ts) */
-html .doctor-card h2 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 17px; }
-html .doctor-card h2 .md-icon { width: 22px; height: 22px; fill: var(--sky); }
-html .doctor-card h2 small { font-size: 13px; font-weight: 500; color: var(--muted); }
+/* Folded to one row; the toggle opens the form below it. */
+html .doctor-card.folded { padding-top: 10px; padding-bottom: 10px; }
+html .doctor-card h2 { margin: 0; font-size: inherit; }
+html .doc-toggle { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 0; border: 0; background: none; font: inherit; color: var(--ink); text-align: left; cursor: pointer; touch-action: manipulation; }
+html .doc-icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--sky-soft); }
+html .doc-icon .md-icon { width: 22px; height: 22px; fill: var(--sky); }
+html .doc-head { display: grid; gap: 1px; flex: 1; min-width: 0; }
+html .doc-head b { font-size: 16px; font-weight: 700; }
+html .doc-head small { overflow: hidden; font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; text-overflow: ellipsis; }
+html .doc-toggle i { flex: none; font-style: normal; font-size: 24px; line-height: 1; color: var(--muted); transition: transform .2s; }
+html .doc-toggle[aria-expanded="true"] i { transform: rotate(90deg); }
+html .doc-toggle:focus-visible { outline: 2px solid var(--sky); outline-offset: 4px; border-radius: 12px; }
+html .doc-body { margin-top: 10px; }
+html .doc-body[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { html .doc-toggle i { transition: none; } }
 html .doctor-card .doc-intro, html .doctor-card .doc-now { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
 html .doctor-card .doc-now { color: var(--ink-2); font-weight: 600; }
 html .doctor-card textarea { width: 100%; box-sizing: border-box; min-height: 76px; padding: 10px 12px; border: 1px solid #e3e7ee; border-radius: 12px; background: #f8fafc; font: inherit; font-size: 15px; resize: vertical; }
@@ -1290,7 +1302,7 @@ html .doctor-card .doc-done { margin: 10px 0 0; color: #1f9e6a; font-weight: 600
 html[data-theme="dark"] .doctor-card { --ink-2: #fff; }
 html[data-theme="dark"] .doctor-card :is(textarea, .doc-photo) { border-color: #35383f; background: #2a2d36; color: #fff; }
 html[data-theme="dark"] .doctor-card textarea::placeholder { color: #8a8f99; }
-html[data-theme="dark"] .doctor-card .doc-read { background: #1d2a3a; }
+html[data-theme="dark"] .doctor-card :is(.doc-read, .doc-icon) { background: #1d2a3a; }
 html[data-theme="dark"] .doctor-card .doc-times li { background: #2a2d36; }
 html[data-theme="dark"] .doctor-card .doc-warning { background: #3a2f1d; color: #ffcf8a; }
 html[data-theme="dark"] .doctor-card .doc-error { background: #3a1f22; color: #ff9b9b; }

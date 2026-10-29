@@ -15,6 +15,8 @@ let asking = false;
 let read: DoctorRead | null = null;
 let error = '';
 let done = '';
+// Folded to one row until tapped; it stays open while the AI is asked or its answer waits.
+let open = false;
 
 const kind = (mode: 'goal' | 'limit') => (mode === 'limit' ? 'хамгийн ихдээ' : 'дор хаяж');
 
@@ -36,8 +38,12 @@ function resultBlock(): string {
 // A card on the home, under the gauge, for everyone (overview.ts).
 export function doctorCard(): string {
   const times = readSettings().times;
-  return `<section class="hx-card doctor-card" aria-labelledby="doc-title">
-    <h2 id="doc-title">${mdIcon('stethoscope')} Эмчийн заавар <small>байвал</small></h2>
+  const shown = open || asking || !!read || !!error;
+  const sub = done || (times ? `Хуваарь: ${times.map(t => t.at).join(', ')}` : 'Бичээд эсвэл зургаар AI-д өгөх');
+  return `<section class="hx-card doctor-card${shown ? '' : ' folded'}" aria-labelledby="doc-title">
+    <h2 id="doc-title"><button type="button" class="doc-toggle" id="doc-toggle" aria-expanded="${shown}" aria-controls="doc-body">
+      <span class="doc-icon">${mdIcon('stethoscope')}</span><span class="doc-head"><b>Эмчийн заавар</b><small>${escape(sub)}</small></span><i aria-hidden="true">›</i></button></h2>
+    <div class="doc-body" id="doc-body" ${shown ? '' : 'hidden'}>
     <p class="doc-intro">Бичээд эсвэл зургийг нь оруулаад AI-д өгвөл хэмжээ, уух цагийг тань тохируулна.</p>
     ${times ? `<p class="doc-now">Одоогийн хуваарь: ${times.map(t => `${t.at} · ${number(t.ml)} мл`).join(', ')}</p>` : ''}
     <label class="visually-hidden" for="doc-text">Эмчийн заавар</label>
@@ -48,6 +54,7 @@ export function doctorCard(): string {
       <button type="button" class="hx-blue doc-ask" data-doc-ask ${asking ? 'disabled' : ''}>${asking ? 'Уншиж байна…' : 'AI-д өгөх'}</button>
     </div>
     ${resultBlock()}
+    </div>
   </section>`;
 }
 
@@ -67,6 +74,16 @@ async function shrink(file: File): Promise<{ mediaType: string; data: string }> 
 export function bindDoctorCard(redraw: () => void, apply: (ml: number, mode: 'goal' | 'limit') => Promise<boolean>): void {
   const card = document.querySelector<HTMLElement>('.doctor-card');
   if (!card) return;
+  // Folding drops a pending answer or error; nothing is saved until «Батлах».
+  card.querySelector('#doc-toggle')!.addEventListener('click', () => {
+    if (asking) return;
+    const shown = card.querySelector('#doc-toggle')!.getAttribute('aria-expanded') === 'true';
+    open = !shown;
+    if (shown) { read = null; error = ''; }
+    done = '';
+    redraw();
+    if (open) document.querySelector<HTMLElement>('#doc-text')?.focus({ preventScroll: true });
+  });
   card.querySelector<HTMLTextAreaElement>('#doc-text')!.addEventListener('input', e => { text = (e.target as HTMLTextAreaElement).value; });
   card.querySelector<HTMLInputElement>('#doc-photo')!.addEventListener('change', async e => {
     const file = (e.target as HTMLInputElement).files?.[0];
@@ -95,7 +112,7 @@ export function bindDoctorCard(redraw: () => void, apply: (ml: number, mode: 'go
     if (!(await apply(r.ml, r.mode))) { error = 'Хадгалж чадсангүй. Дахин оролдоно уу.'; redraw(); return; }
     const on = nativeReminders ? await askPermission().catch(() => false) : readSettings().on;
     writeSettings({ ...readSettings(), times: r.times.length ? r.times : undefined, on });
-    read = null; text = ''; photo = null;
+    read = null; text = ''; photo = null; open = false;
     done = `Өдөрт ${kind(r.mode)} ${number(r.ml)} мл боллоо.${on ? ' Сануулга тавигдлаа.' : ' Сануулгыг Профайл → Уух сануулга дотроос асаана уу.'}`;
     redraw();
   });
