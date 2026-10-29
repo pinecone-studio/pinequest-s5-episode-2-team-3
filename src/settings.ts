@@ -3,8 +3,8 @@ import { BasePanel, DevicePanel, bindDevicePanel } from './components/DevicePane
 import { WatchPanel, bindWatchPanel } from './components/WatchPanel';
 import { ProfilePanel, bindProfilePanel } from './components/ProfilePanel';
 import { hxHeader } from './hydrify';
-import { bindWatchCard, watchCard, watchLinked } from './watch-card';
-import { baseChipHtml, bindBaseChip } from './base-chip';
+import { watchCard } from './watch-card';
+import { bindDeviceTiles, deviceTiles } from './device-tiles';
 import { accountViews } from './account';
 import { confirmSheet } from './hx-edit';
 import './style.css';
@@ -189,14 +189,12 @@ function render(): void {
   bindDevicePanel(render);
   bindWatchPanel();
   bindProfilePanel();
-  bindWatchCard();
-  bindBaseChip();
+  bindDeviceTiles();
 }
 window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
 
-// Under the menu: «Ухаалаг цаг» and «Ухаалаг суурь» as one card of rows, the same as on the home; a linked
-// watch shows its day's card on its own.
-const devicesGroup = () => `<div class="hx-card home-rows">${watchLinked() ? '' : watchCard()}${baseChipHtml()}</div>${watchLinked() ? watchCard() : ''}`;
+// Under the menu: the «Төхөөрөмж» tiles, the same as on the home, and a linked watch's day card.
+const devicesGroup = () => `${deviceTiles()}${watchCard()}`;
 
 async function reload(): Promise<void> {
   ({ state, error: storageError, corrupt } = await load());
