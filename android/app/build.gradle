@@ -36,6 +36,10 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    // The family check every 15 minutes while the app is closed (FamilyAlertWorker).
+    implementation "androidx.work:work-runtime:2.9.1"
+    // Worker's ListenableFuture: work-runtime pulls only an empty stand-in for it, so Guava brings the real one.
+    implementation "com.google.guava:guava:33.3.1-android"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

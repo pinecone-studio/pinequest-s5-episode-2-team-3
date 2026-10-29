@@ -1,6 +1,6 @@
 import { readJson, BodyError } from './body.js';
 import { ingestDeviceEvent, ingestReading, listDevices } from './devices.js';
-import { deleteMember, getLeaderboard, putMember } from './family.js';
+import { deleteMember, getAlerts, getLeaderboard, putMember } from './family.js';
 import { EVENT_COLUMNS, insertEvent, toEvent } from './events.js';
 import { readSnapshot, applySnapshot } from './sync.js';
 import { PlanError, suggestPlan } from './plan.js';
@@ -72,6 +72,8 @@ async function route(request, env) {
   // Family leaderboard: everyone using one base (see shared/family.ts).
   const boardPath = pathname.match(/^\/api\/bases\/([^/]+)\/leaderboard$/);
   if (boardPath && method === 'GET') return json(await getLeaderboard(db, boardPath[1], searchParams));
+  const alertsPath = pathname.match(/^\/api\/bases\/([^/]+)\/alerts$/);
+  if (alertsPath && method === 'GET') return json(await getAlerts(db, alertsPath[1], searchParams));
   const memberPath = pathname.match(/^\/api\/bases\/([^/]+)\/members\/([^/]+)$/);
   if (memberPath && method === 'PUT') return json(await putMember(request, db, memberPath[1], memberPath[2]));
   if (memberPath && method === 'DELETE') {
