@@ -47,20 +47,26 @@ describe('quick tiles', () => {
   };
   test('water past the limit goes to the warning first', () => {
     const { ctx, added, warned, warn } = setup(1400, true);
-    quickDrink(ctx, 'water', false, warn);
+    quickDrink(ctx, 'water', warn);
     expect(added).toEqual([]);
     expect(warned).toEqual([250]);
   });
   test('the 50 мл pill sip is added straight away, even past the limit', () => {
     const { ctx, added, warned, warn } = setup(1480, true);
-    quickDrink(ctx, 'pill', false, warn);
+    quickDrink(ctx, 'pill', warn);
     expect(added).toEqual([[50, undefined, false]]);
     expect(warned).toEqual([]);
   });
-  test('milk tea keeps its salt choice; without a limit it adds directly', () => {
+  test('a dissolved medicine is 100 мл of water; without a limit it adds directly', () => {
     const { ctx, added, warned, warn } = setup(1400, false);
-    quickDrink(ctx, 'milkTea', true, warn);
-    expect(added).toEqual([[250, 'milkTea', true]]);
+    quickDrink(ctx, 'medMix', warn);
+    expect(added).toEqual([[100, 'medMix', false]]);
     expect(warned).toEqual([]);
+  });
+  test('a dissolved medicine past the limit goes to the warning first', () => {
+    const { ctx, added, warned, warn } = setup(1450, true);
+    quickDrink(ctx, 'medMix', warn);
+    expect(added).toEqual([]);
+    expect(warned).toEqual([100]);
   });
 });
