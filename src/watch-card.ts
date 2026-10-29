@@ -2,7 +2,6 @@ import { escape, number, time } from './format';
 import { health, type HealthDay } from './health';
 import { API_URL } from './api';
 import { readProfile } from './plan';
-import { openWatchConnect } from './watch-connect';
 
 // Home card with the watch's day (heart rate, steps, active calories through Health Connect) and
 // one AI tip built from those numbers and today's water. Without a linked watch the home shows a
@@ -79,25 +78,13 @@ const icon = (d: string) => `<span class="hb-icon" aria-hidden="true"><svg viewB
 
 let last: Ctx = { drink: 0, goal: 2000, mode: 'goal', feels: null };
 
-// Not linked yet the card is one row (it sits in the home's group of rows); linked, it is the day's card.
-export const watchLinked = (): boolean => today() !== null;
+// The linked watch's day for the «Ухаалаг цаг» tile (device-tiles.ts).
+export const watchDay = (): HealthDay | null => today();
 
+// The day's card, only for a linked watch; linking it is the «Ухаалаг цаг» tile's job.
 export function watchCard(): string {
   const day = today();
-  if (!day) {
-    // One short line under the title, like the doctor and base rows.
-    const text = health.phase === 'unsupported' ? 'Android апп-д холбогдоно'
-      : health.phase === 'missing' ? 'Health Connect хэрэгтэй'
-      : health.phase === 'denied' ? 'Зөвшөөрөл өгөөгүй байна'
-      : health.message || 'Алхам, зүрхний цохилт';
-    // One row in the style of «Эмчийн заавар»; the whole row opens «Цаг холбох».
-    return `<section class="hx-card row-card watch-row" aria-labelledby="hx-watch-title">
-      <div class="rc-top" data-watch-connect>
-        <span class="rc-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 9v3l2 1"/></svg></span>
-        <span class="rc-head"><b id="hx-watch-title">Ухаалаг цаг</b><small>${text}</small></span>
-        <button type="button" class="rc-cta" aria-haspopup="dialog" aria-label="Ухаалаг цаг холбох"><span>Холбох</span></button>
-      </div></section>`;
-  }
+  if (!day) return '';
   const head = `<div class="hb-head"><h2 id="hx-watch-title">Өнөөдрийн дадал</h2><span class="hx-badge on">⌚ Холбогдсон</span></div>`;
   const weight = (() => { try { return readProfile().weight; } catch { return null; } })();
   const score = wellness(day, last);
@@ -119,6 +106,3 @@ export function watchCard(): string {
   </section>`;
 }
 
-export function bindWatchCard(): void {
-  document.querySelector('[data-watch-connect]')?.addEventListener('click', openWatchConnect);
-}

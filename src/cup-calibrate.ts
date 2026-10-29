@@ -5,7 +5,7 @@ import { confirmSheet } from './hx-edit';
 import { notify } from './components/Toast';
 import { BasePanel } from './components/DevicePanel';
 
-// «Аягаа хэмжүүлэх», the window the home's base chip opens (base-chip.ts): the cups the person drinks from,
+// «Аягаа хэмжүүлэх», the window the «Ухаалаг суурь» tile opens (device-tiles.ts): the cups the person drinks from,
 // measured on the base.
 // 1) the empty cup goes on and its weight is taken as zero (here in the app: the base's own bottle is
 // left alone), 2) filled as usual, the water is read once it holds still (under 5 g for 2 s; 1 g = 1 ml,

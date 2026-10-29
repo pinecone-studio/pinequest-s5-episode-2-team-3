@@ -13,14 +13,14 @@ import { openHomeMenu } from './home-menu';
 import { Toast } from './components/Toast';
 import type { Kind } from './drinks';
 import { setKind, setSalty } from './drinks';
-import { bindWatchCard, loadInsight, watchCard, watchLinked } from './watch-card';
+import { loadInsight, watchCard } from './watch-card';
 import { health } from './health';
 import { startSync } from './sync';
 import { startDevices } from './devices';
 import { bindWeatherChip, loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
 import { pushWidget } from './widget';
 import { scale } from './scale';
-import { baseChipHtml, bindBaseChip } from './base-chip';
+import { bindDeviceTiles, deviceTiles } from './device-tiles';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
 import { readMember, saveMember } from './member';
@@ -484,8 +484,9 @@ function render() {
         ${hxHeader('Нүүр')}
         ${limit ? '' : weatherChip(state.mode)}
         ${limit ? limitGauge(drink, goal, cup) : hxGauge(drink, goal, state.mode, readCup(), drinking)}${undoLine}
-        <div class="hx-card home-rows">${readProfile().condition === 'none' ? '' : doctorCard()}${baseChipHtml()}${watchLinked() ? '' : watchCard()}</div>
-        ${watchLinked() ? watchCard() : ''}
+        ${readProfile().condition === 'none' ? '' : doctorCard()}
+        ${deviceTiles()}
+        ${watchCard()}
         ${familySection()}
         ${limit && !demo ? '' : `<div class="demo-line"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button></div>`}
       </div>
@@ -508,7 +509,6 @@ function render() {
     addOnce: (ml, kind, salty) => void addDrink(ml, kind, salty),
   }, { kind: readCupKind() }));
   bindStreakCalendar(state.events, state.goal, state.mode);
-  bindWatchCard();
   // The doctor card on the home redraws keeping the field in focus and the page where it was.
   bindDoctorCard(renderKeepingFocus, async (ml, mode) => {
     const result = await save({ ...state, goal: ml, mode });
@@ -519,7 +519,7 @@ function render() {
   });
   bindWeatherChip();
   scale.shareToday(drink, false, { goal, mode: state.mode });  // the base's screen shows the same total
-  bindBaseChip();  // the chip opens the base's own window (base-chip.ts)
+  bindDeviceTiles();  // «Төхөөрөмж»: the base and watch tiles (device-tiles.ts)
   bindSchedule(() => state, render);
   // The tab bar's middle button ("/#reminders") opens today's schedule here.
   if (location.hash === '#reminders') { history.replaceState(null, '', '/'); openSchedule(() => state, render); }

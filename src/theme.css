@@ -1270,19 +1270,19 @@ html .hydro .device-panel .scale-actions button { min-height: 40px; padding: 0 1
 html[data-theme="dark"] .hydro .device-panel { background: #1f222a; }
 
 /* Home: the doctor's instructions, read by the AI (doctor-card.ts) */
-/* One row with a pill on the right: «Эмчийн заавар» (doctor-card.ts), «Ухаалаг цаг» (watch-card.ts), «Ухаалаг суурь» (base-chip.ts). */
-html :is(.doctor-card, .row-card) { padding: 4px 6px 4px 16px; }
-html :is(.doc-top, .rc-top) { display: flex; align-items: center; gap: 10px; min-height: 48px; cursor: pointer; }
-html :is(.doc-icon, .rc-icon) { display: grid; place-items: center; flex: none; }
+/* One row with «Оруулах»; the form is a pop-up (doctor-card.ts). */
+html .doctor-card { padding: 4px 6px 4px 16px; }
+html .doc-top { display: flex; align-items: center; gap: 10px; min-height: 48px; cursor: pointer; }
+html .doc-icon { display: grid; place-items: center; flex: none; }
 html .doc-icon .md-icon { width: 22px; height: 22px; fill: var(--sky); }
-html :is(.doc-head, .rc-head) { display: grid; gap: 1px; flex: 1; min-width: 0; }
-html :is(.doc-head, .rc-head) b { font-size: 15px; font-weight: 600; line-height: 1.2; color: var(--ink); }
-html :is(.doc-head, .rc-head) small { font-size: 12.5px; font-weight: 500; line-height: 1.3; color: #1f9e6a; }
+html .doc-head { display: grid; gap: 1px; flex: 1; min-width: 0; }
+html .doc-head b { font-size: 15px; font-weight: 600; line-height: 1.2; color: var(--ink); }
+html .doc-head small { font-size: 12.5px; font-weight: 500; line-height: 1.3; color: #1f9e6a; }
 /* 44px to tap, a quieter pill to see. */
-html :is(.doc-cta, .rc-cta) { display: grid; place-items: center; flex: none; min-width: 44px; min-height: 44px; padding: 0 6px; border: 0; background: none; font: inherit; cursor: pointer; touch-action: manipulation; }
-html :is(.doc-cta, .rc-cta) span { padding: 7px 14px; border-radius: 999px; background: var(--sky-soft); font-size: 14px; font-weight: 700; color: var(--sky-deep); }
-html :is(.doc-cta, .rc-cta):focus-visible { outline: none; }
-html :is(.doc-cta, .rc-cta):focus-visible span { outline: 2px solid var(--sky); outline-offset: 2px; }
+html .doc-cta { display: grid; place-items: center; flex: none; min-width: 44px; min-height: 44px; padding: 0 6px; border: 0; background: none; font: inherit; cursor: pointer; touch-action: manipulation; }
+html .doc-cta span { padding: 7px 14px; border-radius: 999px; background: var(--sky-soft); font-size: 14px; font-weight: 700; color: var(--sky-deep); }
+html .doc-cta:focus-visible { outline: none; }
+html .doc-cta:focus-visible span { outline: 2px solid var(--sky); outline-offset: 2px; }
 html .hx-dim.doc-dim { cursor: default; }
 /* Floats above the app's tab bar like the «⋯» menu, so «AI-д өгөх» is never under it. */
 html .hx-dim:has(.doc-sheet) { padding: 0 8px calc(max(14px, env(safe-area-inset-bottom)) + 84px); }
@@ -1312,7 +1312,7 @@ html[data-theme="dark"] .doctor-card { --ink-2: #fff; }
 html[data-theme="dark"] .doctor-card :is(textarea, .doc-photo) { border-color: #35383f; background: #2a2d36; color: #fff; }
 html[data-theme="dark"] .doctor-card textarea::placeholder { color: #8a8f99; }
 html[data-theme="dark"] .doctor-card :is(.doc-read, .doc-cta span) { background: #1d2a3a; }
-html[data-theme="dark"] :is(.doc-head, .rc-head) b { color: #fff; }
+html[data-theme="dark"] .doc-head b { color: #fff; }
 html[data-theme="dark"] .doc-cta span { color: #9cc6fb; }
 html[data-theme="dark"] .doc-head small { color: #6fd39a; }
 html[data-theme="dark"] .doctor-card .doc-times li { background: #2a2d36; }
@@ -1403,18 +1403,6 @@ html[data-theme="dark"] .ob-chip { border-color: #35383f; background: #1f222a; c
 html[data-theme="dark"] .ob-chip.on { border-color: #4aa8ff; background: #4aa8ff; color: #fff; }
 @media (prefers-reduced-motion: reduce) { html .ob-acc-arrow { transition: none; } }
 
-/* The stroke icons of the watch and base rows, at the doctor row's size; the base row's state as a dot. */
-html .rc-icon svg { width: 22px; height: 22px; fill: none; stroke: var(--sky); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-html .row-card .rc-head small { color: var(--muted); }
-html .base-row .rc-head small { display: flex; align-items: center; gap: 6px; min-width: 0; }
-html .base-row .rc-head small span, html .watch-row .rc-head small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-html .base-row .rc-head small i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #9e9e9e; }
-html .base-row.ok .rc-head small { color: #1f9e6a; } html .base-row.ok .rc-head small i { background: #22c55e; }
-html .base-row.warn .rc-head small { color: #b45309; } html .base-row.warn .rc-head small i { background: #f59e0b; }
-html .base-row.wait .rc-head small i { background: var(--sky); animation: base-blink 1.2s ease-in-out infinite alternate; }
-@keyframes base-blink { to { opacity: .3; } }
-@media (prefers-reduced-motion: reduce) { html .base-row.wait .rc-head small i { animation: none; } }
-html[data-theme="dark"] .rc-cta span { background: #1d2a3a; }
 
 /* The demo reset right under the rows (overview.ts): just its dashed pill, centred. */
 html .demo-line { display: grid; justify-items: center; }
@@ -1422,16 +1410,26 @@ html .demo-reset { min-height: 34px; padding: 0 14px; border: 1px dashed #e0e0e0
 html .demo-reset:hover:not(:disabled) { border-style: solid; color: var(--ink); background: rgba(255, 255, 255, .7); }
 html .demo-reset:disabled { opacity: .45; cursor: default; }
 
-/* «Эмчийн заавар», «Ухаалаг суурь», «Ухаалаг цаг»: one white card like the gauge, holding the three rows as
-   their own soft cards with a small gap between. */
-html .hx-card.home-rows { display: grid; gap: 10px; padding: 12px; border-radius: 20px; }
-html .home-rows > .hx-card { width: auto; margin: 0; padding: 6px 8px 6px 16px; border-radius: 16px; background: #f6f8fb; box-shadow: none; }
-html .home-rows :is(.rc-top, .doc-top) { min-height: 60px; gap: 12px; }
-html .home-rows :is(.rc-head, .doc-head) b { font-size: 16px; }
-html .home-rows :is(.rc-icon, .doc-icon) :is(svg, .md-icon) { width: 24px; height: 24px; }
-html .home-rows :is(.rc-cta, .doc-cta) span { background: #fff; box-shadow: 0 1px 2px rgba(20, 40, 70, .06); }
-html[data-theme="dark"] .home-rows > .hx-card { background: #2a2d36; }
-html[data-theme="dark"] :is(.home-rows .rc-cta, .home-rows .doc-cta) span { background: #1d2a3a; }
+/* «Төхөөрөмж» (device-tiles.ts): a muted heading, then «Ухаалаг суурь» and «Ухаалаг цаг» as two square tiles. */
+html .dev-section { display: grid; gap: 10px; width: 100%; }
+html .dev-head { margin: 0; padding: 0 4px; font-size: 15px; font-weight: 800; color: var(--muted); }
+html .dev-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+html .dev-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; min-height: 156px; padding: 14px; border: 1.5px solid transparent; border-radius: 18px; background: #fff; box-shadow: 0 1px 3px rgba(20, 40, 70, .06); font: inherit; text-align: left; color: var(--ink); text-decoration: none; cursor: pointer; touch-action: manipulation; }
+html .dev-tile.on { border-color: var(--sky-line); }
+html .dev-tile:active { transform: scale(.98); }
+html .dev-tile:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+html .dev-icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 4px; border-radius: 14px; background: var(--sky-soft); }
+html .dev-icon svg { width: 30px; height: 30px; fill: none; stroke: var(--sky); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+html .dev-name { font-size: 16px; font-weight: 800; line-height: 1.2; }
+html .dev-status { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #9e9e9e; }
+html .dev-status i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #c9c9c9; }
+html .dev-tile.on .dev-status { font-weight: 800; color: #2e9e5b; }
+html .dev-tile.on .dev-status i { background: #2e9e5b; }
+html .dev-detail { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+html .dev-cta { margin-top: auto; font-size: 14px; font-weight: 800; color: var(--sky-deep); }
+html[data-theme="dark"] .dev-tile { background: #1f222a; color: #fff; }
+html[data-theme="dark"] .dev-tile.on { border-color: #35383f; }
+html[data-theme="dark"] .dev-icon { background: #1d2a3a; }
 
 /* Home: the cards reach the usual 16px edge instead of a narrower 400px column. */
 html .hydro:has(> .hx-header) { box-sizing: border-box; width: 100%; max-width: none; }
