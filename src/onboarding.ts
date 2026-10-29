@@ -8,6 +8,7 @@ import { readSettings, writeSettings } from './schedule';
 import { openAmountSheet } from './hx-edit';
 import { about } from './prefs';
 import { climateOf, fetchWeather } from './weather';
+import { gaugeArt } from './hydrify';
 
 // First visit, Hydrify layout (demo): two walkthrough slides, a sign-up form (name kept on this
 // phone; email and password are not sent anywhere), nine one-question steps with a progress bar
@@ -158,19 +159,21 @@ const SLIDES = [
   { title: 'Ухаалаг суурь өөрөө тоолно', text: 'Саваа суурин дээр тавихад уусан усыг тань автоматаар бүртгэнэ. Эмч хязгаар тогтоосон бол тэр хязгаарыг дагана.' },
 ];
 
-// The phone mockup on the walkthrough: the home gauge, drawn small.
-const MOCK = `<svg class="ob-mock" viewBox="0 0 220 300" aria-hidden="true">
-  <rect x="6" y="6" width="208" height="320" rx="34" fill="#1f2a37"/><rect x="14" y="14" width="192" height="306" rx="28" fill="#f5f5f5"/>
-  <rect x="80" y="20" width="60" height="14" rx="7" fill="#1f2a37"/>
-  <text x="110" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#212121">Нүүр</text>
-  <rect x="24" y="76" width="172" height="190" rx="12" fill="#fff"/>
-  <path d="M60 210 A62 62 0 1 1 160 210" fill="none" stroke="#eeeeee" stroke-width="12" stroke-linecap="round"/>
-  <path d="M60 210 A62 62 0 0 1 150 112" fill="none" stroke="#369fff" stroke-width="12" stroke-linecap="round"/>
-  <path d="M110 120c-14 18-22 28-22 40a22 22 0 0 0 44 0c0-12-8-22-22-40z" fill="#f5f5f5"/>
-  <path d="M90 162a20 20 0 0 0 40 0c0-4-1-7-2-10-12 4-24 4-38 10z" fill="#197fff"/>
-  <text x="110" y="208" text-anchor="middle" font-size="20" font-weight="800" fill="#212121">1650</text>
-  <rect x="64" y="228" width="72" height="22" rx="11" fill="#369fff"/><text x="100" y="243" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">Уух (300 мл)</text>
-  <circle cx="152" cy="239" r="11" fill="#fff" stroke="#eeeeee"/>
+// The phone mockup on the walkthrough: the real home gauge (hydrify.ts gaugeArt), drawn small, with
+// today's amount under the drop and the «Уух» row as on the home.
+const mock = () => `<svg class="ob-mock" viewBox="0 0 220 300" aria-hidden="true">
+  <rect class="obm-frame" x="6" y="6" width="208" height="320" rx="34"/><rect class="obm-screen" x="14" y="14" width="192" height="306" rx="28"/>
+  <rect class="obm-frame" x="80" y="20" width="60" height="14" rx="7"/>
+  <text class="obm-ink" x="110" y="60" text-anchor="middle" font-size="12" font-weight="700">Нүүр</text>
+  <rect class="obm-card" x="24" y="72" width="172" height="196" rx="14"/>
+  <svg x="34" y="80" width="152" height="137" viewBox="0 0 300 270">${gaugeArt(0.66, 'ob-mock-drop')}</svg>
+  <text class="obm-ink" x="110" y="192" text-anchor="middle" font-size="17" font-weight="800">1,320</text>
+  <text x="110" y="205" text-anchor="middle" font-size="8" fill="#757575">/2,000 мл</text>
+  <rect x="32" y="226" width="78" height="26" rx="13" fill="#369fff"/><text x="71" y="242.5" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">Уух (300 мл)</text>
+  <g class="obm-round"><circle cx="129" cy="239" r="11"/><circle cx="154" cy="239" r="11"/><circle cx="179" cy="239" r="11"/></g>
+  <path d="M125.5 233.5h7l-1 10.5h-5z" fill="#369fff"/>
+  <path d="M154 232.5v13M151.5 235l2.5-2.5 2.5 2.5M151.5 243l2.5 2.5 2.5-2.5" fill="none" stroke="#369fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#369fff"><circle cx="175" cy="239" r="1.4"/><circle cx="179" cy="239" r="1.4"/><circle cx="183" cy="239" r="1.4"/></g>
 </svg>`;
 
 // The smart base slide: a glass on the base, its weight going to the phone as a logged drink, held
@@ -218,7 +221,7 @@ function baseArt(): string {
       </g>
     </svg></div>`;
 }
-const cast = (slide: number) => slide === 1 ? baseArt() : MOCK;
+const cast = (slide: number) => slide === 1 ? baseArt() : mock();
 
 export function showOnboarding(onDone: (plan: Plan) => void): void {
   const p: Profile = { ...readProfile() };
