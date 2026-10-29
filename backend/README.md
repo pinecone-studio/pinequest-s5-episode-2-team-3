@@ -12,6 +12,8 @@ npm run dev                    # http://localhost:8787
 
 Deploy хийх: `npm run db:migrate:remote && npm run deploy` (тохиргоо: `wrangler.jsonc`).
 
+Эмчийн цаасны зураг R2 (`IMAGES`, bucket `dusal-images`)-д хадгалагдана. Deploy-оос өмнө нэг удаа: `npx wrangler r2 bucket create dusal-images`.
+
 ## API
 
 | Method | Зам | Тайлбар |
