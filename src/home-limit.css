@@ -14,6 +14,13 @@ html .hl-over b { display: block; font-size: 24px; color: #b3211f; font-variant-
 html .hl-calm { max-width: 80%; margin: 6px 0 0; font-size: 13px; line-height: 1.3; color: var(--muted); }
 html .hl-center:has(.hl-over) { top: 74%; }
 html .hl-sum { margin: 20px 0 0; font-size: 14px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+/* Close to the doctor's limit (from 80 %): amber arc and a line under it; past it, a red arc. */
+html .hl-gauge-card.near .hx-progress { stroke: #f59e0b; }
+html .hl-gauge-card.over .hx-progress { stroke: #e5484d; }
+html .hl-near { display: flex; align-items: center; gap: 8px; margin: 18px 0 0; padding: 10px 14px; border-radius: 14px; background: #fff4e0; font-size: 14px; line-height: 1.35; color: #8a4b00; }
+html .hl-near svg { flex: none; width: 20px; height: 20px; }
+html .hl-near + .hl-sum { margin-top: 10px; }
+html[data-theme="dark"] .hl-near { background: #3a2f1d; color: #ffcf8a; }
 /* Past the limit the centre runs a line longer, past the ring's box. */
 html .hl-gauge-card:has(.hl-over) .hl-sum { margin-top: 36px; }
 

@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'bun:test';
 // home-limit.ts pulls in stylesheets; tests only need the logic.
 mock.module('../src/hydration.css', () => ({}));
 mock.module('../src/home-limit.css', () => ({}));
-const { cupsText, nextDialysis, quickDrink, untilText } = await import('../src/home-limit');
+const { crossedNear, cupsText, nearLimit, nextDialysis, quickDrink, untilText } = await import('../src/home-limit');
 
 describe('cupsText', () => {
   test('rounds down to a half cup', () => {
@@ -68,5 +68,20 @@ describe('quick tiles', () => {
     quickDrink(ctx, 'medMix', warn);
     expect(added).toEqual([]);
     expect(warned).toEqual([100]);
+  });
+});
+
+describe('close to the limit', () => {
+  test('from 80 % up to the limit itself, not past it', () => {
+    expect(nearLimit(1199, 1500)).toBe(false);
+    expect(nearLimit(1200, 1500)).toBe(true);
+    expect(nearLimit(1500, 1500)).toBe(true);
+    expect(nearLimit(1501, 1500)).toBe(false);
+  });
+  test('said once: only by the drink that crosses 80 %', () => {
+    expect(crossedNear(1000, 1250, 1500)).toBe(true);
+    expect(crossedNear(1250, 1400, 1500)).toBe(false);  // already close
+    expect(crossedNear(1000, 1100, 1500)).toBe(false);  // not yet
+    expect(crossedNear(1000, 1700, 1500)).toBe(false);  // straight past it: the over-limit popup says that
   });
 });

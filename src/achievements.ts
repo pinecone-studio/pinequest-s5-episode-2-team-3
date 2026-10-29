@@ -9,7 +9,7 @@ import { hxHeader } from './hydrify';
 import { chooseSheet, openAmountSheet } from './hx-edit';
 import { readProfile } from './plan';
 import { Toast, notify } from './components/Toast';
-import { addWeight, dayKept, dayTotals, gains, keptGainDiff, kg, md, readWeights, streaks, type WeightTag } from './progress-data';
+import { addWeight, dayKept, dayTotals, extraOver, gains, keptGainDiff, kg, md, readWeights, streaks, type WeightTag } from './progress-data';
 import './theme.css';
 import './progress.css';
 
@@ -62,6 +62,25 @@ function calendar(totals: Map<string, number>): string {
       <div class="pr-cal-week" aria-hidden="true">${['Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя', 'Ня'].map(w => `<small>${w}</small>`).join('')}</div>
       <ol class="pr-cal-days">${cells.join('')}</ol>
       <p class="pr-legend"><span><i class="ok"></i>${legend[0]}</span><span><i class="over"></i>${legend[1]}</span></p>
+    </section>`;
+}
+
+// The goal home only: how much past the goal was drunk in the calendar's month, up to today. Drinking
+// more is not a fault for someone without a doctor's limit, so it is told as a plain amount.
+function extraCard(totals: Map<string, number>): string {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1, 12);
+  const count = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const today = dayKey();
+  const keys = Array.from({ length: count }, (_, i) => dayKey(new Date(first.getFullYear(), first.getMonth(), i + 1, 12))).filter(k => k <= today);
+  const x = extraOver(totals, state.goal, keys);
+  const month = `${first.getMonth() + 1}-р сар`;
+  return `<section class="hx-card pr-extra" aria-labelledby="pr-extra-title">
+      <div class="pr-card-head"><h2 id="pr-extra-title">Илүү уусан</h2><small>${month}</small></div>
+      ${x.ml ? `<p class="pr-extra-n">+${number(x.ml)} мл</p>
+      <p class="pr-extra-what">${number(x.days)} өдөр зорилтоосоо илүү${x.top ? ` · хамгийн их ${md(x.top.key)}: +${number(x.top.ml)} мл` : ''}</p>`
+        : `<p class="pr-empty">${month}д зорилтоосоо илүү уусан өдөр алга</p>`}
+      <p class="pr-foot">Илүү уух нь буруу биш. Халуун, хөдөлгөөнтэй өдөр бие илүү ус хэрэгтэй.</p>
     </section>`;
 }
 
@@ -127,7 +146,7 @@ function render(): void {
         ${hxHeader('Явц')}
         ${streakCard(current, best)}
         ${calendar(dayTotals(state.events))}
-        ${limitMode() ? weightCard() + reportLink() : ''}
+        ${limitMode() ? weightCard() + reportLink() : extraCard(dayTotals(state.events))}
         ${milestones(best)}
       </div>
     </div></main>

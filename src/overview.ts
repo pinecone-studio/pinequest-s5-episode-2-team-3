@@ -7,10 +7,10 @@ import { load, save, saveMessage, onExternalChange } from './storage';
 import { bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
 import { bindGaugeDrag, hxGauge, hxHeader, mainCup, readCup, readCupKind, writeCup, writeCupKind } from './hydrify';
 import { openDrinkSheet } from './drink-sheet';
-import { limitGauge, openThirst, type AddCtx } from './home-limit';
+import { crossedNear, limitGauge, openThirst, type AddCtx } from './home-limit';
 import { homeActions } from './home-actions';
 import { openHomeMenu } from './home-menu';
-import { Toast } from './components/Toast';
+import { Toast, notify } from './components/Toast';
 import type { Kind } from './drinks';
 import { setKind, setSalty } from './drinks';
 import { bindWatchCard, loadInsight, watchCard, watchLinked } from './watch-card';
@@ -381,7 +381,15 @@ function bindPlan() {
 
 let drinking = false;
 // The limit home names the drink itself; elsewhere it is the drink the cup button pours.
+// Under a doctor's limit, the drink that brings the day to 80 % of it says so once, as it happens
+// (typed in here or counted by the base); the gauge keeps showing it after.
+function sayIfNear(before: number, after: number): void {
+  const goal = todayGoal(state.goal, state.mode);
+  if (state.mode === 'limit' && crossedNear(before, after, goal)) notify(`Хязгаарт ойртлоо · ${number(goal - after)} мл үлдсэн. Бага багаар уугаарай.`);
+}
+
 async function addDrink(ml: number, kind: Kind | undefined = readCupKind(), salty = false) {
+  const before = drankOn(state.events, today);
   const entry: WaterEntry = { id: crypto.randomUUID(), amount: ml, type: 'drink', at: new Date().toISOString() };
   setKind(entry.id, kind);
   setSalty(entry.id, salty);
@@ -395,6 +403,7 @@ async function addDrink(ml: number, kind: Kind | undefined = readCupKind(), salt
   undoReset = null;
   offerUndo();
   render();
+  sayIfNear(before, before + ml);
 }
 
 // The demo reset shows in a dev build or with ?demo=1; under a limit only then.
@@ -493,8 +502,9 @@ function render() {
     <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>
       <div class="plan-sheet"><button type="button" class="plan-close" id="plan-close" aria-label="Хаах">${mdIcon('close')}</button>${planSection(readProfile())}</div>
     </div>
-  </main>
-  ${Toast()}`;
+  </main>`;
+  // The toast lives outside #app, so a redraw (the gauge filling, a reading from the base) can't wipe a message.
+  if (!document.querySelector('#toast')) document.body.insertAdjacentHTML('beforeend', Toast());
   pushWidget(state, drink);
   void reportFamily(state, drink);
   bindFamily();
@@ -583,7 +593,7 @@ onExternalChange(async () => {
   await reload();
   render();
   const ml = newDeviceSips();
-  if (ml) void deviceDrop(ml);
+  if (ml) { void deviceDrop(ml); const after = drankOn(state.events, today); sayIfNear(after - ml, after); }
 });
 window.addEventListener('storage', event => {
   if ([PROFILE_KEY, null].includes(event.key)) render();

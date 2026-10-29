@@ -127,3 +127,10 @@ html[data-theme="dark"] .pr-bar, html[data-theme="dark"] .nr-stack { background:
   html .hx-card, html .nr-tiles li { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
   html .nr-days tr.bad, html .nr-tiles li.bad, html .nr-stack i { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* «Илүү уусан» (the goal home only): the month's extra water as one number. */
+html .pr-extra .pr-card-head small { font-size: 13px; color: var(--muted); }
+html .pr-extra-n { margin: 10px 0 0; font-size: 30px; font-weight: 800; line-height: 1.1; color: var(--sky-deep); font-variant-numeric: tabular-nums; }
+html .pr-extra-what { margin: 4px 0 0; font-size: 14px; color: var(--ink); }
+html .pr-extra .pr-empty { margin: 10px 0 0; }
+html .pr-extra .pr-foot { margin: 10px 0 0; }
