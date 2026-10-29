@@ -72,6 +72,21 @@ html .fam, html .plan-card, html .device-panel, html .sync-status, html .setting
 }
 html .fam-bar span { background: var(--sky); }
 html .fam-join button { background: var(--sky); }
+html[data-theme="dark"] :is(.fam, .plan-card, .device-panel, .sync-status, .settings-section, .day-card, .week-box) { background: #1f222a; color: #fff; box-shadow: none; }
+html[data-theme="dark"] .fam-join input { border-color: #35383f; background: #2a2d36; color: #fff; }
+html[data-theme="dark"] .fam-bar { background: #35383f; }
+html[data-theme="dark"] .fam { --ink-2: #fff; --muted-2: #9e9e9e; }
+/* The goal sheet (Зорилтоо тохируулах) with its fields, AI question and amount picker. */
+html[data-theme="dark"] .plan-card { --ink-2: #fff; --muted-2: #9e9e9e; }
+html[data-theme="dark"] .plan-sheet .plan-card { border-color: #35383f; background: rgba(31, 34, 42, .96); }
+html[data-theme="dark"] .plan-close { background: #2a2d36; color: #bdbdbd; }
+html[data-theme="dark"] .goal-hero { background: linear-gradient(180deg, #1d2a3a, #1f222a); }
+html[data-theme="dark"] :is(.plan-fields input, .plan-fields select, .ai-button, .plan-option, .plan-amount .step, .plan-amount input) { border-color: #35383f; background: #2a2d36; color: #fff; }
+html[data-theme="dark"] .plan-option[aria-checked="true"] { border-color: #4aa8ff; background: #1d2a3a; }
+html[data-theme="dark"] .plan-option[data-source="ai"][aria-checked="true"] { border-color: #8b7bf0; background: #2a2540; }
+html[data-theme="dark"] .plan-result { background: linear-gradient(180deg, #1d2a3a, #222a36); }
+html[data-theme="dark"] .plan-vs.same { color: #6fd39a; }
+html[data-theme="dark"] .ai-off { background: #3a2f1d; color: #ffcf8a; }
 
 /* Onboarding: same palette. */
 html .onb { background: linear-gradient(180deg, #d9effd 0%, #f3f9fe 50%, #fff 100%); }
@@ -920,6 +935,14 @@ html .ob-climate small { font-size: 13px; font-weight: 600; color: var(--sky); }
 html .ob-climate.on { border-color: var(--sky); background: var(--sky-soft); }
 html[data-theme="dark"] .ob-climate { background: #1f222a; border-color: #35383f; }
 html[data-theme="dark"] .ob-climate.on { border-color: #4aa8ff; background: #1d2a3a; }
+html[data-theme="dark"] .ob-hero { background: linear-gradient(180deg, #1d2a3a, #1f222a); }
+html[data-theme="dark"] .ob-hero::after { background: #1f222a; }
+html[data-theme="dark"] .ob-walk-text p { color: #bdbdbd; }
+html[data-theme="dark"] :is(.ob-actions, .ob-or::before, .ob-or::after) { border-color: #35383f; }
+html[data-theme="dark"] :is(.ob-dots li:not(.on), .ob-progress, .ob-units) { background: #35383f; }
+html[data-theme="dark"] :is(.ob-social, .ob-card:not(.on), .ob-adjust) { border-color: #35383f; background: #2a2d36; color: #fff; }
+html[data-theme="dark"] .ob-card small { color: #9e9e9e; }
+html[data-theme="dark"] .ob-warn { background: #3a2f1d; color: #ffcf8a; }
 html .ob-making { gap: 10px; }
 html .ob-ring { position: relative; width: 220px; height: 220px; margin: 40px 0; }
 html .ob-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
@@ -1243,6 +1266,14 @@ html .doctor-card .doc-times li { display: grid; padding: 6px 10px; border-radiu
 html .doctor-card .doc-warning, html .doctor-card .doc-error { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: #fff4e5; color: #8a5300; font-size: 13px; }
 html .doctor-card .doc-error { background: #fdecec; color: #b4232a; }
 html .doctor-card .doc-done { margin: 10px 0 0; color: #1f9e6a; font-weight: 600; font-size: 14px; }
+html[data-theme="dark"] .doctor-card { --ink-2: #fff; }
+html[data-theme="dark"] .doctor-card :is(textarea, .doc-photo) { border-color: #35383f; background: #2a2d36; color: #fff; }
+html[data-theme="dark"] .doctor-card textarea::placeholder { color: #8a8f99; }
+html[data-theme="dark"] .doctor-card .doc-read { background: #1d2a3a; }
+html[data-theme="dark"] .doctor-card .doc-times li { background: #2a2d36; }
+html[data-theme="dark"] .doctor-card .doc-warning { background: #3a2f1d; color: #ffcf8a; }
+html[data-theme="dark"] .doctor-card .doc-error { background: #3a1f22; color: #ff9b9b; }
+html[data-theme="dark"] .doctor-card .doc-done { color: #6fd39a; }
 html .doctor-card .doc-actions { display: flex; gap: 8px; margin-top: 10px; }
 html .doctor-card .doc-actions button { flex: 1; min-height: 44px; }
 
@@ -1275,6 +1306,9 @@ html .wt-ghost { background: var(--sky-soft); color: var(--sky); }
 html[data-theme="dark"] .wt-pop { background: #1f222a; }
 html[data-theme="dark"] .wt-tiles div { background: #2a2d36; }
 html[data-theme="dark"] .wt-steps li { color: #e0e0e0; }
+html[data-theme="dark"] .wt-badge.ok { background: #1d3328; }
+html[data-theme="dark"] .wt-badge.warn { background: #3a2f1d; }
+html[data-theme="dark"] .wt-dots li:not(.on, .done) { background: #35383f; }
 html .wt-dots { display: flex; gap: 6px; margin: 0 0 4px; padding: 0; list-style: none; }
 html .wt-dots li { width: 8px; height: 8px; border-radius: 4px; background: #e0e0e0; transition: width .2s, background .2s; }
 html .wt-dots li.on { width: 28px; background: var(--sky); }
