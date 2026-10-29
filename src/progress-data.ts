@@ -114,6 +114,20 @@ export function keptGainDiff(list: readonly Gain[], events: readonly WaterEntry[
   return diff > 0 ? diff : null;
 }
 
+// Water drunk past the goal on the days of `keys` (the goal home only: drinking more is fine, the «Явц»
+// page just says how much). `top` is the day with the most extra.
+export interface Extra { days: number; ml: number; top: { key: string; ml: number } | null }
+export function extraOver(totals: Map<string, number>, goal: number, keys: readonly string[]): Extra {
+  let days = 0, ml = 0, top: Extra['top'] = null;
+  for (const key of keys) {
+    const extra = (totals.get(key) ?? 0) - goal;
+    if (extra <= 0) continue;
+    days++; ml += extra;
+    if (!top || extra > top.ml) top = { key, ml: extra };
+  }
+  return { days, ml, top };
+}
+
 export const kg = (n: number) => n.toFixed(1);
 export const md = (key: string) => { const [, m, d] = key.split('-').map(Number); return `${m}/${d}`; };
 

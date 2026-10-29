@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { addWeight, dayKept, gains, keptGainDiff, readDialysis, readDialysisDays, readWeights, streaks, writeDialysis, type Weight } from '../src/progress-data';
+import { addWeight, dayKept, extraOver, gains, keptGainDiff, readDialysis, readDialysisDays, readWeights, streaks, writeDialysis, type Weight } from '../src/progress-data';
 import type { WaterEntry } from '../src/data';
 
 const store = new Map<string, string>();
@@ -72,4 +72,15 @@ test('dialysis days: 1 = Monday … 7 = Sunday, read back as getDay() numbers', 
 test('dialysis days saved by the first version still load', () => {
   localStorage.setItem('dusal-dialysis-days-v1', JSON.stringify([5, 1, 3]));
   expect(readDialysis()).toEqual({ days: [1, 3, 5], time: '08:00' });
+});
+
+describe('extraOver', () => {
+  const totals = new Map([['2026-10-27', 2600], ['2026-10-28', 2000], ['2026-10-29', 3000], ['2026-10-30', 1500]]);
+  const keys = ['2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31'];
+  test('adds up only what went past the goal, and finds the biggest day', () => {
+    expect(extraOver(totals, 2200, keys)).toEqual({ days: 2, ml: 1200, top: { key: '2026-10-29', ml: 800 } });
+  });
+  test('exactly the goal, short days and empty days add nothing', () => {
+    expect(extraOver(totals, 3000, keys)).toEqual({ days: 0, ml: 0, top: null });
+  });
 });

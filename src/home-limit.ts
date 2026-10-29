@@ -1,6 +1,6 @@
 import { escape, number } from './format';
 import { KINDS, SALTABLE, type Kind } from './drinks';
-import { arcAt, arcPoint, gaugeArt, moreButton } from './hydrify';
+import { arcAt, arcPoint, gaugeArt, gaugeStart, moreButton } from './hydrify';
 import { openDrinkSheet } from './drink-sheet';
 import { logThirst, type Dialysis } from './progress-data';
 import './home-limit.css';
@@ -36,17 +36,29 @@ export interface AddCtx { drink: number; goal: number; limit: boolean; cup: numb
 const TICKS = Array.from({ length: 9 }, (_, i) => (i + 1) / 10)
   .map(f => { const [a, b] = [arcPoint(f, 94), arcPoint(f, 102)]; return `<path d="M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}"/>`; }).join('');
 const ARC = (() => { const [s, e] = [arcPoint(0, 122), arcPoint(1, 122)]; return `M${s[0].toFixed(1)} ${s[1].toFixed(1)} A122 122 0 1 1 ${e[0].toFixed(1)} ${e[1].toFixed(1)}`; })();
+// From this share of the doctor's limit the home warns that it is close (pace.ts says the same).
+const WARN_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 21h20Z" fill="#f59e0b"/><path d="M12 10v5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="18" r="1.3" fill="#fff"/></svg>';
+export const NEAR_SHARE = 0.8;
+export const nearLimit = (drink: number, goal: number) => drink >= goal * NEAR_SHARE && drink <= goal;
+// This add is the one that brought the day close to the limit: said once, as it happens.
+export const crossedNear = (before: number, after: number, goal: number) => before < goal * NEAR_SHARE && nearLimit(after, goal);
+
 export function limitGauge(drink: number, goal: number, cup: number): string {
   const left = goal - drink;
   const frac = Math.min(1, drink / goal);
+  // Close to the limit the arc turns amber and a line under it says how much is left; past it, red.
+  const tone = left < 0 ? ' over' : nearLimit(drink, goal) ? ' near' : '';
+  // Drawn where it last stood and eased on, «Үлдсэн» counting down with it (hydrify.ts gaugeStart).
+  const start = gaugeStart('hl-drop-clip', frac, Math.max(0, left), v => `${number(v)} мл`);
   const center = left < 0
     ? `<p class="hl-over">Хязгаараас <b>${number(-left)} мл</b> илүү</p><p class="hl-calm">Маргааш дахиад хамт оролдъё</p>`
-    : `<small>Үлдсэн</small><b class="hl-left">${number(left)} мл</b><span class="hl-cups">${cupsText(left, cup)}</span>`;
-  return `<section class="hx-card hl-gauge-card" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл, ${left < 0 ? `хязгаараас ${number(-left)} мл илүү` : `үлдсэн ${number(left)} мл`}">
-      <div class="hl-gauge" aria-hidden="true">
-        <svg viewBox="0 0 300 270">${gaugeArt(frac, 'hl-drop-clip')}</svg>
+    : `<small>Үлдсэн</small><b class="hl-left" data-gauge-count>${number(start.value)} мл</b><span class="hl-cups">${cupsText(left, cup)}</span>`;
+  return `<section class="hx-card hl-gauge-card${tone}" aria-label="Өнөөдөр ${number(drink)} / ${number(goal)} мл, ${left < 0 ? `хязгаараас ${number(-left)} мл илүү` : `үлдсэн ${number(left)} мл${tone ? ', хязгаарт ойртож байна' : ''}`}">
+      <div class="hl-gauge" data-gauge-key="hl-drop-clip" aria-hidden="true">
+        <svg viewBox="0 0 300 270">${gaugeArt(start.frac, 'hl-drop-clip')}</svg>
         <div class="hl-center">${center}</div>
       </div>
+      ${tone === ' near' ? `<p class="hl-near" role="status">${WARN_ICON}<span><b>Хязгаарт ойртож байна</b> · ${number(left)} мл үлдсэн. Бага багаар уугаарай.</span></p>` : ''}
       <p class="hl-sum">${number(drink)} / ${number(goal)} мл уусан · эмчийн хязгаар</p>
       <div class="hx-actions hl-actions"><button type="button" class="hx-drink" data-drink-sheet>Уух (${number(cup)} мл)</button>${moreButton()}</div>
     </section>`;
