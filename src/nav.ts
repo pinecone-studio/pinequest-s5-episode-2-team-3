@@ -126,5 +126,9 @@ if (embedded) {
   } catch { /* plain fade */ }
 }
 
-// Every page imports the nav, so the theme is applied here once per page.
+// Every page imports the nav, so the theme is applied here once per page. In the phone app the tabs
+// are frames loaded once: a theme picked in one frame reaches the others through the storage event,
+// and "system" follows the phone switching between light and dark.
 applyTheme();
+window.addEventListener('storage', e => { if (e.key === 'dusal-look-v1') applyTheme(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
