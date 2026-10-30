@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { BleClient } from '@capacitor-community/bluetooth-le';
 import { savedBottles, scale } from './scale';
 import { BASE_ICON, bindBottles } from './components/DevicePanel';
+import { directText } from './device-status';
 import { notify } from './components/Toast';
 import { defaultIcon, readCups, writeCups } from './hydrify';
 import { escape, number } from './format';
@@ -40,7 +41,8 @@ function liveLine(): string {
   if (s.remainingMl != null) return `Саванд <b>${number(s.remainingMl)} мл</b> ус байна`;
   if (s.phase === 'moving') return 'Жин тогтворжиж байна…';
   if (s.phase === 'empty') return 'Суурин дээр сав алга';
-  return 'Энэ савыг таниулаагүй байна';
+  const direct = !s.bottleSet && scale.directStart !== null ? directText(s, scale.directStart) : null;
+  return direct ? escape(direct) : 'Энэ савыг таниулаагүй байна';
 }
 
 // Linked: the saved bottles with their empty weights (tap one before putting it on the base), a new one weighed
@@ -147,7 +149,7 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
       <p>Уусан ус тань автоматаар бүртгэгдэнэ.</p>
       <div class="wt-tiles" data-bc-tiles>${tiles()}</div>
       <p class="wt-note">Саваа таниулбал саванд хэдэн мл ус байгааг харуулна. Шууд уувал суурь уусныг тань тоолсоор байна.</p>
-      <div class="wt-actions">${btn('Шууд уух', 'data-wt-close', true)}${btn('Саваа таниулах', 'data-wt-bottles')}</div>`;
+      <div class="wt-actions">${btn('Шууд уух', 'data-wt-direct', true)}${btn('Саваа таниулах', 'data-wt-bottles')}</div>`;
     case 'bottles': return `<h2 id="wt-title">Саваа таниулах</h2>
       <p>Суурин дээр тавьсан саваа сонгоно уу.</p>
       <p class="bc-live" data-bc-live ${scale.addedBottle ? 'hidden' : ''}>${liveLine()}</p>
@@ -194,6 +196,8 @@ export function openBaseConnect(): void {
     pop.querySelector('[data-wt-link]')?.addEventListener('click', () => void link());
     pop.querySelector('[data-wt-other]')?.addEventListener('click', () => void findOther());
     pop.querySelector('[data-wt-bottles]')?.addEventListener('click', () => show('bottles'));
+    // «Шууд уух»: the weight on the base now is the whole (scale.ts directStart), and the card goes.
+    pop.querySelector('[data-wt-direct]')?.addEventListener('click', () => { scale.startDirect(); close(); });
     renderBase(pop, true);
     const zero = pop.querySelector<HTMLElement>('[data-bc-zero]');
     if (zero) bindBottles(zero);

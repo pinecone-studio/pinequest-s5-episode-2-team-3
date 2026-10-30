@@ -22,6 +22,12 @@ describe('baseTile', () => {
     expect(baseTile('connected', status({ bottleSet: false, remainingMl: null })).detail).toBe('Саваа тохируулах');
     expect(baseTile('connected', status({ calibrated: false, remainingMl: null })).detail).toBe('Калибровк хийгдээгүй');
   });
+  test('«Шууд уух»: the weight, and what has gone from the whole it started at', () => {
+    const now = status({ bottleSet: false, remainingMl: null, phase: 'present', weightG: 642 });
+    expect(baseTile('connected', now, undefined, 900).detail).toBe('Суурин дээр 642 г · 258 мл уусан');
+    expect(baseTile('connected', now, undefined, 642).detail).toBe('Суурин дээр 642 г');
+    expect(baseTile('connected', status({ bottleSet: false, remainingMl: null, phase: 'moving' }), undefined, 900).detail).toBe('Жин хэмжиж байна…');
+  });
   test('linked, bottle lifted, before any reading: nothing more', () => {
     expect(baseTile('connected', status({ remainingMl: null })).detail).toBe('');
     expect(baseTile('connected', null).detail).toBe('');

@@ -43,6 +43,14 @@ const supported = () => Capacitor.isNativePlatform() || (typeof navigator !== 'u
 // off, and that the next weight is a new bottle, not a drink or a refill.
 export interface Bottle { id: string; name: string; grams: number }
 const BOTTLES_KEY = 'dusal-bottles-v1';
+// The weight «Шууд уух» started from (ScaleLink.directStart), in grams.
+const DIRECT_KEY = 'dusal-scale-direct-v1';
+function readDirect(): number | null {
+  try { const g = Number(localStorage.getItem(DIRECT_KEY)); return localStorage.getItem(DIRECT_KEY) !== null && Number.isFinite(g) ? g : null; } catch { return null; }
+}
+function writeDirect(g: number | null): void {
+  try { if (g === null) localStorage.removeItem(DIRECT_KEY); else localStorage.setItem(DIRECT_KEY, String(g)); } catch { /* shows «not set up» again */ }
+}
 export function savedBottles(): { list: Bottle[]; selected: string | null } {
   try {
     const saved = JSON.parse(localStorage.getItem(BOTTLES_KEY) ?? 'null');
@@ -69,6 +77,23 @@ export class ScaleLink {
   result = '';
   // The bottle «Хоосон жинг авах» just saved, until it has been filled and measured as a cup (base-connect.ts).
   addedBottle: Bottle | null = null;
+  // «Шууд уух» (base-connect.ts): no bottle set up, so the weight on the base when it was pressed is taken as
+  // the whole; the app shows the weight and how much has gone from it instead of «not set up». Kept on the
+  // phone; a bottle chosen or weighed, or the base let go, ends it.
+  directStart: number | null = readDirect();
+  private directPending = false;
+  startDirect(): void {
+    // Pressed before the base's first reading: taken from that reading (onStatus).
+    this.directPending = !this.status;
+    this.directStart = this.status ? this.status.weightG : null;
+    writeDirect(this.directStart);
+    this.changed();
+  }
+  private endDirect(): void {
+    if (this.directStart === null) return;
+    this.directStart = null;
+    writeDirect(null);
+  }
   status: ScaleStatus | null = null;
   private bleId: string | null = null;
   // The base's own ID ("dusal-a1b2"), read on connect; it is also its family's ID (src/family.ts).
@@ -134,6 +159,7 @@ export class ScaleLink {
   async forget(): Promise<void> {
     clearTimeout(this.retry);
     writeSaved(null);
+    this.endDirect();
     void watch?.stop().catch(() => {});
     const bleId = this.bleId;
     this.bleId = null;
@@ -207,6 +233,7 @@ export class ScaleLink {
     const saved = savedBottles();
     const bottle = saved.list.find(b => b.id === id);
     if (!bottle) return;
+    this.endDirect();
     writeBottles({ ...saved, selected: id });
     this.say('Сонгож байна…');
     await this.command(`bottle ${bottle.grams}`);
@@ -249,6 +276,7 @@ export class ScaleLink {
       const bottle = { id: crypto.randomUUID(), name: this.newBottleName, grams: Number(tare[1]) };
       writeBottles({ list: [...saved.list, bottle], selected: bottle.id });
       this.addedBottle = bottle;
+      this.endDirect();
       this.result = `«${bottle.name}» хадгалагдлаа: ${bottle.grams} г ✓`;
     } else if (text === 'zero' && this.rezeroing) {
       // fixZero's zero: the bottle is the same, so the base gets its weight back.
@@ -305,6 +333,7 @@ export class ScaleLink {
     try { this.status = parseStatus(value); } catch { return; }
     this.restoreBottle();
     this.fixZero();
+    if (this.directPending) { this.startDirect(); return; }
     this.changed();
   }
   // One drink at a time, in order; a resend of a drink still being saved waits its turn and is then skipped.

@@ -1,5 +1,5 @@
 import { chosenBottleName, scale } from './scale';
-import { baseTile, watchTile, type DeviceTile } from './device-status';
+import { baseTile, directText, watchTile, type DeviceTile } from './device-status';
 import { watchDay } from './watch-card';
 import { openWatchConnect } from './watch-connect';
 import { openBaseConnect } from './base-connect';
@@ -21,7 +21,7 @@ function tileInner(icon: string, name: string, t: DeviceTile): string {
 const label = (name: string, t: DeviceTile) => `${name}: ${t.status}${t.detail ? `, ${t.detail}` : ''}${t.cta ? '. Холбох' : ''}`;
 
 function baseTileHtml(): string {
-  const t = baseTile(scale.phase, scale.status, chosenBottleName());
+  const t = baseTile(scale.phase, scale.status, chosenBottleName(), scale.directStart);
   return `<button type="button" class="dev-tile${t.connected ? ' on' : ''}" data-base-tile aria-haspopup="dialog" aria-label="${escape(label('Ухаалаг суурь', t))}">${tileInner(BASE_ICON, 'Ухаалаг суурь', t)}</button>`;
 }
 // Linked, the watch's settings are on «Профайл › Холбосон бүртгэл» (in the app's tab host the hash goes along).
@@ -39,8 +39,11 @@ function baseLiveInner(): string {
   const s = scale.phase === 'connected' ? scale.status : null;
   if (!s) return '';
   const name = chosenBottleName();
+  // «Шууд уух»: the weight and what has gone from it, in place of «not set up».
+  const direct = !s.bottleSet && scale.directStart !== null ? directText(s, scale.directStart) : null;
   const text = s.remainingMl != null ? `${name ? `«${escape(name)}»-д` : 'Саванд'} <b>${number(s.remainingMl)} мл</b> ус байна`
-    : !s.bottleSet ? 'Савны хоосон жинг тохируулаагүй байна'
+    : direct ? escape(direct)
+    : !s.bottleSet && scale.directStart === null ? 'Савны хоосон жинг тохируулаагүй байна'
     : s.phase === 'moving' ? 'Жин тогтворжиж байна…' : 'Сав суурин дээр алга';
   return `<span class="bl-icon" aria-hidden="true">${BASE_ICON}</span><span>${text}</span>`;
 }

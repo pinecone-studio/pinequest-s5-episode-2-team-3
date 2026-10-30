@@ -8,13 +8,23 @@ import { number } from './format';
 // `cta`: «Холбох ›» at the bottom, only while it is not linked (and not linking).
 export interface DeviceTile { connected: boolean; status: string; detail: string; cta: boolean }
 
+// «Шууд уух» (scale.ts directStart): with no bottle set up, the weight on the base when it was pressed is the
+// whole. The weight now, and what has gone from that whole; null while the bottle is lifted or moving.
+export function directText(status: ScaleStatus, start: number): string | null {
+  if (status.phase !== 'present') return null;
+  const gone = Math.max(0, start - status.weightG);
+  return `Суурин дээр ${number(status.weightG)} г${gone ? ` · ${number(gone)} мл уусан` : ''}`;
+}
+
 // `bottle`: the name given to the chosen bottle (scale.ts savedBottles), said in place of «Сав».
-export function baseTile(phase: ScalePhase, status: ScaleStatus | null, bottle?: string): DeviceTile {
+// `directStart`: set by «Шууд уух», so the weight shows in place of «Саваа тохируулах».
+export function baseTile(phase: ScalePhase, status: ScaleStatus | null, bottle?: string, directStart: number | null = null): DeviceTile {
   if (phase === 'connecting') return { connected: false, status: 'Холбогдож байна…', detail: '', cta: false };
   if (phase !== 'connected') return { connected: false, status: 'Холбогдоогүй', detail: '', cta: true };
   // Water left is known once the empty bottle's weight is set; until then the line says what to do.
   const detail = status?.remainingMl != null ? `${bottle || 'Сав'}: ${number(status.remainingMl)} мл`
     : status && !status.calibrated ? 'Калибровк хийгдээгүй'
+    : status && !status.bottleSet && directStart !== null ? (directText(status, directStart) ?? 'Жин хэмжиж байна…')
     : status && !status.bottleSet ? 'Саваа тохируулах'
     : status?.waiting ? `${number(status.waiting)} уулт илгээгдээгүй` : '';
   return { connected: true, status: 'Холбогдсон', detail, cta: false };
