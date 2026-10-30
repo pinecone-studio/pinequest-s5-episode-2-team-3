@@ -1363,9 +1363,7 @@ html .bc-base { display: grid; gap: 10px; width: 100%; margin-top: 4px; text-ali
 /* «Саваа таниулах»: what the base reads now, so a chosen bottle shows its water at once. */
 html .wt-pop .bc-live { padding: 8px 16px; border-radius: 999px; background: var(--sky-soft); font-size: 14px; color: var(--ink); }
 html .wt-pop .bc-live b { color: var(--sky-deep); font-variant-numeric: tabular-nums; }
-html .bc-title { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); }
-html .wt-pop .bc-hint, html .wt-pop .bc-empty { font-size: 13.5px; }
-html .wt-pop .bc-empty { padding: 12px 14px; border-radius: 16px; background: var(--sky-soft); }
+html .wt-pop .bc-hint { font-size: 13.5px; }
 /* Three rows and half of the next show, so it is clear there is more; the rest scroll inside the list. */
 html .bc-list { display: grid; gap: 8px; max-height: 240px; margin: 0; padding: 0 2px 0 0; overflow-y: auto; overscroll-behavior: contain; list-style: none; }
 html .bc-row { display: flex; align-items: center; gap: 4px; border: 1.5px solid transparent; border-radius: 18px; background: var(--sky-soft); }
@@ -1381,15 +1379,18 @@ html .bc-name small { font-size: 12.5px; color: var(--muted); }
 html .bc-row.on .bc-name small { color: var(--sky-deep); font-weight: 700; }
 html .bc-grams { flex: none; font-size: 16px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 html .bc-remove { flex: none; width: 44px; height: 44px; margin-right: 4px; border: 0; border-radius: 50%; background: none; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; }
-html .bc-add { display: grid; gap: 8px; margin-top: 6px; }
-html .bc-add input { min-height: 50px; padding: 0 16px; border: 1.5px solid var(--sky-line); border-radius: 999px; background: #fff; font: inherit; font-size: 16px; color: var(--ink); }
+/* «+ Шинэ сав нэмэх»: a dashed row under the list; tapped, the name field with «Жинлэх» beside it. */
+html .bc-add-row { width: 100%; min-height: 52px; border: 1.5px dashed var(--sky-line); border-radius: 18px; background: none; font: inherit; font-size: 15px; font-weight: 700; color: var(--sky); cursor: pointer; }
+html .bc-add { display: grid; gap: 8px; }
+html .bc-add div { display: flex; gap: 8px; }
+html .bc-add input { flex: 1 1 auto; min-width: 0; min-height: 48px; padding: 0 16px; border: 1.5px solid var(--sky-line); border-radius: 999px; background: #fff; font: inherit; font-size: 16px; color: var(--ink); }
 html .bc-add input:focus { outline: none; border-color: var(--sky); }
-html .bc-add .wt-ghost { cursor: pointer; }
+html .bc-add .wt-ghost { flex: none; min-height: 48px; padding: 0 20px; cursor: pointer; }
 html .wt-pop .bc-result { padding: 10px 14px; border-radius: 14px; background: #e7f8ee; font-size: 14px; font-weight: 700; color: #1d7a44; }
 html .wt-pop .bc-error { font-size: 13.5px; color: #c2410c; }
-html .bc-zero { display: grid; justify-items: center; gap: 0; margin-top: 2px; }
-html .bc-zero button { min-height: 44px; padding: 0 12px; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 700; color: var(--sky); cursor: pointer; }
-html .bc-zero small { font-size: 12px; color: var(--muted); }
+/* «Суурийг тэглэх»: rarely needed (the app fixes a wrong zero itself), so a quiet link under the buttons. */
+html .bc-zero { display: grid; justify-items: center; margin-top: -4px; }
+html .bc-zero button { min-height: 40px; padding: 0 12px; border: 0; background: none; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
 /* «Аяга хэмжих» on the card: the live number, then the three steps; only the current one has its button. */
 html .bc-cup-live { display: grid; justify-items: center; gap: 2px; padding: 14px; border-radius: 18px; background: var(--sky-soft); }
 html .bc-cup-live b { font-size: 30px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -1414,7 +1415,7 @@ html .bc-link { justify-self: center; min-height: 44px; padding: 0 12px; border:
 html[data-theme="dark"] .bc-cup-live { background: #2a2d36; }
 html[data-theme="dark"] .bc-step.done .bc-num { background: #1d3328; }
 html[data-theme="dark"] .bc-cup-name input { border-color: #3a3e48; background: #2a2d36; }
-html :is(.bc-pick, .bc-remove, .bc-zero button, .bc-link):focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 14px; }
+html :is(.bc-pick, .bc-remove, .bc-zero button, .bc-link, .bc-add-row):focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 14px; }
 html[data-theme="dark"] .bc-row { background: #2a2d36; }
 html[data-theme="dark"] .bc-icon { background: #1f222a; }
 html[data-theme="dark"] .bc-add input { border-color: #3a3e48; background: #2a2d36; }

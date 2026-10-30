@@ -46,35 +46,43 @@ function liveLine(): string {
 
 // Linked: the saved bottles with their empty weights (tap one before putting it on the base), a new one weighed
 // empty, and the zero for an empty base — what the base's BOOT button does. Buttons: DevicePanel.ts bindBottles.
-// Redrawn when a command answers or the bottles change, not while a name is typed.
+// Kept short: the list, then «+ Шинэ сав нэмэх» that opens the name field only when wanted (open from the
+// start while there is none), and the zero as a small link last. Redrawn when a command answers or the
+// bottles change, not while a name is typed.
+let adding = false;
 function baseBlock(): string {
   const { list, selected } = savedBottles();
   const rows = list.map(b => `<li class="bc-row${b.id === selected ? ' on' : ''}">
       <button type="button" class="bc-pick" data-bottle="${escape(b.id)}" aria-pressed="${b.id === selected}">
         <span class="bc-icon" aria-hidden="true">${b.id === selected ? ICON.check : BASE_ICON}</span>
-        <span class="bc-name"><b>${escape(b.name)}</b><small>${b.id === selected ? 'Суурин дээр' : 'Сонгох'}</small></span>
+        <span class="bc-name"><b>${escape(b.name)}</b>${b.id === selected ? '<small>Суурин дээр</small>' : ''}</span>
         <span class="bc-grams">${number(b.grams)} г</span></button>
       <button type="button" class="bc-remove" data-bottle-remove="${escape(b.id)}" aria-label="${escape(b.name)}-г устгах">×</button></li>`).join('');
-  return `<h3 class="bc-title">Миний савнууд</h3>
-    ${list.length ? `<ul class="bc-list">${rows}</ul>` : '<p class="bc-empty">Хадгалсан сав алга. Доор шинэ саваа нэмнэ үү.</p>'}
-    <form class="bc-add" data-bottle-add data-transient>
-      <h3 class="bc-title">Шинэ сав</h3>
+  const form = adding || !list.length;
+  return `${list.length ? `<ul class="bc-list">${rows}</ul>` : ''}
+    ${form ? `<form class="bc-add" data-bottle-add data-transient>
       <p class="bc-hint">Хоосон саваа суурин дээр тавиад нэр өгнө үү.</p>
       <label class="visually-hidden" for="bc-bottle-name">Савны нэр</label>
-      <input id="bc-bottle-name" name="name" maxlength="24" placeholder="Жишээ нь: Цэнхэр сав" autocomplete="off">
-      <button type="submit" class="wt-ghost">Хоосон жинг авах</button>
-    </form>
+      <div><input id="bc-bottle-name" name="name" maxlength="24" placeholder="Савны нэр" autocomplete="off">
+      <button type="submit" class="wt-ghost">Жинлэх</button></div>
+    </form>` : '<button type="button" class="bc-add-row" data-bc-adding>+ Шинэ сав нэмэх</button>'}
     ${scale.result ? `<p class="bc-result" role="status">${escape(scale.result)}</p>` : ''}
-    <p class="device-error bc-error" role="alert" hidden></p>
-    <div class="bc-zero"><button type="button" data-scale-zero>Суурийн жинг тэглэх</button><small>Суурин дээр юу ч байхгүй үед</small></div>`;
+    <p class="device-error bc-error" role="alert" hidden></p>`;
 }
-const baseKey = () => [scale.result, JSON.stringify(savedBottles())].join('|');
+const baseKey = () => [scale.result, JSON.stringify(savedBottles()), adding].join('|');
 function renderBase(pop: HTMLElement, force = false): void {
   const host = pop.querySelector<HTMLElement>('[data-bc-base]');
   if (!host || (!force && (host.dataset.key === baseKey() || document.activeElement === host.querySelector('#bc-bottle-name')))) return;
   host.dataset.key = baseKey();
   if (!force) host.innerHTML = baseBlock();
   bindBottles(host);
+  host.querySelector('[data-bc-adding]')?.addEventListener('click', () => {
+    adding = true;
+    renderBase(pop);
+    host.querySelector<HTMLInputElement>('#bc-bottle-name')?.focus();
+  });
+  // Weighed: the field folds away again once the base answers.
+  host.querySelector('[data-bottle-add]')?.addEventListener('submit', () => { adding = false; (document.activeElement as HTMLElement | null)?.blur(); });
 }
 // Under the bottles, a cup measured right here (cup-calibrate.ts): redrawn when a step changes, the number in place.
 function renderCup(pop: HTMLElement, draw: boolean): void {
@@ -103,10 +111,12 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
       <div class="wt-tiles" data-bc-tiles>${tiles()}</div>
       <p class="wt-note">Саваа таниулах руу шилжиж байна…</p>
       <div class="wt-actions">${btn('Үргэлжлүүлэх', 'data-wt-bottles')}</div>`;
-    case 'bottles': return `<span class="wt-badge">${BASE_ICON}</span><h2 id="wt-title">Саваа таниулах</h2>
+    case 'bottles': return `<h2 id="wt-title">Саваа таниулах</h2>
+      <p>Суурин дээр тавьсан саваа сонгоно уу.</p>
       <p class="bc-live" data-bc-live>${liveLine()}</p>
       <section class="bc-base" data-bc-base aria-label="Савнууд">${baseBlock()}</section>
-      <div class="wt-actions">${btn('Аяга хэмжих', 'data-wt-cup', true)}${btn('Болсон', 'data-wt-close')}</div>`;
+      <div class="wt-actions">${btn('Аяга хэмжих', 'data-wt-cup', true)}${btn('Болсон', 'data-wt-close')}</div>
+      <div class="bc-zero" data-bc-zero><button type="button" data-scale-zero>Суурийг тэглэх</button><p class="device-error bc-error" role="alert" hidden></p></div>`;
     case 'cup': return `<span class="wt-badge">${ICON.cup}</span><h2 id="wt-title">Аяга хэмжих</h2>
       <p>Аягаа суурин дээр хэмжвэл «1 аяга» хэдэн мл болохыг апп мэднэ.</p>
       <section class="bc-base" data-bc-cup aria-label="Аяга хэмжих"></section>
@@ -153,6 +163,8 @@ export function openBaseConnect(): void {
     pop.querySelector('[data-wt-cup]')?.addEventListener('click', () => show('cup'));
     renderBase(pop, true);
     renderCup(pop, true);
+    const zero = pop.querySelector<HTMLElement>('[data-bc-zero]');
+    if (zero) bindBottles(zero);
     pop.scrollTop = 0;
     pop.querySelector<HTMLElement>('.wt-actions > :last-child')?.focus();
     if (s === 'ok') setTimeout(() => { if (step === 'ok' && box.isConnected) show('bottles'); }, OK_MS);
