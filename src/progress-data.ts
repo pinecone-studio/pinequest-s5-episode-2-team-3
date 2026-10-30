@@ -85,6 +85,15 @@ export function addWeight(w: Weight): boolean {
   try { localStorage.setItem(WEIGHT_KEY, JSON.stringify(list)); return true; } catch { return false; }
 }
 
+// The dry (target) weight the doctor set, from «Эмчийн зөвлөмж»: the report shows each gain as a share of it.
+const DRY_KEY = 'dusal-dry-weight-v1';
+export function readDryWeight(): number | null {
+  try { const v = Number(localStorage.getItem(DRY_KEY)); return v >= 10 && v <= 250 ? v : null; } catch { return null; }
+}
+export function writeDryWeight(kg: number | null): void {
+  try { if (kg) localStorage.setItem(DRY_KEY, String(Math.round(kg * 10) / 10)); else localStorage.removeItem(DRY_KEY); } catch { /* this visit only */ }
+}
+
 // Interdialytic weight gain: a session's "before" weight minus the previous session's "after".
 export interface Gain { from: string; to: string; kg: number }
 export function gains(list: readonly Weight[]): Gain[] {

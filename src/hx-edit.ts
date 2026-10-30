@@ -176,6 +176,38 @@ export function chooseSheet(title: string, options: [string, string][], current:
 }
 
 // "Logout" style (kit 84): a red title, one line, Цуцлах / the action.
+// «Нууц үг солих»: the current password (when the account has one) and the new one twice. `save`
+// answers the error to show, or null once it is done.
+export function passwordSheet(hasPassword: boolean, save: (current: string, next: string) => Promise<string | null>): void {
+  const field = (id: string, label: string, auto: string) =>
+    `<label class="hx-pw-field">${label}<input id="${id}" type="password" autocomplete="${auto}" maxlength="128" required/></label>`;
+  const { box, close } = sheet('hx-pw', `<h2>${hasPassword ? 'Нууц үг солих' : 'Нууц үг тохируулах'}</h2>
+    <form novalidate>
+      ${hasPassword ? field('pw-current', 'Одоогийн нууц үг', 'current-password') : '<p class="hx-confirm-text">Google-ээр нээсэн бүртгэлдээ нууц үг нэмбэл имэйлээрээ ч нэвтэрч болно.</p>'}
+      ${field('pw-next', 'Шинэ нууц үг · 8-аас дээш тэмдэгт', 'new-password')}${field('pw-again', 'Шинэ нууц үгээ давтах', 'new-password')}
+      <p class="hx-error" role="alert" hidden></p>
+      <div class="hx-sheet-actions"><button type="button" class="hx-light" data-cancel>Цуцлах</button><button type="submit" class="hx-blue">Хадгалах</button></div>
+    </form>`);
+  const form = box.querySelector('form')!;
+  const error = box.querySelector<HTMLElement>('.hx-error')!;
+  const value = (id: string) => box.querySelector<HTMLInputElement>(`#${id}`)?.value ?? '';
+  const show = (text: string) => { error.textContent = text; error.hidden = !text; };
+  box.querySelector('[data-cancel]')!.addEventListener('click', close);
+  form.addEventListener('input', () => show(''));
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (hasPassword && !value('pw-current')) return show('Одоогийн нууц үгээ оруулна уу.');
+    if (value('pw-next').length < 8) return show('Шинэ нууц үг 8-аас дээш тэмдэгт байна.');
+    if (value('pw-next') !== value('pw-again')) return show('Шинэ нууц үг таарахгүй байна.');
+    const button = form.querySelector<HTMLButtonElement>('[type="submit"]')!;
+    button.disabled = true;
+    const failed = await save(value('pw-current'), value('pw-next'));
+    button.disabled = false;
+    if (failed) show(failed); else close();
+  });
+  box.querySelector<HTMLInputElement>('input')!.focus();
+}
+
 export function confirmSheet(title: string, text: string, okLabel: string, onOk: () => void): void {
   const { box, close } = sheet('hx-confirm', `<h2 class="danger">${title}</h2><p class="hx-confirm-text">${text}</p>
     <div class="hx-sheet-actions"><button type="button" class="hx-light" data-cancel>Цуцлах</button><button type="button" class="hx-blue" data-ok>${okLabel}</button></div>`);

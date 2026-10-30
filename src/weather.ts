@@ -1,5 +1,6 @@
-// Today's weather nudges the daily goal: hot or very dry days add water, mild ones leave it as is.
-// The saved goal never changes; only today's target shown on the home does. A doctor's limit is never raised.
+// Today's weather as advice beside the daily goal: hot or bitter cold days suggest a little more water,
+// ordinary ones nothing. The goal itself never changes, so every screen judges the day against the same
+// amount. Under a doctor's limit nothing is suggested.
 import { API_URL } from './api';
 import { dayKey } from './data';
 import { escape, number } from './format';
@@ -53,12 +54,7 @@ export async function loadWeather(goal: number, onReady: () => void): Promise<vo
   }
 }
 
-export function todayGoal(goal: number, mode: 'goal' | 'limit'): number {
-  if (!advice || mode === 'limit') return goal;
-  return Math.max(500, goal + advice.deltaMl);
-}
-
-// A small chip in the home's top-left corner: icon, today's high and the change to the goal, with an
+// A small chip in the home's top-left corner: icon, today's high and the suggested extra, with an
 // info mark. Tapping it opens a short note with the reason; tapping again or anywhere else closes it.
 let weatherOpen = false;
 export function weatherChip(mode: 'goal' | 'limit'): string {
@@ -66,9 +62,9 @@ export function weatherChip(mode: 'goal' | 'limit'): string {
   const w = advice.weather;
   const icon = w.feelsMax >= 25 ? '☀️' : w.max <= -10 ? '❄️' : '⛅';
   const delta = mode === 'limit' || !advice.deltaMl ? '' : `<b>${advice.deltaMl > 0 ? '+' : '−'}${number(Math.abs(advice.deltaMl))} мл</b>`;
-  return `<div class="weather-box"><button type="button" class="weather-chip" data-weather aria-expanded="${weatherOpen}" aria-controls="weather-pop" aria-label="Цаг агаар ${w.max}°. Тайлбар харах">
+  return `<div class="weather-box"><button type="button" class="weather-chip" data-weather aria-expanded="${weatherOpen}" aria-controls="weather-pop" aria-label="Цаг агаар ${w.max}°${delta ? `, өнөөдөр ${advice.deltaMl > 0 ? 'нэмж' : 'хасаж'} ${number(Math.abs(advice.deltaMl))} мл уухыг зөвлөж байна` : ''}. Тайлбар харах">
       <span aria-hidden="true">${icon}</span><span>${w.max}°</span>${delta}<span class="weather-info" aria-hidden="true">i</span></button>
-    <p class="weather-pop" id="weather-pop" role="status" ${weatherOpen ? '' : 'hidden'}>${escape(advice.reason)}</p></div>`;
+    <p class="weather-pop" id="weather-pop" role="status" ${weatherOpen ? '' : 'hidden'}>${escape(advice.reason)}${delta ? ` Зөвлөмж: зорилтоосоо ${advice.deltaMl > 0 ? 'илүү' : 'бага'} ${number(Math.abs(advice.deltaMl))} мл.` : ''}</p></div>`;
 }
 let weatherBound = false;
 export function bindWeatherChip(): void {

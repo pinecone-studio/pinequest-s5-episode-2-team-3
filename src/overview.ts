@@ -18,7 +18,7 @@ import { health } from './health';
 import { startSync } from './sync';
 import { pushSnapshot, startAccountSync } from './session';
 import { startDevices } from './devices';
-import { bindWeatherChip, loadWeather, todayFeels, todayGoal, weatherChip } from './weather';
+import { bindWeatherChip, loadWeather, todayFeels, weatherChip } from './weather';
 import { pushWidget } from './widget';
 import { scale } from './scale';
 import { bindDeviceTiles, deviceTiles } from './device-tiles';
@@ -385,7 +385,7 @@ let drinking = false;
 // Under a doctor's limit, the drink that brings the day to 80 % of it says so once, as it happens
 // (typed in here or counted by the base); the gauge keeps showing it after.
 function sayIfNear(before: number, after: number): void {
-  const goal = todayGoal(state.goal, state.mode);
+  const goal = state.goal;
   if (state.mode === 'limit' && crossedNear(before, after, goal)) notify(`Хязгаарт ойртлоо · ${number(goal - after)} мл үлдсэн. Бага багаар уугаарай.`);
 }
 
@@ -483,8 +483,9 @@ function greeting(): string {
 function render() {
   loadInsight({ drink: drankOn(state.events, today), goal: state.goal, mode: state.mode, feels: todayFeels() }, aiReady, render);
   const drink = drankOn(state.events, today);
-  // Today's weather may raise today's target; the saved goal (and so past days) stays as it is.
-  const goal = todayGoal(state.goal, state.mode);
+  // The saved goal, the same one history, progress, the widget, reminders and the family read. Today's
+  // weather only suggests a little more or less beside it (weatherChip).
+  const goal = state.goal;
   // Under a doctor's limit the home only shows what is left; no weather advice, AI card or watch.
   const limit = state.mode === 'limit', cup = mainCup();
   homeCtx = { drink, goal, limit, cup, add: (ml, kind, salty) => void addDrink(ml, kind, salty) };

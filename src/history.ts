@@ -165,7 +165,9 @@ function chart(list: Bucket[]): string {
 function stats(list: Bucket[], events: readonly WaterEntry[]): string {
   const days = list.reduce((sum, b) => sum + b.days, 0);
   const total = list.reduce((sum, b) => sum + b.ml, 0);
-  const counted = list.filter(b => b.days);
+  // Finished days only, as «Явц» counts them: today is still open, so it is neither kept nor missed yet.
+  const today = dayKey();
+  const counted = list.filter(b => b.days && (span === 'year' || b.to < today));
   const good = counted.filter(kept).length;
   let base = 0, hand = 0;
   for (const e of events) if (e.type === 'drink') { if (e.deviceId) base += e.amount; else hand += e.amount; }

@@ -57,6 +57,20 @@ export async function signOutAccount(): Promise<void> {
   if (session) await request('/api/auth/logout', { method: 'POST' }, session.token).catch(() => {});
 }
 
+// A new password (the current one too when the account has one); the server signs out every other phone.
+export async function changePassword(current: string, password: string): Promise<Account> {
+  const { account } = await request<{ account: Account }>('/api/account/password', { method: 'POST', body: JSON.stringify({ current, password }) });
+  const session = readSession();
+  if (session) try { localStorage.setItem(SESSION_KEY, JSON.stringify({ ...session, account })); } catch { /* shown again on the next sign-in */ }
+  return account;
+}
+
+// Deletes the account and everything saved with it on the server; this phone is cleared by the caller.
+export async function deleteAccount(): Promise<void> {
+  await request('/api/account', { method: 'DELETE' });
+  try { localStorage.removeItem(SESSION_KEY); } catch { /* the token no longer works anyway */ }
+}
+
 export async function collectSnapshot(): Promise<Snapshot> {
   const local: Record<string, string> = {};
   for (let i = 0; i < localStorage.length; i++) {
@@ -81,17 +95,20 @@ export async function restoreSnapshot(snapshot: Snapshot): Promise<boolean> {
 // leaves the screen; the same snapshot twice is not sent again.
 let sent = '';
 let timer: ReturnType<typeof setTimeout> | undefined;
-export async function pushSnapshot(): Promise<void> {
-  if (!readSession() || !navigator.onLine) return;
+// True once the account holds what this phone has.
+export async function pushSnapshot(): Promise<boolean> {
+  if (!readSession() || !navigator.onLine) return false;
   const snapshot = await collectSnapshot();
   const key = JSON.stringify({ state: snapshot.state, local: snapshot.local });
-  if (key === sent) return;
+  if (key === sent) return true;
   try {
     await request('/api/account', { method: 'PUT', body: JSON.stringify({ data: snapshot }) });
     sent = key;
+    return true;
   } catch (e) {
     // A session the server no longer knows: sign out here too, so the phone stops trying.
     if ((e as { status?: number }).status === 401) try { localStorage.removeItem(SESSION_KEY); } catch { /* tried again later */ }
+    return false;
   }
 }
 const soon = () => { clearTimeout(timer); timer = setTimeout(() => void pushSnapshot(), 3000); };

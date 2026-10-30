@@ -22,6 +22,8 @@ let state: AppState = defaults();
 let monthOffset = 0; // 0 = this month, -1 = the one before …
 
 const limitMode = () => state.mode === 'limit';
+// Weights between sessions are for kidney failure on dialysis; a heart patient under a limit has no sessions.
+const onDialysis = () => readProfile().condition === 'kidney';
 const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
 
 function streakCard(current: number, best: number): string {
@@ -106,7 +108,7 @@ function weightCard(): string {
 const REPORT_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4.5V3.5h6v1M9 10h6M9 14h6M9 18h3"/></svg>';
 const reportLink = () => `<a class="hx-card pr-link" href="/nurse.html${escape(location.search)}">
     <span class="pr-link-icon">${REPORT_ICON}</span>
-    <span class="pr-link-text"><b>Сувилагчид харуулах</b><small>7 хоногийн тайлан · диализ дээр үзүүлэх</small></span>
+    <span class="pr-link-text">${onDialysis() ? '<b>Сувилагчид харуулах</b><small>7 хоногийн тайлан · диализ дээр үзүүлэх</small>' : '<b>Эмчид харуулах</b><small>7 хоногийн тайлан · үзлэг дээр үзүүлэх</small>'}</span>
     <i aria-hidden="true">›</i>
   </a>`;
 
@@ -146,7 +148,7 @@ function render(): void {
         ${hxHeader('Явц')}
         ${streakCard(current, best)}
         ${calendar(dayTotals(state.events))}
-        ${limitMode() ? weightCard() + reportLink() : extraCard(dayTotals(state.events))}
+        ${limitMode() ? (onDialysis() ? weightCard() : '') + reportLink() : extraCard(dayTotals(state.events))}
         ${milestones(best)}
       </div>
     </div></main>

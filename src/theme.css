@@ -1076,6 +1076,13 @@ html .hx-radio { display: flex; align-items: center; gap: 14px; min-height: 48px
 html .hx-radio input { width: 20px; height: 20px; accent-color: var(--sky); }
 html .hx-bottom h2.danger { color: #f75555; }
 html .hx-confirm-text { margin: 0 0 22px; font-size: 16px; color: var(--ink); }
+html .hx-pw form { display: grid; gap: 12px; text-align: left; }
+html .hx-pw .hx-confirm-text { margin: 0; }
+html .hx-pw-field { display: grid; gap: 6px; font-size: 14px; font-weight: 600; color: var(--muted); }
+html .hx-pw-field input { min-height: 50px; padding: 0 14px; border: 1px solid #e6e6e6; border-radius: 14px; background: #fafafa; font: inherit; font-size: 16px; color: var(--ink); }
+html .hx-pw-field input:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 2px var(--sky-soft); }
+html .hx-pw .hx-error { margin: 0; }
+html[data-theme="dark"] .hx-pw-field input { border-color: #35383f; background: #1f222a; }
 
 /* ---- Dark theme (kit "Dark" screens), on <html data-theme="dark"> ---- */
 html[data-theme="dark"] .hx-card { box-shadow: none; }

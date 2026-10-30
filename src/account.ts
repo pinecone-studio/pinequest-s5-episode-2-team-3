@@ -1,8 +1,9 @@
 import type { AppState } from './data';
 import { escape, number } from './format';
 import { CUP_ICONS, readCups, writeCups, readCup, writeCup, type Cup } from './hydrify';
-import { chooseSheet, confirmSheet, openAmountSheet, pickTime } from './hx-edit';
-import { WEEKDAY_SHORT, readDialysis, writeDialysis } from './progress-data';
+import { chooseSheet, confirmSheet, openAmountSheet, passwordSheet, pickTime } from './hx-edit';
+import { changePassword, signedIn } from './session';
+import { WEEKDAY_SHORT, kg, readDialysis, readDryWeight, writeDialysis, writeDryWeight } from './progress-data';
 import { RULES, readRules, writeRules, type Rule } from './drink-flags';
 import { readSettings, writeSettings } from './schedule';
 import { ACTIVITIES, readProfile, writeProfile, type Activity } from './plan';
@@ -24,6 +25,7 @@ export interface Ctx {
   profilePanel: () => string;
   restart: () => void;
   logout: () => void;
+  deleteAccount: () => void;
   redraw: () => void;
 }
 
@@ -240,11 +242,13 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
     doctor: {
       title: 'Эмчийн зөвлөмж', back: '',
       body: () => {
-        const s = ctx.state(), d = readDialysis();
+        const s = ctx.state(), d = readDialysis(), p = readProfile();
+        // «Эмчийн тогтоосноор» only when the saved amount is the doctor's one; otherwise it was calculated.
+        const fromDoctor = s.goal === p.doctorLimit && s.mode === p.doctorMode;
         const chip = (n: number) => `<button type="button" class="dr-chip" data-dday="${n}" aria-pressed="${d.days.includes(n)}">${WEEKDAY_SHORT[n % 7]}</button>`;
         return `<section class="hx-card dr-limit">
             <span class="dr-lock" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg></span>
-            <div><small>${s.mode === 'limit' ? 'Өдрийн шингэний хязгаар' : 'Өдрийн зорилт'}</small><b>${number(s.goal)} мл</b><small>Эмчийн тогтоосноор · AI өөрчлөхгүй</small></div>
+            <div><small>${s.mode === 'limit' ? 'Өдрийн шингэний хязгаар' : 'Өдрийн зорилт'}</small><b>${number(s.goal)} мл</b><small>${fromDoctor ? 'Эмчийн тогтоосноор · AI өөрчлөхгүй' : 'Тооцоолсон · эмчийн хэмжээг «Засах»-аас оруулна'}</small></div>
             <a href="#goal">Засах</a>
           </section>
           <section class="hx-card dr-rules" aria-labelledby="dr-rules-title">
@@ -252,11 +256,12 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
             <p>Тэмдэглэсэн ундаа сонгох үед улаан «Эмч хориглосон» гэж харагдана.</p>
             <ul>${RULES.map(r => `<li><label class="dr-rule"><input type="checkbox" data-rule="${r.id}" ${readRules().includes(r.id) ? 'checked' : ''}/><span><b>${r.name}</b><small>${r.sub}</small></span></label></li>`).join('')}</ul>
           </section>
-          <section class="hx-card dr-days" aria-labelledby="dr-days-title">
+          ${p.condition === 'kidney' ? `<section class="hx-card dr-days" aria-labelledby="dr-days-title">
             <h2 id="dr-days-title">Диализын өдрүүд</h2><small>Тайлан, жингийн тооцоонд ашиглана</small>
             <div class="dr-chips" role="group" aria-labelledby="dr-days-title">${[1, 2, 3, 4, 5, 6, 7].map(chip).join('')}</div>
             <button type="button" class="dr-time" data-act="dtime"><span>Эхлэх цаг</span><b>${d.time}</b></button>
-          </section>`;
+            <button type="button" class="dr-time" data-act="dry"><span>Хуурай жин <small>эмчийн тогтоосон</small></span><b>${readDryWeight() ? `${kg(readDryWeight()!)} кг` : 'Оруулаагүй'}</b></button>
+          </section>` : ''}`;
       },
       foot: '<p class="dr-foot">Эмчийнхээ хэлснээр тэмдэглээрэй. Дусал эмчилгээний шийдвэр гаргахгүй.</p>',
       bind: root => {
@@ -271,7 +276,13 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
           const rules = readRules().filter(r => r !== i.dataset.rule);
           writeRules(i.checked ? [...rules, i.dataset.rule as Rule] : rules);
         }));
-        on(root, { dtime: () => pickTime(asDate(readDialysis().time), t => { writeDialysis({ ...readDialysis(), time: hhmm(t) }); ctx.redraw(); }, 'Диализ эхлэх цаг') });
+        on(root, {
+          dtime: () => pickTime(asDate(readDialysis().time), t => { writeDialysis({ ...readDialysis(), time: hhmm(t) }); ctx.redraw(); }, 'Диализ эхлэх цаг'),
+          dry: () => openAmountSheet('Хуурай жин', '⚖️', readDryWeight() ?? readProfile().weight, v => {
+            if (v < 10 || v > 250) { notify('Жин 10–250 кг байна.'); return; }
+            writeDryWeight(v); ctx.redraw();
+          }, 'кг', 250, 1),
+        });
       },
     },
     widgets: { title: 'Нүүр дэлгэцийн widget', back: '', body: widgetsBody, bind: bindWidgets },
@@ -304,24 +315,32 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
     goal: { title: 'Өдрийн зорилт', get back() { return goalBack; }, body: ctx.goalSection },
     security: {
       title: 'Бүртгэл ба аюулгүй байдал', back: '',
-      body: () => { const s = security.read(); return rows([
+      body: () => { const s = security.read(), acc = signedIn(); return rows([
         { label: 'Хурууны хээ', sw: ['biometric', s.biometric] }, { label: 'Face ID', sw: ['faceId', s.faceId] },
         { label: 'SMS баталгаажуулалт', sw: ['sms', s.sms] }, { label: 'Google Authenticator', sw: ['google', s.google] },
-        { label: 'Нууц үг солих', act: 'password' },
+        ...(acc ? [{ label: acc.password ? 'Нууц үг солих' : 'Нууц үг тохируулах', desc: escape(acc.email), act: 'password' }] : []),
         { label: 'Төхөөрөмжийн удирдлага', desc: 'Бүртгэлдээ холбосон төхөөрөмжүүдээ удирдах', href: '#linked' },
         { label: 'Бүртгэлээ түр хаах', desc: 'Түр хаагаад, хүссэн үедээ буцааж нээнэ', act: 'deactivate' },
-        { label: 'Бүртгэл устгах', desc: 'Бүртгэл, өгөгдлөө бүрмөсөн устгана. Болгоомжтой!', act: 'delete', danger: true },
+        acc ? { label: 'Бүртгэл устгах', desc: 'Бүртгэл, серверт хадгалсан бүх мэдээлэл бүрмөсөн устна', act: 'delete', danger: true }
+          : { label: 'Энэ утасны мэдээллийг устгах', desc: 'Бүртгэлгүй (Demo): усны бүртгэл, тохиргоо энэ утаснаас устна', act: 'delete', danger: true },
       ]); },
       bind: root => on(root, {
-        password: () => notify('Demo: нууц үг одоогоор утсан дээрх профайлд хэрэглэгдэхгүй.'),
+        password: () => passwordSheet(!!signedIn()?.password, async (current, next) => {
+          try { await changePassword(current, next); } catch (e) { return (e as Error).message; }
+          notify('Нууц үг солигдлоо. Бусад утаснаас гарлаа.');
+          ctx.redraw();
+          return null;
+        }),
         deactivate: () => confirmSheet('Түр хаах', 'Бүртгэлээ түр хаах уу?', 'Тийм', () => notify('Бүртгэлийг түр хаалаа (demo).')),
-        delete: () => confirmSheet('Бүртгэл устгах', 'Профайл, нэр энэ утаснаас устна. Үргэлжлүүлэх үү?', 'Тийм, устгах', ctx.logout),
+        delete: () => signedIn()
+          ? confirmSheet('Бүртгэл устгах', 'Бүртгэл болон серверт хадгалсан усны бүртгэл, тохиргоо бүрмөсөн устна. Буцаах боломжгүй.', 'Тийм, устгах', ctx.deleteAccount)
+          : confirmSheet('Мэдээлэл устгах', 'Энэ утсан дахь усны бүртгэл, тохиргоо бүрмөсөн устна. Буцаах боломжгүй.', 'Тийм, устгах', ctx.deleteAccount),
       }, Object.fromEntries((['biometric', 'faceId', 'sms', 'google'] as const).map(k => [k, (v: boolean) => { security.write({ [k]: v }); }]))),
     },
     linked: {
       title: 'Холбосон бүртгэл', back: '',
       body: () => { const l = linked.read(); const acc = (k: keyof typeof l, name: string, b: string) => `<div class="hx-card ac-pay-opt">${method({ id: k, name, detail: '', brand: b }, `<button type="button" class="ac-connect${l[k] ? ' on' : ''}" data-act="link" data-k="${k}">${l[k] ? 'Холбогдсон' : 'Холбох'}</button>`)}</div>`;
-        return `<div class="ac-pay-list">${acc('google', 'Google', 'google')}${acc('apple', 'Apple', 'apple')}${acc('facebook', 'Facebook', 'card')}${acc('twitter', 'X (Twitter)', 'card')}</div><h2 class="ac-sub">Төхөөрөмж</h2>${ctx.devices()}`; },
+        return `<div class="ac-pay-list">${acc('google', 'Google', 'google')}${acc('apple', 'Apple', 'apple')}${acc('facebook', 'Facebook', 'card')}${acc('twitter', 'X (Twitter)', 'card')}</div>${ctx.devices()}`; },
       bind: root => on(root, { link: el => { const k = el.dataset.k as 'google'; linked.write({ [k]: !linked.read()[k] }); ctx.redraw(); } }),
     },
     data: {

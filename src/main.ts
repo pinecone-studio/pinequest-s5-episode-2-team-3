@@ -1,6 +1,2 @@
-import './style.css';
-import './shell.css';
-import './entries.css';
-import './app';
-import './pwa';
-import './theme.css';
+// The old «Ус бүртгэх» page (entries.html) gave way to «Нүүр» and «Түүх»; old links and bookmarks land in «Түүх».
+location.replace('/history.html' + location.search);
