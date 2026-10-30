@@ -77,6 +77,36 @@ function bottlesBlock(): string {
   </fieldset>`;
 }
 
+// The second base speaks (firmware/tools/make_voice.py, ElevenLabs). The demo plays the same phrases on the
+// phone, or with the base connected and «Суурь дээр» on, on the base's own speaker.
+const VOICES = [
+  ['ready', 'ready', 'Суурь танигдлаа'],
+  ['short150', '150', '150 мл дутуу'],
+  ['reached', 'reached', 'Хэмжээндээ хүрлээ'],
+  ['over', 'over', 'Хязгаараас хэтэрлээ'],
+  ['extra200', 'extra 200', '200 мл илүү уусан'],
+] as const;
+let onBase = true;
+let playing: HTMLAudioElement | null = null;
+function voiceBlock(): string {
+  const on = scale.phase === 'connected';
+  return `<fieldset class="scale-bottles scale-voice"><legend class="scale-sub">Суурийн хоолой</legend>
+    <p class="device-time">Суурь уулт тоолохдоо эдгээрийг хэлнэ. Дарж сонсоно уу.</p>
+    ${on ? `<label class="scale-voice-where"><input type="checkbox" data-voice-base ${onBase ? 'checked' : ''}> Суурь дээр сонсох</label>` : ''}
+    <div class="scale-actions">${VOICES.map(([file, , label]) => `<button type="button" data-voice="${file}">▶ ${label}</button>`).join('')}</div>
+  </fieldset>`;
+}
+function playVoice(file: string): void {
+  const said = VOICES.find(v => v[0] === file)![1];
+  if (scale.phase === 'connected' && onBase) {
+    void scale.speak(said === 'ready' || said === 'reached' || said === 'over' || said === 'extra 200' ? said : Number(said)).catch(() => {});
+    return;
+  }
+  playing?.pause();
+  playing = new Audio(`/voice/${file}.mp3`);
+  void playing.play().catch(() => {});
+}
+
 // Rebuilt only when the connection, the bottles or a command result change; the live line is updated in
 // place every second.
 function renderScale(): void {
@@ -97,6 +127,7 @@ function renderScale(): void {
       ${scale.message ? `<p>${escape(scale.message)}</p>` : ''}
       ${scale.saved && !on ? '<div class="scale-actions"><button type="button" data-scale-forget>Салгах</button></div>' : ''}
       ${on || (full && scale.phase !== 'unsupported') ? bottlesBlock() : ''}
+      ${on || full ? voiceBlock() : ''}
       <p class="device-error" role="alert" hidden></p>
       <div class="scale-help" role="status" hidden></div>`;
     host.querySelector('[data-scale-pair]')?.addEventListener('click', () => void act(host, () => scale.pair(), true));
@@ -106,6 +137,8 @@ function renderScale(): void {
     host.querySelectorAll<HTMLButtonElement>('[data-bottle-remove]').forEach(b => b.addEventListener('click', () => scale.removeBottle(b.dataset.bottleRemove!)));
     host.querySelector('[data-scale-zero]')?.addEventListener('click', () => void act(host, () => scale.zero()));
     host.querySelector('[data-reset-today]')?.addEventListener('click', () => void act(host, () => scale.resetToday()));
+    host.querySelectorAll<HTMLButtonElement>('[data-voice]').forEach(b => b.addEventListener('click', () => playVoice(b.dataset.voice!)));
+    host.querySelector<HTMLInputElement>('[data-voice-base]')?.addEventListener('change', e => { onBase = (e.target as HTMLInputElement).checked; });
     host.querySelector<HTMLFormElement>('[data-bottle-add]')?.addEventListener('submit', event => {
       event.preventDefault();
       const name = new FormData(event.target as HTMLFormElement).get('name');
