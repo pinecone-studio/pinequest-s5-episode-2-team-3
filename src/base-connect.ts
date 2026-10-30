@@ -3,6 +3,7 @@ import { BleClient } from '@capacitor-community/bluetooth-le';
 import { savedBottles, scale } from './scale';
 import { BASE_ICON, bindBottles } from './components/DevicePanel';
 import { directText } from './device-status';
+import { mdIcon } from './components/Icon';
 import { notify } from './components/Toast';
 import { defaultIcon, readCups, writeCups } from './hydrify';
 import { escape, number } from './format';
@@ -94,7 +95,7 @@ function baseBlock(): string {
       <div><input id="bc-bottle-name" name="name" maxlength="24" placeholder="Савны нэр" autocomplete="off">
       <button type="submit" class="wt-ghost">Жинлэх</button></div>
     </form>` : '<button type="button" class="bc-add-row" data-bc-adding>+ Шинэ сав нэмэх</button>'}
-    ${scale.result ? `<p class="bc-result" role="status">${escape(scale.result)}</p>` : ''}
+    ${scale.result ? `<p class="bc-result" role="status">${scale.resultOk ? mdIcon('check') : ''}${escape(scale.result)}</p>` : ''}
     <p class="device-error bc-error" role="alert" hidden></p>`;
 }
 const baseKey = () => [scale.result, JSON.stringify(savedBottles()), adding, scale.addedBottle?.id].join('|');
@@ -117,7 +118,8 @@ function renderBase(pop: HTMLElement, force = false): void {
     const ml = fillMl(), bottle = scale.addedBottle;
     if (ml === null || ml < MIN_CUP_ML || !bottle) return;
     saveCup(ml, bottle.name);
-    scale.result = `«${bottle.name}»: ${number(bottle.grams)} г сав, ${number(ml)} мл аяга ✓`;
+    scale.result = `«${bottle.name}»: ${number(bottle.grams)} г сав, ${number(ml)} мл аяга`;
+    scale.resultOk = true;
     done();
   });
 }

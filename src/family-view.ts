@@ -1,10 +1,12 @@
 import type { Leaderboard, LeaderboardRow } from '../shared/family';
 import { AVATARS, avatarSvg, type AvatarId } from './avatars';
 import { escape, number } from './format';
+import { mdIcon } from './components/Icon';
 
 // The family card on the home screen. Names and avatars come from other phones through the server,
 // so everything is escaped and an unknown avatar falls back to the bottle.
-const MEDALS = ['🥇', '🥈', '🥉'];
+// Gold, silver and bronze medals for the first three (their colours: theme.css .fam-medal).
+const MEDALS = ['gold', 'silver', 'bronze'].map(c => mdIcon('military_tech', `fam-medal ${c}`));
 
 function avatarOf(id: string): AvatarId {
   return Object.hasOwn(AVATARS, id) ? id as AvatarId : 'bottle';
@@ -14,10 +16,10 @@ function rowHtml(r: LeaderboardRow, i: number): string {
   const avatar = avatarOf(r.avatar);
   const frac = Math.min(1, r.drinkMl / r.goalMl);
   // Under a doctor's limit nobody is ranked and nothing cheers for more: only how close the limit is.
-  const place = r.rank === null ? '<span class="fam-place" aria-label="Эмчийн хязгаар">💙</span>'
+  const place = r.rank === null ? `<span class="fam-place" aria-label="Эмчийн хязгаар">${mdIcon('favorite', 'fam-limit')}</span>`
     : `<span class="fam-place" aria-label="${r.rank}-р байр">${MEDALS[r.rank - 1] ?? r.rank}</span>`;
   const value = r.mode === 'limit'
-    ? (r.drinkMl > r.goalMl ? 'Хязгаараас хэтэрсэн' : 'Хязгаартаа ✓')
+    ? (r.drinkMl > r.goalMl ? 'Хязгаараас хэтэрсэн' : `Хязгаартаа ${mdIcon('check')}`)
     : `${number(r.pct)}%`;
   return `<li class="fam-row${r.me ? ' me' : ''}">
     ${place}

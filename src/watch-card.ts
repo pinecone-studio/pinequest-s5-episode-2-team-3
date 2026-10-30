@@ -1,4 +1,5 @@
 import { escape, number, time } from './format';
+import { mdIcon } from './components/Icon';
 import { health, type HealthDay } from './health';
 import { API_URL } from './api';
 import { readProfile } from './plan';
@@ -99,7 +100,7 @@ export function watchCard(): string {
     </div>
     <div class="hb-tile green hb-score">
       <div class="hb-score-text"><small>Эрүүл мэндийн оноо · <strong>${label}</strong></small>
-        ${tip ? `<p><span class="hx-tip-tag">${tip.ai ? '✨ AI зөвлөгөө' : '💡 Зөвлөгөө'}</span>${escape(tip.text)}</p>${tip.extraMl ? `<b class="hx-tip-extra">+${number(tip.extraMl)} мл нэмж уух</b>` : ''}` : ''}</div>
+        ${tip ? `<p><span class="hx-tip-tag">${tip.ai ? `${mdIcon('auto_awesome')} AI зөвлөгөө` : `${mdIcon('lightbulb')} Зөвлөгөө`}</span>${escape(tip.text)}</p>${tip.extraMl ? `<b class="hx-tip-extra">+${number(tip.extraMl)} мл нэмж уух</b>` : ''}` : ''}</div>
       <span class="hb-ring" role="img" aria-label="Оноо ${score} / 10"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="40" class="bg"/><circle cx="50" cy="50" r="40" class="fg" stroke-dasharray="${((score / 10) * C).toFixed(1)} ${C.toFixed(1)}"/></svg><b>${score}/10</b></span>
     </div>
     ${health.message ? `<p class="hx-watch-empty">${escape(health.message)}</p>` : ''}

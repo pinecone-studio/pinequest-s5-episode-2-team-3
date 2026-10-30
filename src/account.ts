@@ -1,5 +1,6 @@
 import type { AppState } from './data';
 import { escape, number } from './format';
+import { mdIcon } from './components/Icon';
 import { CUP_ICONS, readCups, writeCups, readCup, writeCup, type Cup } from './hydrify';
 import { chooseSheet, confirmSheet, openAmountSheet, passwordSheet, pickTime } from './hx-edit';
 import { changePassword, signedIn } from './session';
@@ -79,7 +80,7 @@ function cupEditor(isNew: boolean): string {
   const c = editing!.cup;
   return `<section class="hx-card ac-cup-edit">
     <span class="ac-cup-big" aria-hidden="true">${CUP_ICONS[c.icon]}</span>
-    <button type="button" class="ac-ml-chip" data-act="ml">${number(c.ml)} мл ✎</button>
+    <button type="button" class="ac-ml-chip" data-act="ml">${number(c.ml)} мл ${mdIcon('edit')}</button>
     <p class="ac-small">Аяганы дүрс сонгох</p>
     <div class="ac-icon-grid" role="radiogroup" aria-label="Аяганы дүрс">${CUP_ICONS.map((svg, i) => `<button type="button" role="radio" aria-checked="${i === c.icon}" aria-label="Дүрс ${i + 1}" class="${i === c.icon ? 'on' : ''}" data-act="icon" data-i="${i}">${svg}</button>`).join('')}</div>
   </section>${isNew ? '' : ''}`;
@@ -132,7 +133,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
   const cupsList = (): string => `<section class="hx-card ac-menu ac-cups-list"><ul>${readCups().map((c, i) => `<li><span class="ac-row">
       <span class="ac-grip" aria-hidden="true">⠿</span><span class="ac-cup-icon" aria-hidden="true">${CUP_ICONS[c.icon]}</span><span class="ac-label">${number(c.ml)} мл</span>
       <span class="ac-order"><button type="button" data-act="up" data-i="${i}" aria-label="${c.ml} мл дээш" ${i ? '' : 'disabled'}>↑</button></span>
-      <button type="button" class="ac-pen" data-act="edit" data-i="${i}" aria-label="${c.ml} мл засах">✎</button></span></li>`).join('')}</ul></section>`;
+      <button type="button" class="ac-pen" data-act="edit" data-i="${i}" aria-label="${c.ml} мл засах">${mdIcon('edit')}</button></span></li>`).join('')}</ul></section>`;
 
   const reminderBody = (): string => {
     const s = readSettings(), r = reminder.read(), goal = ctx.state().goal;
@@ -196,7 +197,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
       bind: root => bindCup(root),
     },
     'cup-edit': {
-      title: 'Аяга засах', back: 'cups', right: '<button type="button" class="hx-more ac-trash" data-act="delete" aria-label="Аяга устгах">🗑</button>',
+      title: 'Аяга засах', back: 'cups', right: '<button type="button" class="hx-more ac-trash" data-act="delete" aria-label="Аяга устгах">' + mdIcon('delete') + '</button>',
       body: () => (editing && editing.index >= 0 ? cupEditor(false) : '<p class="hx-empty">Аяга сонгогдоогүй.</p>'),
       foot: two('<a class="hx-light ac-btn" href="#cups">Цуцлах</a>', '<button type="button" class="hx-blue" data-act="save">Хадгалах</button>'),
       bind: root => bindCup(root),
@@ -228,9 +229,9 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
       bind: root => on(root, {
         sex: () => chooseSheet('Хүйс', [['male', 'Эрэгтэй'], ['female', 'Эмэгтэй'], ['none', 'Бусад']], about.read().sex, v => { about.write({ sex: v as 'male' | 'female' | 'none' }); ctx.redraw(); }),
         climate: () => chooseSheet('Уур амьсгал', [['hot', 'Халуун'], ['mild', 'Дунд зэрэг'], ['cold', 'Хүйтэн']], about.read().climate, v => { about.write({ climate: v as 'hot' | 'mild' | 'cold' }); ctx.redraw(); }),
-        height: () => openAmountSheet('Өндөр', '📏', readProfile().height, v => (v >= 90 ? saveProfile({ height: v }) : notify('Өндөр 90–230 см байна.')), 'см', 230),
-        weight: () => openAmountSheet('Жин', '⚖️', readProfile().weight, v => (v >= 10 ? saveProfile({ weight: v }) : notify('Жин 10–250 кг байна.')), 'кг', 250),
-        age: () => openAmountSheet('Нас', '🎂', readProfile().age, v => (v >= 4 ? saveProfile({ age: v }) : notify('Нас 4–110 байна.')), 'нас', 110),
+        height: () => openAmountSheet('Өндөр', mdIcon('straighten'), readProfile().height, v => (v >= 90 ? saveProfile({ height: v }) : notify('Өндөр 90–230 см байна.')), 'см', 230),
+        weight: () => openAmountSheet('Жин', mdIcon('monitor_weight'), readProfile().weight, v => (v >= 10 ? saveProfile({ weight: v }) : notify('Жин 10–250 кг байна.')), 'кг', 250),
+        age: () => openAmountSheet('Нас', mdIcon('cake'), readProfile().age, v => (v >= 4 ? saveProfile({ age: v }) : notify('Нас 4–110 байна.')), 'нас', 110),
         wake: () => setTime('wake', 'Сэрэх цаг'),
         sleep: () => setTime('sleep', 'Унтах цаг'),
         activity: () => chooseSheet('Хөдөлгөөн', (Object.keys(ACTIVITIES) as Activity[]).map(a => [a, `${ACTIVITIES[a].label} · ${ACTIVITIES[a].hint}`]), readProfile().activity, v => saveProfile({ activity: v as Activity })),
@@ -278,7 +279,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
         }));
         on(root, {
           dtime: () => pickTime(asDate(readDialysis().time), t => { writeDialysis({ ...readDialysis(), time: hhmm(t) }); ctx.redraw(); }, 'Диализ эхлэх цаг'),
-          dry: () => openAmountSheet('Хуурай жин', '⚖️', readDryWeight() ?? readProfile().weight, v => {
+          dry: () => openAmountSheet('Хуурай жин', mdIcon('monitor_weight'), readDryWeight() ?? readProfile().weight, v => {
             if (v < 10 || v > 250) { notify('Жин 10–250 кг байна.'); return; }
             writeDryWeight(v); ctx.redraw();
           }, 'кг', 250, 1),
@@ -389,7 +390,7 @@ export function accountViews(ctx: Ctx): (key: string) => View | undefined {
     },
     contact: {
       title: 'Холбоо барих', back: 'help',
-      body: () => `<div class="ac-contact">${([['🎧', 'Хэрэглэгчийн туслах', 'mailto:hello@dusal.mn'], ['🌐', 'Вэб сайт', '/'], ['💬', 'WhatsApp', 'https://wa.me/'], ['📘', 'Facebook', 'https://facebook.com/'], ['𝕏', 'X (Twitter)', 'https://x.com/'], ['📸', 'Instagram', 'https://instagram.com/']] as const).map(([i, l, h]) => `<a class="hx-card ac-row" href="${h}" ${h.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}><span class="ac-label"><span aria-hidden="true">${i}</span> ${l}</span>${chevron}</a>`).join('')}</div>`,
+      body: () => `<div class="ac-contact">${([[mdIcon('headset_mic'), 'Хэрэглэгчийн туслах', 'mailto:hello@dusal.mn'], [mdIcon('language'), 'Вэб сайт', '/'], [mdIcon('chat'), 'WhatsApp', 'https://wa.me/'], [mdIcon('thumb_up'), 'Facebook', 'https://facebook.com/'], ['𝕏', 'X (Twitter)', 'https://x.com/'], [mdIcon('photo_camera'), 'Instagram', 'https://instagram.com/']] as const).map(([i, l, h]) => `<a class="hx-card ac-row" href="${h}" ${h.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}><span class="ac-label"><span aria-hidden="true">${i}</span> ${l}</span>${chevron}</a>`).join('')}</div>`,
     },
     privacy: { title: 'Нууцлалын бодлого', back: 'help', body: () => `<article class="ac-doc">${POLICY}</article>` },
     terms: { title: 'Үйлчилгээний нөхцөл', back: 'help', body: () => `<article class="ac-doc">${TERMS}</article>` },

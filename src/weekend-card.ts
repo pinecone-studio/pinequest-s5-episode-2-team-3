@@ -1,5 +1,6 @@
 import { dayKey, type AppState } from './data';
 import { escape, number } from './format';
+import { mdIcon } from './components/Icon';
 import { sheet } from './home-limit';
 import { streakNow } from './hydration';
 import { weekendFor, type WeekendNotice } from './weekend-notice';
@@ -21,7 +22,7 @@ export function openWeekendCard(n: WeekendNotice): void {
       <div class="wk-head"><img class="wk-face" src="/notif/${n.face}.png" alt="" width="56" height="56"><div><h2>${escape(c.heading)}</h2><p>${escape(c.note)}</p></div></div>
       ${line}
       <ul class="wk-days">${c.days.map(d => `<li><span>${escape(d.label)}</span><b>${number(d.ml)} мл</b><small>${c.word}</small></li>`).join('')}</ul>
-      ${c.streak > 0 ? `<p class="wk-streak">🔥 <b>${number(c.streak)} өдрийн streak</b> — амралтын өдрүүдэд ч үргэлжлүүлээрэй</p>` : ''}
+      ${c.streak > 0 ? `<p class="wk-streak">${mdIcon('local_fire_department')} <b>${number(c.streak)} өдрийн streak</b> — амралтын өдрүүдэд ч үргэлжлүүлээрэй</p>` : ''}
       <p class="wk-tip">${escape(c.tip)}</p>
       <button type="button" class="hx-blue hl-wide" data-ok data-focus>Ойлголоо</button>`, c.heading);
   box.querySelector('[data-ok]')!.addEventListener('click', close);

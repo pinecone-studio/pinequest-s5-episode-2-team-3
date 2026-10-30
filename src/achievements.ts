@@ -9,6 +9,7 @@ import { hxHeader } from './hydrify';
 import { chooseSheet, openAmountSheet } from './hx-edit';
 import { readProfile } from './plan';
 import { Toast, notify } from './components/Toast';
+import { mdIcon } from './components/Icon';
 import { addWeight, dayKept, dayTotals, extraOver, gains, keptGainDiff, kg, md, readWeights, streaks, type WeightTag } from './progress-data';
 import './theme.css';
 import './progress.css';
@@ -130,7 +131,7 @@ function enterWeight(): void {
   chooseSheet('Жин оруулах', [['before', 'Диализын өмнө'], ['after', 'Диализын дараа']], tag, value => {
     const t = value as WeightTag;
     const lastKg = readWeights().at(-1)?.kg ?? readProfile().weight;
-    openAmountSheet(t === 'before' ? 'Диализын өмнөх жин' : 'Диализын дараах жин', '⚖️', lastKg, v => {
+    openAmountSheet(t === 'before' ? 'Диализын өмнөх жин' : 'Диализын дараах жин', mdIcon('monitor_weight'), lastKg, v => {
       if (v < 10) { notify('Жин 10–250 кг байна.'); return; }
       if (!addWeight({ date: dayKey(), kg: v, tag: t })) { notify('Жинг хадгалж чадсангүй.'); return; }
       notify('Жинг хадгаллаа.');

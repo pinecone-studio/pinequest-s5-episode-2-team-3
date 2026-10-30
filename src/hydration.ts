@@ -147,7 +147,7 @@ export function hxWeekCard(events: readonly WaterEntry[], goal: number, mode: Mo
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + i); return d; });
   return `<section class="hx-card hx-home-week" aria-labelledby="hx-week-title">
     <div class="hx-card-head"><h2 id="hx-week-title">Энэ долоо хоног</h2>
-      <span class="hx-week-tools"><button type="button" class="hx-streak-chip${streak ? ' hot' : ''}" data-calendar aria-label="${streak} өдөр дараалан, календарь нээх"><span aria-hidden="true">🔥</span>${streak}</button>
+      <span class="hx-week-tools"><button type="button" class="hx-streak-chip${streak ? ' hot' : ''}" data-calendar aria-label="${streak} өдөр дараалан, календарь нээх">${mdIcon('local_fire_department')}${streak}</button>
       <button type="button" class="hx-cal-btn" data-calendar aria-label="Сарын календарь нээх"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button></span></div>
     <ol class="hx-week-rings">${days.map(d => {
       const k = dayKey(d), future = k > today, ml = totals.get(k) ?? 0;
@@ -155,7 +155,7 @@ export function hxWeekCard(events: readonly WaterEntry[], goal: number, mode: Mo
       const frac = met && mode === 'goal' ? 1 : Math.min(1, ml / goal);
       return `<li class="${k === today ? 'today' : ''}${met ? ' met' : ''}${over ? ' over' : ''}"><small>${WEEKDAYS[d.getDay()].slice(0, 2)}</small>
         <button type="button" class="hx-day" ${future ? 'disabled' : `data-day="${k}"`} aria-label="${dayTitle(d)}: ${number(ml)} мл${met ? ', биелсэн' : ''}">
-          <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" class="bg"/>${frac > 0 ? `<circle cx="20" cy="20" r="17" class="fg" stroke-dasharray="${(frac * C).toFixed(1)} ${C.toFixed(1)}"/>` : ''}</svg><b>${met ? '✓' : d.getDate()}</b></button></li>`;
+          <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" class="bg"/>${frac > 0 ? `<circle cx="20" cy="20" r="17" class="fg" stroke-dasharray="${(frac * C).toFixed(1)} ${C.toFixed(1)}"/>` : ''}</svg><b>${met ? mdIcon('check') : d.getDate()}</b></button></li>`;
     }).join('')}</ol>
   </section>`;
 }
@@ -190,7 +190,7 @@ function openDay(events: readonly WaterEntry[], goal: number, mode: Mode, key: s
   const over = mode === 'limit' && drunk > goal;
   const { box, close } = hxSheet('day-title', `<h2 id="day-title">${dayTitle(new Date(`${key}T12:00`))}</h2>
     <div class="hx-daysum">${ring(Math.min(1, drunk / goal), over, `${Math.min(999, pct)}%`, 64)}
-      <div><p class="hx-daysum-ml"><b>${number(drunk)}</b> / ${number(goal)} мл</p><p class="hx-daysum-note">${mode === 'goal' ? (drunk >= goal ? 'Зорилт биелсэн 🎉' : `Зорилтын ${pct}%`) : over ? `Хязгаараас ${number(drunk - goal)} мл хэтэрсэн` : `Хязгаарын ${pct}%`}</p></div></div>
+      <div><p class="hx-daysum-ml"><b>${number(drunk)}</b> / ${number(goal)} мл</p><p class="hx-daysum-note">${mode === 'goal' ? (drunk >= goal ? `Зорилт биелсэн ${mdIcon('celebration')}` : `Зорилтын ${pct}%`) : over ? `Хязгаараас ${number(drunk - goal)} мл хэтэрсэн` : `Хязгаарын ${pct}%`}</p></div></div>
     ${list.length ? `<ul class="hx-list">${list.map(e => `<li class="${e.type}"><span class="hx-icon">${entryIcon(e)}</span><span class="hx-what"><b>${escape(entryName(e))}${e.type === 'drink' ? '' : ` · ${TYPES[e.type]}`}</b><small>${time(e.at)}</small></span><span class="hx-ml">${number(e.amount)} мл</span><span></span></li>`).join('')}</ul>` : '<p class="hx-empty">Энэ өдөр бүртгэл алга.</p>'}
     <div class="hx-sheet-actions single"><a class="hx-light ac-btn" href="/history.html">Түүх рүү</a><button type="button" class="hx-blue" data-close>Хаах</button></div>`);
   box.querySelector('[data-close]')!.addEventListener('click', close);
@@ -250,9 +250,9 @@ function openCalendar(events: readonly WaterEntry[], goal: number, mode: Mode): 
     const isNow = y === new Date().getFullYear() && m === new Date().getMonth();
     panel.innerHTML = `<h2 id="cal-title">Streak</h2>
       <div class="hx-cal-stats">
-        <div><b><span aria-hidden="true">🔥</span> ${currentStreak(counts)}</b><small>Одоогийн</small></div>
-        <div><b><span aria-hidden="true">🏆</span> ${best}</b><small>Хамгийн урт</small></div>
-        <div><b><span aria-hidden="true">✅</span> ${met}</b><small>Энэ сард</small></div>
+        <div><b>${mdIcon('local_fire_department')} ${currentStreak(counts)}</b><small>Одоогийн</small></div>
+        <div><b>${mdIcon('emoji_events')} ${best}</b><small>Хамгийн урт</small></div>
+        <div><b>${mdIcon('check_circle')} ${met}</b><small>Энэ сард</small></div>
       </div>
       <div class="hx-cal-month"><button type="button" data-m="-1" aria-label="Өмнөх сар">‹</button><b>${y} оны ${m + 1}-р сар</b><button type="button" data-m="1" aria-label="Дараах сар" ${isNow ? 'disabled' : ''}>›</button></div>
       <div class="hx-cal-week" aria-hidden="true">${['Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя', 'Ня'].map(w => `<small>${w}</small>`).join('')}</div>

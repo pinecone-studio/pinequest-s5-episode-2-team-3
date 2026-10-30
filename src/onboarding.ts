@@ -295,14 +295,14 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   function stepBody(): string {
     switch (step) {
       case 1: return question('Таны хүйс?', 'Дусал таны усны төлөвлөгөөг тохируулна. Өөрийнхөө тухай бага зэрэг хэлээрэй.',
-        `<div class="ob-sex">${(['male', 'female'] as const).map(s => `<button type="button" class="ob-sex-opt${sex === s ? ' on' : ''}" data-sex="${s}" aria-pressed="${sex === s}"><span aria-hidden="true">${s === 'male' ? '♂' : '♀'}</span>${s === 'male' ? 'Эрэгтэй' : 'Эмэгтэй'}</button>`).join('')}</div>
+        `<div class="ob-sex">${(['male', 'female'] as const).map(s => `<button type="button" class="ob-sex-opt${sex === s ? ' on' : ''}" data-sex="${s}" aria-pressed="${sex === s}">${mdIcon(s)}${s === 'male' ? 'Эрэгтэй' : 'Эмэгтэй'}</button>`).join('')}</div>
         <button type="button" class="ob-sex-skip${sex === 'none' ? ' on' : ''}" data-sex="none" aria-pressed="${sex === 'none'}">Бусад</button>`);
       case 2: return question('Таны өндөр, жин?', 'Өдрийн усны хэмжээг голчлон биеийн жин, өндрөөр тооцно.',
         `<div class="ob-pick two">${body(sex, p.weight, p.height)}${wheel('ob-height', range(90, 230), p.height, 'см')}${wheel('ob-weight', range(10, 250), p.weight, 'кг')}</div>`);
       case 3: return question('Хэдэн настай вэ?', 'Нас ахих тусам цангах мэдрэмж сулардаг.', wheel('ob-age', range(4, 110), p.age, 'нас'));
       case 4: return question('Сэрэх, унтах цаг?', 'Сануулга сэрснээс хойш эхэлж, унтахаас өмнө дуусна.',
-        `<div class="ob-times">${([['ob-wake', 'Сэрэх', '☀', times.wake], ['ob-sleep', 'Унтах', '☾', times.sleep]] as const).map(([id, label, icon, at]) =>
-          `<section class="ob-tcard" aria-label="${label}"><p class="ob-time-label"><span aria-hidden="true">${icon}</span>${label}</p>${timePicker(id, at)}</section>`).join('')}</div>`);
+        `<div class="ob-times">${([['ob-wake', 'Сэрэх', mdIcon('light_mode'), times.wake], ['ob-sleep', 'Унтах', mdIcon('bedtime'), times.sleep]] as const).map(([id, label, icon, at]) =>
+          `<section class="ob-tcard" aria-label="${label}"><p class="ob-time-label">${icon}${label}</p>${timePicker(id, at)}</section>`).join('')}</div>`);
       case 5: return question('Хөдөлгөөний түвшин?', 'Хөдөлгөөн их байх тусам хөлсөөр их ус алдана.',
         `<div class="ob-cards">${(Object.keys(ACTIVITIES) as Activity[]).map(a => {
           const on = p.activity === a;
@@ -339,7 +339,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     }
     if (screen === 'signup') {
       return `<div class="ob-form"><button type="button" class="ob-back" aria-label="Буцах">←</button>
-        <h2 id="onb-title">Дусалд нэгдээрэй ✨</h2><p class="ob-lead left">Уусан усаа бүртгэж, сануулга тавьж, амжилтаа нээхийн тулд бүртгүүлээрэй.</p>
+        <h2 id="onb-title">Дусалд нэгдээрэй ${mdIcon('auto_awesome')}</h2><p class="ob-lead left">Уусан усаа бүртгэж, сануулга тавьж, амжилтаа нээхийн тулд бүртгүүлээрэй.</p>
         <label class="ob-field">Нэр<input id="ob-name" maxlength="24" autocomplete="nickname" placeholder="Жишээ нь: Сараа" value="${escape(name)}"/></label>
         <label class="ob-field">Имэйл<input id="ob-email" type="email" autocomplete="email" placeholder="Имэйл" value="${escape(email)}"/></label>
         <label class="ob-field">Нууц үг<input id="ob-pass" type="password" autocomplete="new-password" placeholder="Нууц үг"/></label>
@@ -353,7 +353,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     }
     if (screen === 'login') {
       return `<div class="ob-form"><button type="button" class="ob-back" aria-label="Буцах">←</button>
-        <h2 id="onb-title">Тавтай морил 👋</h2><p class="ob-lead left">Бүртгэлээрээ нэвтэрвэл таны усны мэдээлэл, тохиргоо буцаж ирнэ.</p>
+        <h2 id="onb-title">Тавтай морил ${mdIcon('waving_hand')}</h2><p class="ob-lead left">Бүртгэлээрээ нэвтэрвэл таны усны мэдээлэл, тохиргоо буцаж ирнэ.</p>
         <label class="ob-field">Имэйл<input id="ob-email" type="email" autocomplete="email" placeholder="Имэйл" value="${escape(email)}"/></label>
         <label class="ob-field">Нууц үг<input id="ob-pass" type="password" autocomplete="current-password" placeholder="Нууц үг"/></label>
         <p class="ob-or"><span>эсвэл</span></p>
@@ -375,7 +375,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         <div class="ob-units wide" role="radiogroup" aria-label="Нэгж">${(Object.keys(UNITS) as Unit[]).map(k => `<button type="button" role="radio" aria-checked="${k === unit}" class="${k === unit ? 'on' : ''}" data-unit="${k}">${UNITS[k].label}</button>`).join('')}</div>
         <span class="ob-glass" aria-hidden="true"><svg viewBox="0 0 48 64"><path d="M6 4h36l-4 56H10z" fill="#e3f0fd"/><path d="M8.6 22h30.8l-2.8 38H11.4z" fill="#369fff"/><circle cx="20" cy="40" r="2" fill="#fff"/><circle cx="28" cy="50" r="1.6" fill="#fff"/></svg></span>
         <p class="ob-result">${unit === 'ml' ? number(plan.ml) : shown}<span>${u.label}</span></p>
-        ${plan.mode === 'limit' ? '' : '<button type="button" class="ob-adjust" data-adjust>✎ Тохируулах</button>'}
+        ${plan.mode === 'limit' ? '' : `<button type="button" class="ob-adjust" data-adjust>${mdIcon('edit')} Тохируулах</button>`}
         <p class="ob-lead small">${escape(plan.how)}</p>
         ${p.condition === 'other' ? `<p class="ob-warn">${p.conditionNote ? `«${escape(p.conditionNote)}»-д` : 'Таны оношид'} тохирох хэмжээг эмчээсээ асуугаарай.</p>` : ''}
         <p class="ob-demo">Ерөнхий зөвлөмж. Эмчийн заавар байвал түүнийг дагана.</p>
@@ -400,7 +400,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       const button = box.querySelector<HTMLButtonElement>('[data-widget-done]');
       const state = box.querySelector<HTMLElement>('[data-widget-state]');
       if (button) button.disabled = !placed;
-      if (state) { state.textContent = placed ? 'Widget нэмэгдлээ ✓' : 'Widget нэмэгдээгүй байна'; state.classList.toggle('ok', placed); }
+      if (state) { state.innerHTML = placed ? `Widget нэмэгдлээ ${mdIcon('check')}` : 'Widget нэмэгдээгүй байна'; state.classList.toggle('ok', placed); }
     };
     const timer = setInterval(() => void check(), 1000);
     document.addEventListener('visibilitychange', check);
@@ -562,7 +562,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     on('[data-sex]', el => { sex = el.dataset.sex as Sex; if (sex !== 'female' && FOR_WOMEN.includes(p.condition)) p.condition = 'none'; draw(); });
     on('[data-locate]', () => void locate());
     on('[data-unit]', el => { unit = el.dataset.unit as Unit; draw(); });
-    on('[data-adjust]', () => openAmountSheet('Өдрийн зорилт', '💧', result().ml, ml => { custom = Math.max(500, Math.min(5000, Math.round(ml / 50) * 50)); draw(); }));
+    on('[data-adjust]', () => openAmountSheet('Өдрийн зорилт', mdIcon('water_drop'), result().ml, ml => { custom = Math.max(500, Math.min(5000, Math.round(ml / 50) * 50)); draw(); }));
     on('[data-act]', el => {
       const a = el.dataset.act as Activity;
       if (a !== p.activity) move = { kinds: [], time: '' };

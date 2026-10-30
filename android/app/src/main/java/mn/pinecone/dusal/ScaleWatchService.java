@@ -308,15 +308,15 @@ public class ScaleWatchService extends Service {
         prefs.edit().putString("day", today).putInt("drunk", drunk).apply();
         int goal = prefs.getInt("goal", 0);
         boolean limit = "limit".equals(prefs.getString("mode", "goal"));
-        String title = "💧 " + amount + " мл ус уулаа", text, face = "notif_face_happy";
+        String title = amount + " мл ус уулаа", text, face = "notif_face_happy";
         boolean over = goal > 0 && drunk > goal;
         if (goal <= 0) text = "Суурь бүртгэлээ. Апп нээхэд өнөөдрийн дүнд нэмэгдэнэ.";
         else if (over && !limit) {
-            title = "⚠️ Өдрийн хэмжээгээ давлаа";
+            title = "Өдрийн хэмжээгээ давлаа";
             text = "Өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл. Цааш хэт их уух шаардлагагүй.";
             face = "notif_face_worried";
         } else if (over) {
-            title = "⚠️ Эмчийн хязгаараас хэтэрлээ";
+            title = "Эмчийн хязгаараас хэтэрлээ";
             text = "Өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл. Өнөөдөр дахиж уухаас зайлсхийгээрэй.";
             face = "notif_face_crying";
         } else if (limit && drunk * 10 >= goal * 8) {

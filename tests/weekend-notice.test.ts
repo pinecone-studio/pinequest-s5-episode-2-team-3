@@ -69,11 +69,11 @@ describe('everyone else', () => {
     const n = weekendNotice({ ...base, streak: 5 })!;
     expect(n.kind).toBe('goal');
     expect(n.title).toBe('Амралтын өдөр ч усаа мартуузай');
-    expect(n.body).toBe('Өдөрт 2,150 мл. 🔥 5 өдрийн streak-ээ амралтын өдрүүдэд ч үргэлжлүүлээрэй.');
+    expect(n.body).toBe('Өдөрт 2,150 мл. 5 өдрийн streak-ээ амралтын өдрүүдэд ч үргэлжлүүлээрэй.');
   });
   test('no streak part at 0', () => {
     const n = weekendNotice(base)!;
-    expect(n.body).not.toMatch(/streak|🔥/);
+    expect(n.body).not.toMatch(/streak/);
     expect(n.body.startsWith('Өдөрт 2,150 мл.')).toBe(true);
   });
   test('any other diagnosis gets the same notice', () => {

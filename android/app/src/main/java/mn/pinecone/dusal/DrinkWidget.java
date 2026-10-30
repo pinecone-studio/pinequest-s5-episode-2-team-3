@@ -38,7 +38,7 @@ public class DrinkWidget extends AppWidgetProvider {
         DRY(true, "Ширгэж байна"),
         SAVE(true, "Streak-ээ авраарай"),
         LAST(true, "Сүүлийн боломж"),
-        DONE(false, "Биеллээ 🎉"),
+        DONE(false, "Биеллээ"),
         RESET(false, "Дахин эхэлье"),
         LIMIT(false, "Хэвийн"),
         LIMIT_NEAR(true, "Ойртлоо"),

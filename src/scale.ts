@@ -75,6 +75,8 @@ export class ScaleLink {
   message = '';
   // What the last tare/zero/bottle command did, in words for the panel.
   result = '';
+  // `result` says it went through (a check mark beside it, base-connect.ts), not «waiting» or «failed».
+  resultOk = false;
   // The bottle «Хоосон жинг авах» just saved, until it has been filled and measured as a cup (base-connect.ts).
   addedBottle: Bottle | null = null;
   // «Шууд уух» (base-connect.ts): no bottle set up, so the weight on the base when it was pressed is taken as
@@ -222,7 +224,7 @@ export class ScaleLink {
     if (!bleId) throw new Error('Эхлээд суурьтай Bluetooth-ээр холбогдоно уу.');
     await BleClient.write(bleId, SCALE_SERVICE, COMMAND_CHAR, new DataView(new TextEncoder().encode(text).buffer));
   }
-  private say(result: string): void { this.result = result; this.changed(); }
+  private say(result: string): void { this.result = result; this.resultOk = false; this.changed(); }
   // The base's speaker says one of its phrases (the voice demo); a base without one ignores it.
   async speak(what: 'ready' | 'reached' | 'over' | number | `extra ${number}`): Promise<void> { await this.command(`say ${what}`); }
 
@@ -280,24 +282,25 @@ export class ScaleLink {
       writeBottles({ list: [...saved.list, bottle], selected: bottle.id });
       this.addedBottle = bottle;
       this.endDirect();
-      this.result = `«${bottle.name}» хадгалагдлаа: ${bottle.grams} г ✓`;
+      this.result = `«${bottle.name}» хадгалагдлаа: ${bottle.grams} г`;
     } else if (text === 'zero' && this.rezeroing) {
       // fixZero's zero: the bottle is the same, so the base gets its weight back.
       this.rezeroing = false;
       const bottle = saved.list.find(b => b.id === saved.selected);
       if (bottle) void this.command(`bottle ${bottle.grams}`).catch(() => {});
-      this.result = 'Суурийн тэгийг зассан ✓';
+      this.result = 'Суурийн тэгийг зассан';
     } else if (chosen) {
       const bottle = saved.list.find(b => b.id === saved.selected);
-      this.result = `${bottle ? `«${bottle.name}»` : 'Сав'} сонгогдлоо (${chosen[1]} г) ✓`;
+      this.result = `${bottle ? `«${bottle.name}»` : 'Сав'} сонгогдлоо (${chosen[1]} г)`;
     } else {
       // The base forgot its bottle when zeroed, so none is selected here either.
       if (text === 'zero' && saved.selected) writeBottles({ ...saved, selected: null });
-      this.result = tare ? `Савны жин: ${tare[1]} г ✓`
+      this.result = tare ? `Савны жин: ${tare[1]} г`
         : text === 'tare-failed' ? 'Жин тогтворжсонгүй. Саваа хөдөлгөлгүй тавиад дахин оролдоно уу.'
-        : text === 'zero' ? 'Суурийн жинг тэглэлээ ✓' : this.result;
+        : text === 'zero' ? 'Суурийн жинг тэглэлээ' : this.result;
     }
     if (tare || text === 'tare-failed') this.newBottleName = null;
+    this.resultOk = !!(tare || chosen || text === 'zero');
     this.changed();
   }
 

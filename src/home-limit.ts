@@ -1,4 +1,5 @@
 import { escape, number } from './format';
+import { mdIcon } from './components/Icon';
 import { KINDS, SALTABLE, type Kind } from './drinks';
 import { arcAt, arcPoint, gaugeArt, gaugeStart, iconFor, moreButton } from './hydrify';
 import { openDrinkSheet } from './drink-sheet';
@@ -235,7 +236,7 @@ export function openDial(ctx: AddCtx, kind: Kind | undefined, initial = ctx.cup,
     box.querySelector('[data-amount]')!.textContent = `+${number(value)} мл`;
     box.querySelector('[data-cups]')!.textContent = cupsText(value, ctx.cup, 0.25);
     chip.hidden = value <= left;
-    chip.textContent = `⚠ ${number(value - left)} мл хэтэрнэ`;
+    chip.innerHTML = `${mdIcon('warning')} ${number(value - left)} мл хэтэрнэ`;
     addButton.textContent = `Нэмэх · ${number(value)} мл`;
     addButton.disabled = value <= 0;
   };

@@ -1,5 +1,6 @@
 import type { WaterEntry } from './data';
 import { entryIcon } from './drinks';
+import { mdIcon } from './components/Icon';
 
 // History editing, Hydrify layout (kit screens 39–43): a small "edit / delete" menu on a row, and a
 // bottom sheet with the amount (own keypad), a date chip and a time chip that open wheel pickers.
@@ -126,7 +127,7 @@ export function openEditSheet(entry: WaterEntry, onSave: (next: WaterEntry) => P
     panel.innerHTML = `<h2>Ус засах</h2>
       <span class="hx-edit-cup" aria-hidden="true">${entryIcon(entry)}</span>
       <label class="hx-amount-box"><span class="visually-hidden">Хэмжээ, мл</span><input id="hx-amount" inputmode="numeric" value="${amount}" aria-describedby="hx-edit-error"/><small>мл</small></label>
-      <div class="hx-chips"><button type="button" data-date>${dateText(at)} <span aria-hidden="true">✎</span></button><button type="button" data-time>${timeText(at)} <span aria-hidden="true">✎</span></button></div>
+      <div class="hx-chips"><button type="button" data-date>${dateText(at)} ${mdIcon('edit')}</button><button type="button" data-time>${timeText(at)} ${mdIcon('edit')}</button></div>
       <p class="hx-error" id="hx-edit-error" role="alert" ${error ? '' : 'hidden'}>${error}</p>
       <div class="hx-sheet-actions"><button type="button" class="hx-light" data-cancel>Цуцлах</button><button type="button" class="hx-blue" data-save>Хадгалах</button></div>
       ${KEYPAD}`;
@@ -150,7 +151,7 @@ export function openRowMenu(button: HTMLElement, onEdit: () => void, onDelete: (
   const menu = document.createElement('div');
   menu.className = 'hx-popover';
   menu.setAttribute('role', 'menu');
-  menu.innerHTML = `<button type="button" role="menuitem" data-edit>✎ Засах</button><button type="button" role="menuitem" class="danger" data-delete>🗑 Устгах</button>`;
+  menu.innerHTML = `<button type="button" role="menuitem" data-edit>${mdIcon('edit')} Засах</button><button type="button" role="menuitem" class="danger" data-delete>${mdIcon('delete')} Устгах</button>`;
   document.body.append(menu);
   const r = button.getBoundingClientRect();
   menu.style.top = `${r.bottom + window.scrollY + 4}px`;

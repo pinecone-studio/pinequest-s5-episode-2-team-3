@@ -4,6 +4,7 @@
 import { API_URL } from './api';
 import { dayKey } from './data';
 import { escape, number } from './format';
+import { mdIcon } from './components/Icon';
 
 export interface WeatherAdvice {
   weather: { now: number; max: number; min: number; feelsMax: number; humidity: number; uv: number };
@@ -60,10 +61,10 @@ let weatherOpen = false;
 export function weatherChip(mode: 'goal' | 'limit'): string {
   if (!advice) return '';
   const w = advice.weather;
-  const icon = w.feelsMax >= 25 ? '☀️' : w.max <= -10 ? '❄️' : '⛅';
+  const icon = mdIcon(w.feelsMax >= 25 ? 'light_mode' : w.max <= -10 ? 'ac_unit' : 'partly_cloudy_day', 'weather-icon');
   const delta = mode === 'limit' || !advice.deltaMl ? '' : `<b>${advice.deltaMl > 0 ? '+' : '−'}${number(Math.abs(advice.deltaMl))} мл</b>`;
   return `<div class="weather-box"><button type="button" class="weather-chip" data-weather aria-expanded="${weatherOpen}" aria-controls="weather-pop" aria-label="Цаг агаар ${w.max}°${delta ? `, өнөөдөр ${advice.deltaMl > 0 ? 'нэмж' : 'хасаж'} ${number(Math.abs(advice.deltaMl))} мл уухыг зөвлөж байна` : ''}. Тайлбар харах">
-      <span aria-hidden="true">${icon}</span><span>${w.max}°</span>${delta}<span class="weather-info" aria-hidden="true">i</span></button>
+      ${icon}<span>${w.max}°</span>${delta}<span class="weather-info" aria-hidden="true">i</span></button>
     <p class="weather-pop" id="weather-pop" role="status" ${weatherOpen ? '' : 'hidden'}>${escape(advice.reason)}${delta ? ` Зөвлөмж: зорилтоосоо ${advice.deltaMl > 0 ? 'илүү' : 'бага'} ${number(Math.abs(advice.deltaMl))} мл.` : ''}</p></div>`;
 }
 let weatherBound = false;

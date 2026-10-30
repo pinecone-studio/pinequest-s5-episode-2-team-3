@@ -290,6 +290,10 @@
 .fam-row { display: grid; grid-template-columns: 28px 36px minmax(0, 1fr) 72px 56px; align-items: center; gap: 8px; min-height: 44px; }
 .fam-row.me { font-weight: 700; }
 .fam-place { font-size: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+/* The first three places' medals and the heart under a doctor's limit (family-view.ts). */
+.fam-place .md-icon { width: 24px; height: 24px; vertical-align: middle; }
+.fam-medal.gold { fill: #f2b01e; } .fam-medal.silver { fill: #9aa5b1; } .fam-medal.bronze { fill: #c27c45; }
+.fam-limit { fill: #369fff; }
 .fam-avatar svg { display: block; width: 32px; height: auto; overflow: visible; }
 .fam-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; color: var(--ink-2); }
 .fam-name small { font-weight: 400; color: var(--muted-2); }

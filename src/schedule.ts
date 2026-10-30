@@ -189,7 +189,7 @@ function tone(state: AppState, day: number, slot: number, count: number, ml: num
   // Days in a row up to today; tomorrow it is only alive if today is met.
   const streak = streakNow(state.events, state.goal, state.mode);
   const alive = day === 0 ? streak : day === 1 && met ? streak : 0;
-  if (slot === count - 1 && alive > 0) return { face: 'sad', title: `${alive} өдрийн streak алдагдах гэж байна!`, body: `${readPetName()} цангаж байна 💧 ${number(ml)} мл уугаад streak-ээ авраарай.` };
+  if (slot === count - 1 && alive > 0) return { face: 'sad', title: `${alive} өдрийн streak алдагдах гэж байна!`, body: `${readPetName()} цангаж байна. ${number(ml)} мл уугаад streak-ээ авраарай.` };
   if (slot === 0 && day === 1 && !met && streak > 0) return { face: 'crying', title: 'Streak тасарлаа…', body: `Өчигдөр зорилтдоо хүрсэнгүй. Өнөөдөр шинээр эхэлье: ${number(ml)} мл уугаарай.` };
   if (slot === 0 && day >= 2) return { face: 'sad', title: 'Дусал чамайг санаж байна', body: `Хэд хоног ус бүртгээгүй байна. ${number(ml)} мл-ээс эхэлье.` };
   return late;

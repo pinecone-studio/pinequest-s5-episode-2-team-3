@@ -145,7 +145,7 @@ export function weekendNotice(input: WeekendInput): WeekendNotice | null {
   const word = input.mode === 'limit' ? 'хязгаар' : 'зорилт';
   return {
     kind: 'goal', at, from, until, title, face: 'happy',
-    body: streak > 0 ? `Өдөрт ${ml} мл. 🔥 ${streak} өдрийн streak-ээ амралтын өдрүүдэд ч үргэлжлүүлээрэй.` : `Өдөрт ${ml} мл. Амралтын өдрүүдэд ч ${word === 'зорилт' ? 'зорилтоо биелүүлээрэй' : 'хязгаартаа багтаарай'}.`,
+    body: streak > 0 ? `Өдөрт ${ml} мл. ${streak} өдрийн streak-ээ амралтын өдрүүдэд ч үргэлжлүүлээрэй.` : `Өдөрт ${ml} мл. Амралтын өдрүүдэд ч ${word === 'зорилт' ? 'зорилтоо биелүүлээрэй' : 'хязгаартаа багтаарай'}.`,
     card: { heading: title, note: `Өдөр бүр ${ml} мл`, days, word, timeline: null, streak, tip: weekendTip(events, input.mode === 'limit', now) },
   };
 }

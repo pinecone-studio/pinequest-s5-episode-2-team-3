@@ -1,5 +1,6 @@
 import './widgets-view.css';
 import { escape } from './format';
+import { mdIcon } from './components/Icon';
 import { notify } from './components/Toast';
 import { pinWidget, widgetsAvailable, type WidgetKind } from './widget';
 
@@ -9,7 +10,7 @@ import { pinWidget, widgetsAvailable, type WidgetKind } from './widget';
 interface Item { kind: WidgetKind; name: string; size: string; about: string; preview: string }
 const ITEMS: Item[] = [
   { kind: 'water', name: 'Өнөөдрийн ус', size: '2×2', about: 'Хэдэн удаа уусан, нийт хэмжээ, төлөв',
-    preview: '<div class="wv wv-navy"><b class="wv-title">Өнөөдөр</b><small>💧 5 удаа</small><i></i><strong>1.2<small>л</small> <span class="wv-badge">▲</span><small>0.3</small></strong><em class="wv-white">Хэвийн</em></div>' },
+    preview: `<div class="wv wv-navy"><b class="wv-title">Өнөөдөр</b><small>${mdIcon('water_drop')} 5 удаа</small><i></i><strong>1.2<small>л</small> <span class="wv-badge">▲</span><small>0.3</small></strong><em class="wv-white">Хэвийн</em></div>` },
   { kind: 'left', name: 'Үлдсэн хэмжээ', size: '2×2', about: 'Эмчийн хязгаараас үлдсэн хэмжээгээр ус буурна',
     preview: '<div class="wv wv-black"><span class="wv-water" style="height:60%"></span><b class="wv-title">Эмчийн хязгаар</b><i></i><strong>0.9 <small>л үлдсэн</small></strong><em class="ok">Хэвийн</em><em>Хязгаар 1,500 мл</em></div>' },
   { kind: 'ring', name: 'Цагираг', size: '2×2', about: 'Өнөөдрийн ус цагаан цагираг дотор',
@@ -17,7 +18,7 @@ const ITEMS: Item[] = [
   { kind: 'mix', name: 'Ундааны задаргаа', size: '4×2', about: 'Ус, цай, шөл… тус бүрээр хэдийг уусан',
     preview: '<div class="wv wv-black wv-wide"><em><i class="d1">●</i> Ус 900 мл</em><em><i class="d2">●</i> Цай 300 мл</em><em><i class="d3">●</i> Шөл 250 мл</em><i></i><strong>1,450 <small>мл / 2,000</small></strong><span class="wv-stack"><i style="width:45%"></i><i style="width:15%"></i><i style="width:13%"></i></span></div>' },
   { kind: 'gauges', name: 'Гурван хэмжүүр', size: '4×1', about: 'Өнөөдрийн хувь, streak, 7 хоногийн биелэлт',
-    preview: '<div class="wv wv-pill">' + [['💧', '60%', 60], ['🔥', '4', 57], ['📅', '5/7', 71]].map(([icon, value, p]) => `<span class="wv-gauge" style="--p:${p}"><span>${icon}</span><b>${value}</b></span>`).join('') + '</div>' },
+    preview: '<div class="wv wv-pill">' + ([['water_drop', '60%', 60], ['local_fire_department', '4', 57], ['calendar_month', '5/7', 71]] as const).map(([icon, value, p]) => `<span class="wv-gauge" style="--p:${p}">${mdIcon(icon)}<b>${value}</b></span>`).join('') + '</div>' },
 ];
 
 const STEPS = ['Нүүр дэлгэцийн хоосон хэсэг дээр хуруугаа 1–2 секунд дарна.', 'Доор гарах цэснээс «Widgets»-ийг сонгоно.',

@@ -58,7 +58,7 @@ export function doctorCard(): string {
       <label class="visually-hidden" for="doc-text">Эмчийн заавар</label>
       <textarea id="doc-text" rows="3" maxlength="2000" placeholder="Жишээ: Өдөрт 1.5 литрээс хэтрүүлэхгүй. Өглөө 8, өдөр 12, орой 18 цагт 300 мл.">${escape(text)}</textarea>
       <div class="doc-row">
-        <label class="file-button doc-photo"><span aria-hidden="true">📷</span><span>${photo ? escape(photo.name) : 'Зураг'}</span><input type="file" id="doc-photo" accept="image/*"/></label>
+        <label class="file-button doc-photo">${mdIcon('photo_camera')}<span>${photo ? escape(photo.name) : 'Зураг'}</span><input type="file" id="doc-photo" accept="image/*"/></label>
         ${photo ? '<button type="button" class="text-button" data-doc-unphoto>Зураг хасах</button>' : ''}
         <button type="button" class="hx-blue doc-ask" data-doc-ask ${asking ? 'disabled' : ''}>${asking ? 'Уншиж байна…' : 'AI-д өгөх'}</button>
       </div>
@@ -101,7 +101,7 @@ export function bindDoctorCard(redraw: () => void, apply: (ml: number, mode: 'go
   card.querySelector<HTMLInputElement>('#doc-photo')!.addEventListener('change', async e => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    try { photo = { ...(await shrink(file)), name: file.name.length > 18 ? 'Зураг ✓' : file.name }; error = ''; }
+    try { photo = { ...(await shrink(file)), name: file.name.length > 18 ? 'Зураг сонгосон' : file.name }; error = ''; }
     catch { error = 'Зургийг уншиж чадсангүй. Өөр зураг оролдоно уу.'; }
     read = null; done = '';
     redraw();

@@ -8,15 +8,16 @@ const row = (over: Partial<Leaderboard['members'][number]>) =>
 
 test('ranked members show medals and their share of their own goal', () => {
   const html = familyCard(board([row({ rank: 1, name: 'Сараа', pct: 105, drinkMl: 2100 }), row({ rank: 2, name: 'Бат', pct: 72, me: true })]));
-  expect(html).toContain('🥇');
-  expect(html).toContain('🥈');
+  expect(html).toContain('fam-medal gold');
+  expect(html).toContain('fam-medal silver');
   expect(html).toContain('105%');
   expect(html).toContain('Бат <small>(та)</small>');
 });
 
 test('a doctor\'s limit is never ranked or cheered on', () => {
   const html = familyCard(board([row({ rank: null, name: 'Аав', mode: 'limit', drinkMl: 1200, goalMl: 1500, pct: 80 })]));
-  expect(html).toContain('Хязгаартаа ✓');
+  expect(html).toContain('Хязгаартаа <svg class="md-icon"');
+  expect(html).toContain('fam-limit');
   expect(html).not.toContain('<span class="fam-value">80%</span>');
   expect(familyCard(board([row({ rank: null, mode: 'limit', drinkMl: 1600, goalMl: 1500, pct: 107 })]))).toContain('Хязгаараас хэтэрсэн');
 });
