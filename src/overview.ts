@@ -523,7 +523,7 @@ function render() {
         ${limit ? '' : weatherChip(state.mode)}
         ${baseLive()}
         ${limit ? limitGauge(drink, goal, cup) : hxGauge(drink, goal, state.mode, readCup(), drinking)}${undoLine}
-        ${readProfile().condition === 'none' ? '' : doctorCard()}
+        ${doctorCard()}
         ${deviceTiles()}
         ${watchCard()}
         ${familySection()}
