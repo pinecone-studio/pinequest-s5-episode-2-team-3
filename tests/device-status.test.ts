@@ -16,6 +16,7 @@ describe('baseTile', () => {
   });
   test('linked: the water left in the bottle', () => {
     expect(baseTile('connected', status())).toEqual({ connected: true, status: 'Холбогдсон', detail: 'Сав: 620 мл', cta: false });
+    expect(baseTile('connected', status(), 'Цэнхэр сав').detail).toBe('Цэнхэр сав: 620 мл');
   });
   test('linked without a bottle set, or not calibrated: says what to do', () => {
     expect(baseTile('connected', status({ bottleSet: false, remainingMl: null })).detail).toBe('Саваа тохируулах');
