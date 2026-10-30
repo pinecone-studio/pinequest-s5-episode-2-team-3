@@ -10,6 +10,8 @@ import { openAmountSheet } from './hx-edit';
 import { about } from './prefs';
 import { climateOf, fetchWeather } from './weather';
 import { gaugeArt } from './hydrify';
+import { placedWidgets, widgetsAvailable } from './widget';
+import { bindWidgets, widgetPicker } from './widgets-view';
 
 // First visit, Hydrify layout: two walkthrough slides, a sign-up form (an account on our server, by email
 // and password or Google: src/session.ts) or «Нэвтрэх» for someone who already has one, whose data comes
@@ -24,7 +26,7 @@ export function needsOnboarding(): boolean {
 const markSeen = () => { try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* private mode: ask again next time */ } };
 
 type Sex = 'male' | 'female' | 'none';
-type Screen = 'walk' | 'signup' | 'login' | 'step' | 'making' | 'ready';
+type Screen = 'walk' | 'signup' | 'login' | 'step' | 'making' | 'ready' | 'widget';
 const GOOGLE_BUTTON = `<button type="button" class="ob-social" data-google><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285f4"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" fill="#34a853"/><path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2z" fill="#fbbc05"/><path d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10c.8-2.3 3-4.1 5.6-4.1z" fill="#ea4335"/></svg>Google-ээр үргэлжлүүлэх</button>`;
 const QUESTIONS = 7;
 type Climate = 'hot' | 'mild' | 'cold';
@@ -378,7 +380,30 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         <p class="ob-demo">Ерөнхий зөвлөмж. Эмчийн заавар байвал түүнийг дагана.</p>
         <div class="ob-actions single"><button type="button" class="ob-primary" data-done>Эхэлье!</button></div></div>`;
     }
+    if (screen === 'widget') {
+      return `<div class="ob-widget"><h2 id="onb-title">Нүүр дэлгэцэндээ widget нэмээрэй</h2>
+        <p class="ob-lead small">Усаа апп нээлгүй харах жижиг цонх. Нэгийг сонгоод «Нэмэх»-ийг дарна, утас хаана тавихыг асууна.</p>
+        <div class="ob-widgets">${widgetPicker()}</div>
+        <p class="ob-widget-state" role="status" data-widget-state>Widget нэмэгдээгүй байна</p>
+        <div class="ob-actions single"><button type="button" class="ob-primary" data-widget-done disabled>Үргэлжлүүлэх</button></div></div>`;
+    }
     return `<div class="ob-step">${stepBody()}<div class="ob-actions single"><button type="button" class="ob-primary" data-continue>Үргэлжлүүлэх</button></div></div>`;
+  }
+
+  // The widget step: «Үргэлжлүүлэх» opens once a widget is on the home screen. Placing one happens in the
+  // launcher, so it is checked every second and on coming back to the app.
+  function watchWidgets(): void {
+    const check = async () => {
+      if (screen !== 'widget' || !box.isConnected) { clearInterval(timer); document.removeEventListener('visibilitychange', check); return; }
+      const placed = await placedWidgets() > 0;
+      const button = box.querySelector<HTMLButtonElement>('[data-widget-done]');
+      const state = box.querySelector<HTMLElement>('[data-widget-state]');
+      if (button) button.disabled = !placed;
+      if (state) { state.textContent = placed ? 'Widget нэмэгдлээ ✓' : 'Widget нэмэгдээгүй байна'; state.classList.toggle('ok', placed); }
+    };
+    const timer = setInterval(() => void check(), 1000);
+    document.addEventListener('visibilitychange', check);
+    void check();
   }
 
   // calcPlan, plus a hot climate; "Тохируулах" overrides the amount (a doctor's limit stays as it is).
@@ -564,7 +589,13 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       }
       screen = 'making'; draw(); making();
     });
-    on('[data-done]', () => finish(result()));
+    // In the phone app a widget goes on the home screen before the app opens.
+    on('[data-done]', () => {
+      if (!widgetsAvailable) { finish(result()); return; }
+      screen = 'widget'; draw(); watchWidgets();
+    });
+    on('[data-widget-done]', () => finish(result()));
+    if (screen === 'widget') bindWidgets(box);
   }
 
   draw();

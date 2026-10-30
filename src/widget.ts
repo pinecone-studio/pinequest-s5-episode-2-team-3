@@ -9,6 +9,7 @@ import { KINDS, kindOf } from './drinks';
 interface WidgetPlugin {
   update(options: { drunk: number; goal: number; mode: 'goal' | 'limit'; day: string; streak: number; broke: boolean; count: number; kinds: string; week: number; yesterday: number }): Promise<void>;
   pin(options: { kind: WidgetKind }): Promise<{ pinned: boolean }>;
+  placed(): Promise<{ count: number }>;
 }
 const Widget = registerPlugin<WidgetPlugin>('DusalWidget');
 const enabled = Capacitor.getPlatform() === 'android';
@@ -20,6 +21,12 @@ export const widgetsAvailable = enabled;
 export async function pinWidget(kind: WidgetKind): Promise<boolean> {
   if (!enabled) return false;
   return (await Widget.pin({ kind }).catch(() => ({ pinned: false }))).pinned;
+}
+
+// How many of the app's widgets are on the home screen (0 where there are none, or no widgets at all).
+export async function placedWidgets(): Promise<number> {
+  if (!enabled) return 0;
+  return (await Widget.placed().catch(() => ({ count: 0 }))).count;
 }
 
 // Last sent, so re-rendering the home doesn't wake the widget for nothing.

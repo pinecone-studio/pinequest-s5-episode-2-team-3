@@ -1,3 +1,4 @@
+import './widgets-view.css';
 import { escape } from './format';
 import { notify } from './components/Toast';
 import { pinWidget, widgetsAvailable, type WidgetKind } from './widget';
@@ -22,12 +23,17 @@ const ITEMS: Item[] = [
 const STEPS = ['Нүүр дэлгэцийн хоосон хэсэг дээр хуруугаа 1–2 секунд дарна.', 'Доор гарах цэснээс «Widgets»-ийг сонгоно.',
   'Жагсаалтаас «Дусал»-ыг олно.', 'Хүссэн widget-ээ дарж нүүр дэлгэц рүү чирч тавина.'];
 
-export function widgetsBody(): string {
-  return `<p class="ac-small">Нүүр дэлгэцэндээ ус, эмчийн хязгаараа app нээлгүй харах жижиг цонх. «Нэмэх» дарахад утас хаана тавихыг асууна.</p>
-    ${ITEMS.map(w => `<section class="hx-card wv-card"><div class="wv-preview${w.size === '2×2' ? '' : ' wide'}">${w.preview}</div>
+// The widgets with «Нэмэх», and the steps by hand: on Profile and on the last onboarding step (onboarding.ts).
+export function widgetPicker(): string {
+  return `${ITEMS.map(w => `<section class="hx-card wv-card"><div class="wv-preview${w.size === '2×2' ? '' : ' wide'}">${w.preview}</div>
       <div class="wv-info"><b>${escape(w.name)}</b><small>${w.size} · ${escape(w.about)}</small>
       ${widgetsAvailable ? `<button type="button" class="hx-blue wv-add" data-widget="${w.kind}">Нэмэх</button>` : ''}</div></section>`).join('')}
     <section class="hx-card wv-steps" id="wv-steps"><h2 class="ac-card-title">Гараар нэмэх</h2><ol>${STEPS.map(s => `<li>${s}</li>`).join('')}</ol></section>`;
+}
+
+export function widgetsBody(): string {
+  return `<p class="ac-small">Нүүр дэлгэцэндээ ус, эмчийн хязгаараа app нээлгүй харах жижиг цонх. «Нэмэх» дарахад утас хаана тавихыг асууна.</p>
+    ${widgetPicker()}`;
 }
 
 export function bindWidgets(root: HTMLElement): void {
