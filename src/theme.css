@@ -27,12 +27,12 @@ html .app-shell { background: #fff; border: 0; border-radius: 28px; box-shadow: 
 html .app-top { border-bottom: 0; }
 html .app-top .brand > .brand-mark { background: var(--sky-soft); box-shadow: none; color: var(--sky-deep); }
 html .app-date { background: var(--sky-soft); color: var(--sky-deep); }
-@media (min-width: 561px) {
+@media (min-width: 561px) and (hover: hover) {
   html main.home-app > .app-shell { background: #fff; }
   /* Hydrify pages: grey ground so their white cards stand out, as on a phone and in dark. */
   html main.home-app > .app-shell:has(.hx-header) { background: var(--home-bg); }
 }
-@media (max-width: 560px) {
+@media (max-width: 560px), (hover: none) {
   html .app-shell { background: #fff; }
 }
 
@@ -758,10 +758,19 @@ html .settings-page .device-panel, html .settings-page .settings-section, html .
 
 /* Onboarding, Hydrify layout (onboarding.ts). */
 html .onb.ob { display: block; padding: 0; background: #fff; overflow-y: auto; }
-@media (min-width: 561px) { html .onb.ob { left: 50%; right: auto; width: 430px; transform: translateX(-50%); box-shadow: 0 0 60px rgba(0, 0, 0, .12); } }
-/* On a computer the full-screen views take the same phone-sized frame as the pages. */
+@media (min-width: 561px) and (hover: hover) { html .onb.ob { left: 50%; right: auto; width: 430px; transform: translateX(-50%); box-shadow: 0 0 60px rgba(0, 0, 0, .12); } }
+/* On a computer or a tablet the full-screen sheets take a phone-sized frame instead of the whole height;
+   onboarding does on a computer, as the pages do, and fills a tablet like a phone. */
 @media (min-width: 561px) {
-  html .onb.ob, html .hx-sheet, html .drink-sheet { top: 20px; bottom: auto; height: min(932px, calc(100vh - 40px)); height: min(932px, calc(100dvh - 40px)); border-radius: 30px; }
+  html .hx-sheet, html .drink-sheet { top: 20px; bottom: auto; height: min(932px, calc(100vh - 40px)); height: min(932px, calc(100dvh - 40px)); border-radius: 30px; }
+}
+@media (min-width: 561px) and (hover: hover) {
+  html .onb.ob { top: 20px; bottom: auto; height: min(932px, calc(100vh - 40px)); height: min(932px, calc(100dvh - 40px)); border-radius: 30px; }
+}
+/* A tablet: the phone layout across the screen, its column kept to a readable width. */
+@media (min-width: 600px) and (hover: none) {
+  html body .hydro:has(> .hx-header), html body .hydro.hx-page { max-width: 680px; margin-left: auto; margin-right: auto; }
+  html .onb.ob .ob-screen { max-width: 620px; margin: 0 auto; }
 }
 html .ob-screen { min-height: 100%; display: flex; flex-direction: column; }
 html .ob-screen > div { flex: 1; display: flex; flex-direction: column; }
@@ -1474,4 +1483,4 @@ html[data-theme="dark"] .base-live b { color: #fff; }
 
 /* Home: the cards reach the usual 16px edge instead of a narrower 400px column. */
 html .hydro:has(> .hx-header) { box-sizing: border-box; width: 100%; max-width: none; }
-@media (max-width: 560px) { html main.home-app:has(.hydro > .hx-header) { padding-left: max(4px, env(safe-area-inset-left)); padding-right: max(4px, env(safe-area-inset-right)); } }
+@media (max-width: 560px), (hover: none) { html main.home-app:has(.hydro > .hx-header) { padding-left: max(4px, env(safe-area-inset-left)); padding-right: max(4px, env(safe-area-inset-right)); } }

@@ -137,7 +137,7 @@ dialog form > label:not(:first-child) { margin-top: 20px; }
 }
 /* Three nav links fit beside the brand on phones: tighter links, and below 420px only the
    brand mark shows (its aria-label still names it). [href]/a.brand outrank the glass shell. */
-@media (max-width: 560px) {
+@media (max-width: 560px), (hover: none) {
   .app-top .site-nav a[href] { padding: 8px 10px; font-size: 15px; }
 }
 @media (max-width: 420px) {

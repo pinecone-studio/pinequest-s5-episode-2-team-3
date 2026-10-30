@@ -261,6 +261,8 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   let slide = 0;
   let step = 1;
   let name = readMember()?.name ?? '';
+  // «Demo»: the questions as usual, then a kidney patient's two weeks (demo-data.ts) in place of the answers.
+  let demo = false;
   let agreed = false;
   let email = '';
   const box = document.createElement('div');
@@ -275,6 +277,14 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     markSeen();
     box.remove();
     if (plan) onDone(plan);
+  };
+  // The last step: the plan from the answers, or for «Demo» the kidney patient's two weeks under the name
+  // given, opened on the home with every tab reloaded (the tab host too) so they all read the new log.
+  const complete = async () => {
+    if (!demo) { finish(result()); return; }
+    if (!await seedKidneyDemo(readMember()?.name ?? 'Дулмаа')) { finish(result()); return; }
+    markSeen(); box.remove();
+    (window.top ?? window).location.reload();
   };
 
   // A scroll-snap wheel of values; the one in the middle band is chosen (read on "continue").
@@ -395,7 +405,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         <p class="ob-lead small">Усаа апп нээлгүй харах жижиг цонх. Нэгийг сонгоод «Нэмэх»-ийг дарна, утас хаана тавихыг асууна.</p>
         <div class="ob-widgets">${widgetPicker()}</div>
         <p class="ob-widget-state" role="status" data-widget-state>Widget нэмэгдээгүй байна</p>
-        <div class="ob-actions single"><button type="button" class="ob-primary" data-widget-done disabled>Үргэлжлүүлэх</button></div></div>`;
+        <div class="ob-actions"><button type="button" class="ob-ghost" data-widget-skip>Алгасах</button><button type="button" class="ob-primary" data-widget-done disabled>Үргэлжлүүлэх</button></div></div>`;
     }
     return `<div class="ob-step">${stepBody()}<div class="ob-actions single"><button type="button" class="ob-primary" data-continue>Үргэлжлүүлэх</button></div></div>`;
   }
@@ -566,10 +576,9 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     // Demo: no form and no questions; a kidney patient with two weeks of drinks, weights and dialysis days
     // (demo-data.ts) opens straight on the home, under the typed name or «Дулмаа». The whole app reloads
     // (the tab host too), so every tab reads the new log.
-    on('[data-demo]', async () => {
-      if (!await seedKidneyDemo(box.querySelector<HTMLInputElement>('#ob-name')!.value.trim() || 'Дулмаа')) { error('Demo өгөгдөл хадгалж чадсангүй.'); return; }
-      markSeen(); box.remove();
-      (window.top ?? window).location.reload();
+    on('[data-demo]', () => {
+      saveMember(box.querySelector<HTMLInputElement>('#ob-name')!.value.trim() || 'Дулмаа');
+      demo = true; screen = 'step'; step = 1; draw();
     });
     on('[data-sex]', el => { sex = el.dataset.sex as Sex; if (sex !== 'female' && FOR_WOMEN.includes(p.condition)) p.condition = 'none'; draw(); });
     on('[data-locate]', () => void locate());
@@ -604,10 +613,12 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
     });
     // In the phone app a widget goes on the home screen before the app opens.
     on('[data-done]', () => {
-      if (!widgetsAvailable) { finish(result()); return; }
+      if (!widgetsAvailable) { void complete(); return; }
       screen = 'widget'; draw(); watchWidgets();
     });
-    on('[data-widget-done]', () => finish(result()));
+    on('[data-widget-done]', () => void complete());
+    // A launcher that cannot place widgets, or someone who would rather not: the app opens all the same.
+    on('[data-widget-skip]', () => void complete());
     if (screen === 'widget') bindWidgets(box);
   }
 
