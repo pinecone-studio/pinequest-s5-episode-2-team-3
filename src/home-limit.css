@@ -270,7 +270,7 @@ html[data-theme="dark"] .dr-rule { border-color: #35383f; }
 html .hx-dim:has(.base-sheet) { align-items: stretch; }
 html .hx-bottom.hl-sheet.base-sheet { position: relative; max-height: none; height: 100%; padding-top: max(10px, env(safe-area-inset-top)); border-radius: 0; overflow-y: auto; }
 /* On a computer, the same phone-sized frame as the pages and the drink sheet (theme.css). */
-@media (min-width: 561px) and (hover: hover) {
+@media (min-width: 561px) {
   html .hx-dim:has(.base-sheet) { align-items: flex-start; }
   html .hx-bottom.hl-sheet.base-sheet { margin-top: 20px; height: min(932px, calc(100dvh - 40px)); border-radius: 30px; }
 }
