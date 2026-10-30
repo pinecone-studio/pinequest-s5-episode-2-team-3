@@ -59,6 +59,9 @@ const int TARE_SAMPLES = 20;           // tare and calibration average 2 s of re
 const float MIN_FACTOR = 20;           // raw counts per gram
 const long HX711_LIMIT = 8388000;      // readings this close to ±2^23: the HX711 input is out of range
 const float ZERO_BAND_G = 0.5;         // the screen shows 0.0 inside this, so the cell's drift does not flicker
+// At power-up a reading this far from the saved empty-scale zero means something is on the base (the bottle
+// left standing on it): keep the saved zero, as zeroing there would take the bottle and its water off.
+const float BOOT_ZERO_BAND_G = 30;
 const uint32_t SCREEN_INTERVAL_MS = 100;  // 10 frames a second, so the bottle on the screen moves smoothly
 // The screen wakes when the weight changes by more than SCREEN_WAKE_G and goes dark after SCREEN_ON_MS
 // without a change. Saves power and keeps the OLED from burning in.
@@ -113,7 +116,8 @@ Preferences prefs;
 OledDisplay display(U8G2_R0, U8X8_PIN_NONE);
 bool hasDisplay = false;
 
-// grams = (raw - offset) / factor. The offset (empty scale) is taken at every power-up; the factor is stored in flash.
+// grams = (raw - offset) / factor. The offset (empty scale) is taken at power-up unless something is on the base
+// (see startZero), and kept in flash like the factor.
 long offset = 0;
 float factor = 0;
 // Weight of the empty bottle, set with BOOT; the screen and the app show what is inside it. 0 = none.
@@ -227,8 +231,21 @@ void tare() {
   long raw;
   if (!averageRaw(TARE_SAMPLES, raw)) return;
   offset = raw;
+  prefs.putLong("offset", offset);
   fillWindow(raw);
   Serial.printf("tare: offset=%ld\n", offset);
+}
+
+// Power-up: zero the empty base as before, but a base switched on with the bottle still on it keeps the
+// saved zero, so the bottle's empty weight still matches and the water in it is told right.
+void startZero() {
+  long raw;
+  if (!calibrated() || !prefs.isKey("offset") || !averageRaw(TARE_SAMPLES, raw)) { tare(); return; }
+  const long saved = prefs.getLong("offset", 0);
+  if (fabsf((raw - saved) / factor) <= BOOT_ZERO_BAND_G) { tare(); return; }
+  offset = saved;
+  fillWindow(raw);
+  Serial.printf("something on the base at power-up (%.0f g): kept the saved zero\n", (raw - saved) / factor);
 }
 
 void calibrate(float knownGrams) {
@@ -733,7 +750,7 @@ void drawScreen() {
   char number[12];
   if (g > MAX_LOAD_G) snprintf(number, sizeof number, "OVER");
   else if (water && g < PRESENT_MIN_G) snprintf(number, sizeof number, "--");
-  else if (water) snprintf(number, sizeof number, "%ld", lroundf(g - bottleG));
+  else if (water) snprintf(number, sizeof number, "%ld", max(0L, lroundf(g - bottleG)));  // half lifted: not below 0
   else if (fabsf(g) < ZERO_BAND_G) snprintf(number, sizeof number, "0.0");  // no "-0.0" / "0.1" flicker when empty
   else snprintf(number, sizeof number, fabsf(g) < 99.95f ? "%.1f" : "%.0f", g);  // ~0.1 g resolution
   char link[12] = "";
@@ -847,7 +864,7 @@ void setup() {
 
   scale.begin(PIN_HX711_DT, PIN_HX711_SCK);
   delay(500);  // let the load cell settle after power-up
-  tare();
+  startZero();
   Serial.println(calibrated() ? "calibrated" : "not calibrated: empty scale -> 'tare', then a known weight -> 'cal <grams>'");
   startVoice();
   startBle();
