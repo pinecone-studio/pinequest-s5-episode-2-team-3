@@ -3,6 +3,16 @@ import { NAV_ICONS, TABS } from './nav';
 import { onWeekendTap } from './native-reminders';
 // Created here first, so every tab frame shares this one Bluetooth link to the base (src/scale.ts).
 import './scale';
+import { Capacitor } from '@capacitor/core';
+
+// The phone app on a wide screen (a small tablet such as the HSD-215, 847 px across): laid out at a phone's
+// width and zoomed up to fill it, not the computer layout with a phone-sized frame in the middle. The zoom
+// reaches the tab frames too. (Changing the WebView's scale or viewport from MainActivity was tried first:
+// the scale only took when it beat the first page load, and the wide viewport left the page blank.)
+const PHONE_WIDTH = 430, WIDE = 560;
+if (Capacitor.isNativePlatform() && Math.min(screen.width, screen.height) > WIDE) {
+  document.documentElement.style.zoom = String(Math.min(screen.width, screen.height) / PHONE_WIDTH);
+}
 
 // Phone app start page (capacitor.config.ts → server.appStartPath). Home, history, progress and the account each
 // load once in their own frame, side by side; switching tabs slides the strip instead of loading a
