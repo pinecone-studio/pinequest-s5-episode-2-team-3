@@ -135,8 +135,9 @@ export function openBaseConnect(): void {
   // The link's outcome comes as a scale event: connecting once picked, then connected, or off when it failed.
   const onScale = () => {
     if (step === 'ok') { const t = pop.querySelector('[data-bc-tiles]'); if (t) t.innerHTML = tiles(); renderBase(pop); renderCup(pop, false); return; }
-    if (step === 'find' && scale.phase === 'connecting') show('linking');
-    else if (step === 'linking' && scale.phase === 'connected') show('ok');
+    // Linked at any step, also by the app reconnecting a remembered base on its own: on to the settings.
+    if (scale.phase === 'connected' && step !== 'unsupported') show('ok');
+    else if (step === 'find' && scale.phase === 'connecting') show('linking');
     else if (step === 'linking' && scale.phase === 'off') show('error');
   };
   window.addEventListener('dusal-scale', onScale);
