@@ -12,8 +12,8 @@ import android.os.Vibrator;
 import android.os.VibratorManager;
 
 // The strongest buzz the phone has, for the amount notices (near, past the goal or limit): four long
-// pulses at full strength. Only past the goal or limit, a "ДРРР ДРРРР" buzzer in the same rhythm too
-// (res/raw/sos_alert.wav, android/tools/make_alert_sound.py); close to it the phone only buzzes. A
+// pulses at full strength. Only past the goal or limit, an urgent tone too (res/raw/sos_alert.wav: Mixkit's
+// "Urgent simple tone loop", 9.5 s, made mono 22 kHz with afconvert); close to it the phone only buzzes. A
 // notification channel only sets the pattern, at the phone's own (often soft) strength; this sets the
 // strength too. Both go as an alarm, so they come at the alarm's volume, also with the phone on silent.
 final class Buzz {
