@@ -7,15 +7,20 @@ import { escape, number } from './format';
 
 // The "Суурь холбох" card, in the same look as «Цаг холбох» (watch-connect.ts): Bluetooth on, the base
 // found in the system's picker, the link made — then says how it went. A remembered base just reconnects.
-type Step = 'bt' | 'find' | 'linking' | 'ok' | 'error' | 'unsupported';
+// Linked, one thing per page: «Амжилттай холбогдлоо» moves on by itself to «Саваа таниулах» (the bottles), and
+// from there «Аяга хэмжих» (a cup measured on the base).
+type Step = 'bt' | 'find' | 'linking' | 'ok' | 'bottles' | 'cup' | 'error' | 'unsupported';
+const LINKED: Step[] = ['ok', 'bottles', 'cup'];
+const OK_MS = 1800;
 
 const ICON = {
   bt: '<svg viewBox="0 0 24 24"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg>',
   warn: '<svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01"/></svg>',
+  cup: '<svg viewBox="0 0 24 24"><path d="M5 8h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17"/></svg>',
 };
 const btn = (label: string, attr: string, ghost = false) => `<button type="button" class="${ghost ? 'wt-ghost' : 'wt-primary'}" ${attr}>${label}</button>`;
-const STAGE: Record<Step, number> = { bt: 0, find: 1, linking: 2, error: 2, unsupported: 1, ok: 3 };
+const STAGE: Record<Step, number> = { bt: 0, find: 1, linking: 2, error: 2, unsupported: 1, ok: 3, bottles: 3, cup: 3 };
 const dots = (step: Step) => `<ol class="wt-dots" aria-label="${Math.min(3, STAGE[step] + 1)} / 3">${[0, 1, 2].map(i => `<li class="${i < STAGE[step] ? 'done' : i === STAGE[step] ? 'on' : ''}"></li>`).join('')}</ol>`;
 // The picker closed without the base: say why that happens, on a phone or a computer.
 const tips = () => (Capacitor.isNativePlatform()
@@ -28,6 +33,15 @@ function tiles(): string {
   const s = scale.status;
   const tile = (label: string, value: string) => `<div><b>${value}</b><small>${label}</small></div>`;
   return `${tile('жин, г', s ? number(s.weightG) : '—')}${tile('савны ус, мл', s?.remainingMl != null ? number(s.remainingMl) : '—')}${tile('илгээгээгүй', s ? number(s.waiting) : '—')}`;
+}
+// Over the bottles: whether the base knows the bottle on it now, so choosing one shows its water right away.
+function liveLine(): string {
+  const s = scale.status;
+  if (!s) return 'Суурийн жинг уншиж байна…';
+  if (s.remainingMl != null) return `Саванд <b>${number(s.remainingMl)} мл</b> ус байна`;
+  if (s.phase === 'moving') return 'Жин тогтворжиж байна…';
+  if (s.phase === 'empty') return 'Суурин дээр сав алга';
+  return 'Энэ савыг таниулаагүй байна';
 }
 
 // Linked: the saved bottles with their empty weights (tap one before putting it on the base), a new one weighed
@@ -87,9 +101,16 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
     case 'ok': return `${dots(step)}<span class="wt-badge ok pop">${ICON.check}</span><h2 id="wt-title">Амжилттай холбогдлоо!</h2>
       <p>Уусан ус тань автоматаар бүртгэгдэнэ.</p>
       <div class="wt-tiles" data-bc-tiles>${tiles()}</div>
-      <section class="bc-base" data-bc-base aria-label="Савны жин">${baseBlock()}</section>
-      <section class="bc-base bc-cup" data-bc-cup aria-label="Аяга хэмжих"></section>
-      <div class="wt-actions">${btn('Болсон', 'data-wt-close')}</div>`;
+      <p class="wt-note">Саваа таниулах руу шилжиж байна…</p>
+      <div class="wt-actions">${btn('Үргэлжлүүлэх', 'data-wt-bottles')}</div>`;
+    case 'bottles': return `<span class="wt-badge">${BASE_ICON}</span><h2 id="wt-title">Саваа таниулах</h2>
+      <p class="bc-live" data-bc-live>${liveLine()}</p>
+      <section class="bc-base" data-bc-base aria-label="Савнууд">${baseBlock()}</section>
+      <div class="wt-actions">${btn('Аяга хэмжих', 'data-wt-cup', true)}${btn('Болсон', 'data-wt-close')}</div>`;
+    case 'cup': return `<span class="wt-badge">${ICON.cup}</span><h2 id="wt-title">Аяга хэмжих</h2>
+      <p>Аягаа суурин дээр хэмжвэл «1 аяга» хэдэн мл болохыг апп мэднэ.</p>
+      <section class="bc-base" data-bc-cup aria-label="Аяга хэмжих"></section>
+      <div class="wt-actions">${btn('Савнууд', 'data-wt-bottles', true)}${btn('Болсон', 'data-wt-close')}</div>`;
     case 'error': return `${dots(step)}<span class="wt-badge warn">${ICON.warn}</span><h2 id="wt-title">Холбогдож чадсангүй</h2>
       <p>Суурь асаалттай, утсанд ойрхон байгаа эсэхийг шалгаад дахин оролдоно уу.</p>
       <div class="wt-actions">${btn('Хаах', 'data-wt-close', true)}${btn('Дахин оролдох', 'data-wt-link')}</div>`;
@@ -108,8 +129,8 @@ export function openBaseConnect(): void {
   document.body.append(box);
   const pop = box.querySelector<HTMLElement>('.wt-pop')!;
   const native = Capacitor.isNativePlatform();
-  // Already linked (opened from the base's settings): straight to the bottles and the zero.
-  let step: Step = scale.phase === 'unsupported' ? 'unsupported' : scale.phase === 'connected' ? 'ok' : native ? 'bt' : 'find';
+  // Already linked (the home tile, the base's settings): straight to the bottles.
+  let step: Step = scale.phase === 'unsupported' ? 'unsupported' : scale.phase === 'connected' ? 'bottles' : native ? 'bt' : 'find';
   let btOn: boolean | null = null;
   let missed = false;
   const close = () => {
@@ -128,14 +149,26 @@ export function openBaseConnect(): void {
     pop.querySelector('[data-wt-close]')?.addEventListener('click', close);
     pop.querySelector('[data-wt-bt]')?.addEventListener('click', () => void turnOnBt());
     pop.querySelector('[data-wt-link]')?.addEventListener('click', () => void link());
+    pop.querySelector('[data-wt-bottles]')?.addEventListener('click', () => show('bottles'));
+    pop.querySelector('[data-wt-cup]')?.addEventListener('click', () => show('cup'));
     renderBase(pop, true);
     renderCup(pop, true);
+    pop.scrollTop = 0;
     pop.querySelector<HTMLElement>('.wt-actions > :last-child')?.focus();
+    if (s === 'ok') setTimeout(() => { if (step === 'ok' && box.isConnected) show('bottles'); }, OK_MS);
   };
   // The link's outcome comes as a scale event: connecting once picked, then connected, or off when it failed.
   const onScale = () => {
-    if (step === 'ok') { const t = pop.querySelector('[data-bc-tiles]'); if (t) t.innerHTML = tiles(); renderBase(pop); renderCup(pop, false); return; }
-    // Linked at any step, also by the app reconnecting a remembered base on its own: on to the settings.
+    if (LINKED.includes(step)) {
+      const t = pop.querySelector('[data-bc-tiles]');
+      if (t) t.innerHTML = tiles();
+      const live = pop.querySelector('[data-bc-live]');
+      if (live && live.innerHTML !== liveLine()) live.innerHTML = liveLine();
+      renderBase(pop);
+      renderCup(pop, false);
+      return;
+    }
+    // Linked at any step, also by the app reconnecting a remembered base on its own.
     if (scale.phase === 'connected' && step !== 'unsupported') show('ok');
     else if (step === 'find' && scale.phase === 'connecting') show('linking');
     else if (step === 'linking' && scale.phase === 'off') show('error');

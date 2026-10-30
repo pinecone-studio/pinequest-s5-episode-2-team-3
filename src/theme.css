@@ -1359,7 +1359,10 @@ html .wt-dim.bc-dim { z-index: 1001; }
 /* Linked: the bottles and their weights follow, so the card scrolls on a short screen. */
 html .bc-dim .wt-pop { max-height: calc(100dvh - 48px); overflow-y: auto; }
 /* The bottles on the card, in its own look: soft sky rows like the tiles above, round pills for the actions. */
-html .bc-base { display: grid; gap: 10px; width: 100%; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--sky-line); text-align: left; }
+html .bc-base { display: grid; gap: 10px; width: 100%; margin-top: 4px; text-align: left; }
+/* «Саваа таниулах»: what the base reads now, so a chosen bottle shows its water at once. */
+html .wt-pop .bc-live { padding: 8px 16px; border-radius: 999px; background: var(--sky-soft); font-size: 14px; color: var(--ink); }
+html .wt-pop .bc-live b { color: var(--sky-deep); font-variant-numeric: tabular-nums; }
 html .bc-title { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); }
 html .wt-pop .bc-hint, html .wt-pop .bc-empty { font-size: 13.5px; }
 html .wt-pop .bc-empty { padding: 12px 14px; border-radius: 16px; background: var(--sky-soft); }
@@ -1412,7 +1415,6 @@ html[data-theme="dark"] .bc-cup-live { background: #2a2d36; }
 html[data-theme="dark"] .bc-step.done .bc-num { background: #1d3328; }
 html[data-theme="dark"] .bc-cup-name input { border-color: #3a3e48; background: #2a2d36; }
 html :is(.bc-pick, .bc-remove, .bc-zero button, .bc-link):focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 14px; }
-html[data-theme="dark"] .bc-base { border-top-color: #2a2d36; }
 html[data-theme="dark"] .bc-row { background: #2a2d36; }
 html[data-theme="dark"] .bc-icon { background: #1f222a; }
 html[data-theme="dark"] .bc-add input { border-color: #3a3e48; background: #2a2d36; }

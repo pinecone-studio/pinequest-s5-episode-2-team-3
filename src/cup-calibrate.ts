@@ -48,8 +48,7 @@ export function cupCard(): string {
       <span class="bc-step-text"><b>${title}</b><small>${sub}</small>${state === 'now' ? extra : ''}</span>
       <span class="visually-hidden">${state === 'done' ? 'хийгдсэн' : state === 'now' ? 'одоо' : 'дараа'}</span></li>`;
   };
-  return `<h3 class="bc-title">Аяга хэмжих</h3>
-    <div class="bc-cup-live" aria-live="off"><b data-cup-live>${liveText()}</b><small>${step === 1 ? 'Суурин дээрх жин' : 'Аяган дахь ус'}</small></div>
+  return `<div class="bc-cup-live" aria-live="off"><b data-cup-live>${liveText()}</b><small>${step === 1 ? 'Суурин дээрх жин' : 'Аяган дахь ус'}</small></div>
     <ol class="bc-steps">
       ${row(1, 'Хоосон аягаа тавь', step > 1 ? 'Жинг нь тэглэлээ' : 'Тавиад «Тэглэх»-ийг дарна', `<button type="button" class="wt-ghost" data-cup-act="tare" ${scale.status ? '' : 'disabled'}>Тэглэх</button>`)}
       ${row(2, 'Дүүргээд буцааж тавь', step > 2 ? `${number(measured ?? 0)} мл` : 'Тогтвортой болмогц «Хэмжих»-ийг дарна', `<button type="button" class="wt-ghost" data-cup-act="measure" ${canMeasure() ? '' : 'disabled'}>Хэмжих</button>`)}
