@@ -2,7 +2,10 @@
 html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradient(180deg, #9fe6f2 0%, #d2f4f9 45%, #f2fcfd 100%); }
 /* clip, not hidden: a hidden box can still be scrolled, and a page's scrollIntoView reaches up through its
    frame and slid the strip off its tab. The transform alone moves it (tabs.ts). */
-#tabs { position: fixed; inset: 0; overflow: hidden; overflow: clip; }
+/* Between the status bar and the navigation buttons (Android 15 draws the app under both): inside the frames
+   env(safe-area-inset-*) is 0, so a page reaching under the buttons could not scroll its last items above
+   the tab bar. The host knows the insets and keeps the frames clear of them. */
+#tabs { position: fixed; inset: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); overflow: hidden; overflow: clip; }
 .tabs-track { display: flex; width: 400%; height: 100%; will-change: transform; }
 .tabs-track.animate { transition: transform .38s cubic-bezier(.22, .9, .28, 1); }
 .tabs-track iframe { flex: 1 1 0; min-width: 0; height: 100%; border: 0; background: transparent; }
