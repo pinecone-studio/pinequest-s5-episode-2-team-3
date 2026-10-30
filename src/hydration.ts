@@ -388,8 +388,9 @@ function bindCups(): void {
   toggle.addEventListener('click', () => setOpen(!pourOpen));
   panel.querySelector('#pour-close')!.addEventListener('click', () => setOpen(false));
   panel.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
-  // Keep the «Өөр» item in view when it is open.
-  if (pourOpen) toggle.scrollIntoView({ block: 'nearest', inline: 'center' });
+  // Keep the «Өөр» item in view when it is open. Only as far as needed sideways: «center» also slid the app's
+  // tab strip (tabs.ts) and left the page half off the screen.
+  if (pourOpen) toggle.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
 // Adding is a swipe on the big amount (no button): press and drag up to pour more, down to pour less

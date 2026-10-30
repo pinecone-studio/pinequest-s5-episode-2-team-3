@@ -12,6 +12,8 @@ const LABELS = ['Нүүр', 'Түүх', 'Явц', 'Профайл'];
 const LAST_TAB = 'dusal-tab-v2'; // 'dusal-tab' held an index into the old 5-tab bar (with «Тайлан»)
 
 const root = document.querySelector<HTMLDivElement>('#tabs')!;
+// Where overflow: clip is missing (tabs.css), a page's scrollIntoView can still scroll the strip: put it back.
+root.addEventListener('scroll', () => { if (root.scrollLeft || root.scrollTop) root.scrollTo(0, 0); });
 let index = 0;
 try { index = Math.min(TABS.length - 1, Math.max(0, Number(sessionStorage.getItem(LAST_TAB)) || 0)); } catch { /* first tab */ }
 
