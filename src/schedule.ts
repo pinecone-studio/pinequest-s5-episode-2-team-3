@@ -16,6 +16,8 @@ import { readPetName } from './pet';
 // says how much to drink; if they are on track, nothing is sent. In the phone app the same slots
 // are scheduled with the system for the next week (see native-reminders.ts), skipping ones already met.
 const KEY = 'dusal-reminders-v1';
+// Set once notifications were allowed and reminders turned on by the first launch (startReminders).
+const ASKED_KEY = 'dusal-reminders-asked-v1';
 const SENT_KEY = 'dusal-reminders-sent-v1';
 // `times`: the doctor's own drinking times and amounts (doctor-card.ts); while set they replace the even split.
 export interface DoctorTime { at: string; ml: number }
@@ -234,10 +236,15 @@ export function startReminders(state: () => AppState): void {
   if (ticking) return;
   ticking = true;
   if (nativeReminders) {
-    // First launch of the phone app: reminders are on by default once notifications are allowed.
-    const first = (() => { try { return localStorage.getItem(KEY) === null; } catch { return false; } })();
+    // First launch of the phone app: reminders are on by default once notifications are allowed. Kept apart
+    // from the settings, which onboarding writes too (its wake and sleep times) before or after this runs;
+    // a "no" asks again next launch.
+    const first = (() => { try { return localStorage.getItem(ASKED_KEY) === null; } catch { return false; } })();
     void (async () => {
-      if (first) writeSettings({ ...readSettings(), on: await askPermission().catch(() => false) });
+      if (first && await askPermission().catch(() => false)) {
+        writeSettings({ ...readSettings(), on: true });
+        try { localStorage.setItem(ASKED_KEY, '1'); } catch { /* asks again */ }
+      }
       await clearDelivered().catch(() => {});
       await planNative(state());
     })();

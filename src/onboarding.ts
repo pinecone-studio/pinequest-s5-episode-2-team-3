@@ -261,7 +261,8 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
   document.body.append(box);
 
   const finish = (plan: Plan | null) => {
-    if (plan) { writeProfile(p); writeSettings(times); about.write({ sex: sex ?? 'none', climate, move }); }
+    // Only the wake and sleep times: whether reminders are on is the app's first-launch question (schedule.ts).
+    if (plan) { writeProfile(p); writeSettings({ ...readSettings(), wake: times.wake, sleep: times.sleep }); about.write({ sex: sex ?? 'none', climate, move }); }
     markSeen();
     box.remove();
     if (plan) onDone(plan);
