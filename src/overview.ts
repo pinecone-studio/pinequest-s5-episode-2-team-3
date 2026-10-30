@@ -434,8 +434,6 @@ function sayOnBase(before: number, after: number): void {
   for (const what of baseVoice(before, after, state.goal, state.mode === 'limit')) void scale.speak(what).catch(() => {});
 }
 
-// The demo reset shows in a dev build or with ?demo=1; under a limit only then.
-const demo = import.meta.env.DEV || new URLSearchParams(location.search).has('demo');
 
 // Demo helper: empty today's ring by removing today's drinks, so the fill can be shown again.
 async function resetToday() {
@@ -527,7 +525,7 @@ function render() {
         ${deviceTiles()}
         ${watchCard()}
         ${familySection()}
-        ${limit && !demo ? '' : `<div class="demo-line"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button></div>`}
+        <div class="demo-line"><button type="button" class="demo-reset" id="demo-reset" ${drink ? '' : 'disabled'}>Демо: өнөөдрийг тэглэх</button></div>
       </div>
     </div>
     <div class="plan-wrap" id="plan-wrap" role="dialog" aria-modal="true" aria-label="Өдрийн хэмжээ" ${planOpen ? '' : 'hidden'}>
