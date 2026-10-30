@@ -63,7 +63,7 @@ export function bindDeviceTiles(): void {
   // Delegated, as the base tile is swapped in place.
   document.addEventListener('click', event => {
     const target = event.target as Element;
-    if (target.closest('[data-base-tile]')) { if (scale.phase === 'connected') openBaseSheet(); else openBaseConnect(openBaseSheet); }
+    if (target.closest('[data-base-tile]')) { if (scale.phase === 'connected') openBaseSheet(); else openBaseConnect(); }
     else if (target.closest('.dev-tile[data-watch-connect]')) openWatchConnect();
   });
   window.addEventListener('dusal-scale', () => {

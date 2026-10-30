@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { BleClient } from '@capacitor-community/bluetooth-le';
 import { savedBottles, scale } from './scale';
 import { BASE_ICON, bindBottles } from './components/DevicePanel';
+import { bindCupCard, cupCard, cupCardLive } from './cup-calibrate';
 import { escape, number } from './format';
 
 // The "Суурь холбох" card, in the same look as «Цаг холбох» (watch-connect.ts): Bluetooth on, the base
@@ -61,6 +62,14 @@ function renderBase(pop: HTMLElement, force = false): void {
   if (!force) host.innerHTML = baseBlock();
   bindBottles(host);
 }
+// Under the bottles, a cup measured right here (cup-calibrate.ts): redrawn when a step changes, the number in place.
+function renderCup(pop: HTMLElement, draw: boolean): void {
+  const host = pop.querySelector<HTMLElement>('[data-bc-cup]');
+  if (!host) return;
+  if (!draw) { cupCardLive(host); return; }
+  host.innerHTML = cupCard();
+  bindCupCard(host, () => renderCup(pop, true));
+}
 
 function body(step: Step, btOn: boolean | null, missed: boolean): string {
   switch (step) {
@@ -79,7 +88,8 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
       <p>Уусан ус тань автоматаар бүртгэгдэнэ.</p>
       <div class="wt-tiles" data-bc-tiles>${tiles()}</div>
       <section class="bc-base" data-bc-base aria-label="Савны жин">${baseBlock()}</section>
-      <div class="wt-actions">${btn('Болсон', 'data-wt-close', true)}${btn('Аяга хэмжүүлэх', 'data-wt-next')}</div>`;
+      <section class="bc-base bc-cup" data-bc-cup aria-label="Аяга хэмжих"></section>
+      <div class="wt-actions">${btn('Болсон', 'data-wt-close')}</div>`;
     case 'error': return `${dots(step)}<span class="wt-badge warn">${ICON.warn}</span><h2 id="wt-title">Холбогдож чадсангүй</h2>
       <p>Суурь асаалттай, утсанд ойрхон байгаа эсэхийг шалгаад дахин оролдоно уу.</p>
       <div class="wt-actions">${btn('Хаах', 'data-wt-close', true)}${btn('Дахин оролдох', 'data-wt-link')}</div>`;
@@ -89,8 +99,7 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
   }
 }
 
-// `next` opens «Аягаа хэмжүүлэх» once the base is linked.
-export function openBaseConnect(next?: () => void): void {
+export function openBaseConnect(): void {
   document.querySelector('.wt-dim')?.remove();
   const back = document.activeElement as HTMLElement | null;
   const box = document.createElement('div');
@@ -119,13 +128,13 @@ export function openBaseConnect(next?: () => void): void {
     pop.querySelector('[data-wt-close]')?.addEventListener('click', close);
     pop.querySelector('[data-wt-bt]')?.addEventListener('click', () => void turnOnBt());
     pop.querySelector('[data-wt-link]')?.addEventListener('click', () => void link());
-    pop.querySelector('[data-wt-next]')?.addEventListener('click', () => { close(); next?.(); });
     renderBase(pop, true);
+    renderCup(pop, true);
     pop.querySelector<HTMLElement>('.wt-actions > :last-child')?.focus();
   };
   // The link's outcome comes as a scale event: connecting once picked, then connected, or off when it failed.
   const onScale = () => {
-    if (step === 'ok') { const t = pop.querySelector('[data-bc-tiles]'); if (t) t.innerHTML = tiles(); renderBase(pop); return; }
+    if (step === 'ok') { const t = pop.querySelector('[data-bc-tiles]'); if (t) t.innerHTML = tiles(); renderBase(pop); renderCup(pop, false); return; }
     if (step === 'find' && scale.phase === 'connecting') show('linking');
     else if (step === 'linking' && scale.phase === 'connected') show('ok');
     else if (step === 'linking' && scale.phase === 'off') show('error');
