@@ -856,6 +856,19 @@ html .ob-result { margin: 0; font-size: 64px; font-weight: 800; color: var(--sky
 html .ob-result span { margin-left: 6px; font-size: 22px; color: var(--muted); }
 html .ob-warn { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff4e5; color: #8a4b00; font-size: 14px; }
 html .ob-ready .ob-actions { align-self: stretch; margin: auto -24px 0; }
+/* The last onboarding step: a widget on the home screen (onboarding.ts, widgets-view.ts). */
+html .ob-widget { gap: 12px; padding: 32px 20px 0; }
+html .ob-widget h2 { font-size: 24px; }
+html .ob-widget .ob-lead { margin: 0; }
+html .ob-widgets { display: grid; gap: 10px; }
+html .ob-widgets .hx-card { margin: 0; }
+html .ob-widget-state { margin: 4px 0 0; padding: 10px 14px; border-radius: 12px; background: #fff4e5; font-size: 14px; font-weight: 700; text-align: center; color: #b45309; }
+html .ob-widget-state.ok { background: #e8f6ee; color: #1f7a45; }
+html .ob-widget .ob-actions { position: sticky; bottom: 0; margin: auto -20px 0; background: #fff; }
+html .ob-widget .ob-primary:disabled { opacity: .45; }
+html[data-theme="dark"] .ob-widget .ob-actions { background: #1f222a; }
+html[data-theme="dark"] .ob-widget-state { background: #3a2f1d; color: #fbbf24; }
+html[data-theme="dark"] .ob-widget-state.ok { background: #16301f; color: #7ee2a4; }
 /* ---- Hydrify history (kit 38–46): day cards, row menu, edit + wheel sheets ---- */
 /* Week-day heads and month stepper of the home's month sheet (hydration.ts). */
 html .hx-cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); justify-items: center; }

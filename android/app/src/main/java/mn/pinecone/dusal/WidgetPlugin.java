@@ -43,6 +43,19 @@ public class WidgetPlugin extends Plugin {
         call.resolve();
     }
 
+    // How many Дусал widgets are on the home screen now, of any kind: the last onboarding step waits for one.
+    @PluginMethod
+    public void placed(PluginCall call) {
+        AppWidgetManager manager = AppWidgetManager.getInstance(getContext());
+        int count = 0;
+        for (Class<?> widget : new Class<?>[] { DrinkWidget.class, LimitWidget.class, RingWidget.class, MixWidget.class, GaugeWidget.class }) {
+            count += manager.getAppWidgetIds(new ComponentName(getContext(), widget)).length;
+        }
+        JSObject result = new JSObject();
+        result.put("count", count);
+        call.resolve(result);
+    }
+
     // Puts a widget on the home screen from the app (src/widgets-view.ts): the launcher asks the person to
     // place it. { pinned: false } where the launcher cannot, so the app shows the steps to do it by hand.
     @PluginMethod
