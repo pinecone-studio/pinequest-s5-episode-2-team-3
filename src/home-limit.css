@@ -302,7 +302,6 @@ html .cc-live.off > b { font-size: 16px; color: var(--ink); } html .cc-live.off 
 html .cc-manual input[type="number"] { flex: 0 1 90px; } html .cc-manual > span { align-self: center; font-size: 14px; color: var(--muted); }
 html .cc-link { justify-self: start; min-height: 44px; margin: 6px 0 4px; padding: 0 20px; font-size: 14px; }
 html .cc-live ~ .device-panel, html .cc-list ~ .device-panel { width: 100%; margin: 0; }
-html .cc-list ~ .device-panel .bottle-add button { flex: none; white-space: nowrap; }
 html .cc-list { padding-bottom: 8px; }
 html .cc-bottles h2 { margin: 0 0 10px; font-size: 16px; font-weight: 800; color: var(--ink); }
 html .cc-bottle-list { display: flex; flex-wrap: wrap; gap: 8px; }

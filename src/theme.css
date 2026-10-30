@@ -1358,8 +1358,41 @@ html .wt-dim { position: fixed; inset: 0; z-index: 90; display: grid; place-item
 html .wt-dim.bc-dim { z-index: 1001; }
 /* Linked: the bottles and their weights follow, so the card scrolls on a short screen. */
 html .bc-dim .wt-pop { max-height: calc(100dvh - 48px); overflow-y: auto; }
-html .bc-dim .bc-base { width: 100%; margin: 0; padding: 0; border: 0; background: transparent; text-align: left; }
-html .bc-dim .bc-base .scale-bottles { margin-top: 6px; }
+/* The bottles on the card, in its own look: soft sky rows like the tiles above, round pills for the actions. */
+html .bc-base { display: grid; gap: 10px; width: 100%; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--sky-line); text-align: left; }
+html .bc-title { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); }
+html .wt-pop .bc-hint, html .wt-pop .bc-empty { font-size: 13.5px; }
+html .wt-pop .bc-empty { padding: 12px 14px; border-radius: 16px; background: var(--sky-soft); }
+html .bc-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+html .bc-row { display: flex; align-items: center; gap: 4px; border: 1.5px solid transparent; border-radius: 18px; background: var(--sky-soft); }
+html .bc-row.on { border-color: var(--sky); }
+html .bc-pick { display: flex; flex: 1 1 auto; align-items: center; gap: 12px; min-width: 0; min-height: 60px; padding: 8px 4px 8px 10px; border: 0; background: none; font: inherit; text-align: left; color: inherit; cursor: pointer; }
+html .bc-icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px; background: #fff; color: var(--sky); }
+html .bc-row.on .bc-icon { background: var(--sky); color: #fff; }
+html .bc-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html .bc-row.on .bc-icon svg { stroke-width: 2.6; }
+html .bc-name { display: grid; flex: 1 1 auto; min-width: 0; }
+html .bc-name b { overflow: hidden; font-size: 15px; font-weight: 700; color: var(--ink); text-overflow: ellipsis; white-space: nowrap; }
+html .bc-name small { font-size: 12.5px; color: var(--muted); }
+html .bc-row.on .bc-name small { color: var(--sky-deep); font-weight: 700; }
+html .bc-grams { flex: none; font-size: 16px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+html .bc-remove { flex: none; width: 44px; height: 44px; margin-right: 4px; border: 0; border-radius: 50%; background: none; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; }
+html .bc-add { display: grid; gap: 8px; margin-top: 6px; }
+html .bc-add input { min-height: 50px; padding: 0 16px; border: 1.5px solid var(--sky-line); border-radius: 999px; background: #fff; font: inherit; font-size: 16px; color: var(--ink); }
+html .bc-add input:focus { outline: none; border-color: var(--sky); }
+html .bc-add .wt-ghost { cursor: pointer; }
+html .wt-pop .bc-result { padding: 10px 14px; border-radius: 14px; background: #e7f8ee; font-size: 14px; font-weight: 700; color: #1d7a44; }
+html .wt-pop .bc-error { font-size: 13.5px; color: #c2410c; }
+html .bc-zero { display: grid; justify-items: center; gap: 0; margin-top: 2px; }
+html .bc-zero button { min-height: 44px; padding: 0 12px; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 700; color: var(--sky); cursor: pointer; }
+html .bc-zero small { font-size: 12px; color: var(--muted); }
+html :is(.bc-pick, .bc-remove, .bc-zero button):focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 14px; }
+html[data-theme="dark"] .bc-base { border-top-color: #2a2d36; }
+html[data-theme="dark"] .bc-row { background: #2a2d36; }
+html[data-theme="dark"] .bc-icon { background: #1f222a; }
+html[data-theme="dark"] .bc-add input { border-color: #3a3e48; background: #2a2d36; }
+html[data-theme="dark"] .wt-pop .bc-result { background: #1d3328; color: #5ad08a; }
+html[data-theme="dark"] .wt-pop .bc-error { color: #ff9b85; }
 html .bc-tips li { font-size: 14px; }
 html .wt-pop { display: grid; justify-items: center; gap: 10px; width: 100%; max-width: 360px; padding: 28px 22px 22px; border-radius: 28px; background: #fff; box-shadow: 0 24px 60px rgba(20, 50, 90, .25); text-align: center; }
 html .wt-pop h2 { margin: 6px 0 0; font-size: 22px; font-weight: 800; color: var(--ink); }

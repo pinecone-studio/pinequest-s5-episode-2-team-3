@@ -57,27 +57,6 @@ function scaleButton(): string {
   return scale.saved ? '<button type="button" class="hx-blue" data-scale-retry>Дахин холбох</button>' : '<button type="button" class="hx-blue" data-scale-pair>Суурь холбох</button>';
 }
 
-// Each bottle keeps its empty weight; choosing one before putting it on the base keeps a swap from counting.
-// These do what the base's BOOT button does, for a base sealed in its case. Shown on «Суурь холбох» once linked
-// (base-connect.ts).
-export function bottlesBlock(id = 'bottle-name'): string {
-  const { list, selected } = savedBottles();
-  return `<fieldset class="scale-bottles"><legend class="scale-sub">Савны жин</legend>
-    ${list.length ? `<p class="device-time">Саваа солихдоо эхлээд энд сонгоод, дараа нь суурь дээр тавина.</p>
-    <div class="bottle-list">${list.map(b => `<span class="bottle-chip${b.id === selected ? ' on' : ''}">
-      <button type="button" data-bottle="${escape(b.id)}" aria-pressed="${b.id === selected}">${escape(b.name)} · ${number(b.grams)} г</button>
-      <button type="button" class="bottle-remove" data-bottle-remove="${escape(b.id)}" aria-label="${escape(b.name)}-г устгах">×</button></span>`).join('')}</div>`
-    : '<p class="device-time">Хадгалсан сав алга.</p>'}
-    <form class="bottle-add" data-bottle-add data-transient>
-      <label for="${id}">Шинэ сав</label>
-      <div><input id="${id}" name="name" maxlength="24" placeholder="Нэр, жишээ нь: Цэнхэр сав" autocomplete="off">
-      <button type="submit">Хоосон жинг авах</button></div>
-    </form>
-    <p class="device-time">${scale.result ? `<b>${escape(scale.result)}</b>` : 'Шинэ савыг хоосноор нь суурь дээр тавиад нэр өгч «Хоосон жинг авах»-г дарна.'}</p>
-    <div class="scale-actions"><button type="button" data-scale-zero>Суурийн жинг тэглэх</button></div>
-  </fieldset>`;
-}
-
 // Rebuilt only when the connection changes; the live line is updated in place every second.
 function renderScale(): void {
   const host = document.querySelector<HTMLElement>('[data-scale-panel]');
@@ -106,7 +85,8 @@ function renderScale(): void {
   live.hidden = !live.textContent;
 }
 
-// The buttons of bottlesBlock; `host` also holds the `.device-error` line for a failed command.
+// The bottle buttons on «Суурь холбох» (base-connect.ts baseBlock): choosing one before putting it on the base
+// keeps a swap from counting. `host` also holds the `.device-error` line for a failed command.
 export function bindBottles(host: HTMLElement): void {
   host.querySelectorAll<HTMLButtonElement>('[data-bottle]').forEach(b => b.addEventListener('click', () => void act(host, () => scale.chooseBottle(b.dataset.bottle!))));
   host.querySelectorAll<HTMLButtonElement>('[data-bottle-remove]').forEach(b => b.addEventListener('click', () => scale.removeBottle(b.dataset.bottleRemove!)));

@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { BleClient } from '@capacitor-community/bluetooth-le';
 import { savedBottles, scale } from './scale';
-import { BASE_ICON, bindBottles, bottlesBlock } from './components/DevicePanel';
+import { BASE_ICON, bindBottles } from './components/DevicePanel';
 import { escape, number } from './format';
 
 // The "Суурь холбох" card, in the same look as «Цаг холбох» (watch-connect.ts): Bluetooth on, the base
@@ -29,9 +29,30 @@ function tiles(): string {
   return `${tile('жин, г', s ? number(s.weightG) : '—')}${tile('савны ус, мл', s?.remainingMl != null ? number(s.remainingMl) : '—')}${tile('илгээгээгүй', s ? number(s.waiting) : '—')}`;
 }
 
-// Linked: every saved bottle with its empty weight, «Хоосон жинг авах» and «Суурийн жинг тэглэх», as on the
-// base's settings (DevicePanel.ts). Redrawn when a command answers or the bottles change, not while a name is typed.
-const baseBlock = () => `${bottlesBlock('bc-bottle-name')}<p class="device-error" role="alert" hidden></p>`;
+// Linked: the saved bottles with their empty weights (tap one before putting it on the base), a new one weighed
+// empty, and the zero for an empty base — what the base's BOOT button does. Buttons: DevicePanel.ts bindBottles.
+// Redrawn when a command answers or the bottles change, not while a name is typed.
+function baseBlock(): string {
+  const { list, selected } = savedBottles();
+  const rows = list.map(b => `<li class="bc-row${b.id === selected ? ' on' : ''}">
+      <button type="button" class="bc-pick" data-bottle="${escape(b.id)}" aria-pressed="${b.id === selected}">
+        <span class="bc-icon" aria-hidden="true">${b.id === selected ? ICON.check : BASE_ICON}</span>
+        <span class="bc-name"><b>${escape(b.name)}</b><small>${b.id === selected ? 'Суурин дээр' : 'Сонгох'}</small></span>
+        <span class="bc-grams">${number(b.grams)} г</span></button>
+      <button type="button" class="bc-remove" data-bottle-remove="${escape(b.id)}" aria-label="${escape(b.name)}-г устгах">×</button></li>`).join('');
+  return `<h3 class="bc-title">Миний савнууд</h3>
+    ${list.length ? `<ul class="bc-list">${rows}</ul>` : '<p class="bc-empty">Хадгалсан сав алга. Доор шинэ саваа нэмнэ үү.</p>'}
+    <form class="bc-add" data-bottle-add data-transient>
+      <h3 class="bc-title">Шинэ сав</h3>
+      <p class="bc-hint">Хоосон саваа суурин дээр тавиад нэр өгнө үү.</p>
+      <label class="visually-hidden" for="bc-bottle-name">Савны нэр</label>
+      <input id="bc-bottle-name" name="name" maxlength="24" placeholder="Жишээ нь: Цэнхэр сав" autocomplete="off">
+      <button type="submit" class="wt-ghost">Хоосон жинг авах</button>
+    </form>
+    ${scale.result ? `<p class="bc-result" role="status">${escape(scale.result)}</p>` : ''}
+    <p class="device-error bc-error" role="alert" hidden></p>
+    <div class="bc-zero"><button type="button" data-scale-zero>Суурийн жинг тэглэх</button><small>Суурин дээр юу ч байхгүй үед</small></div>`;
+}
 const baseKey = () => [scale.result, JSON.stringify(savedBottles())].join('|');
 function renderBase(pop: HTMLElement, force = false): void {
   const host = pop.querySelector<HTMLElement>('[data-bc-base]');
@@ -57,7 +78,7 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
     case 'ok': return `${dots(step)}<span class="wt-badge ok pop">${ICON.check}</span><h2 id="wt-title">Амжилттай холбогдлоо!</h2>
       <p>Уусан ус тань автоматаар бүртгэгдэнэ.</p>
       <div class="wt-tiles" data-bc-tiles>${tiles()}</div>
-      <div class="device-panel bc-base" data-bc-base>${baseBlock()}</div>
+      <section class="bc-base" data-bc-base aria-label="Савны жин">${baseBlock()}</section>
       <div class="wt-actions">${btn('Болсон', 'data-wt-close', true)}${btn('Аяга хэмжүүлэх', 'data-wt-next')}</div>`;
     case 'error': return `${dots(step)}<span class="wt-badge warn">${ICON.warn}</span><h2 id="wt-title">Холбогдож чадсангүй</h2>
       <p>Суурь асаалттай, утсанд ойрхон байгаа эсэхийг шалгаад дахин оролдоно уу.</p>
