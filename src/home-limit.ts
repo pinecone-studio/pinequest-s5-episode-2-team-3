@@ -42,6 +42,22 @@ export const NEAR_SHARE = 0.8;
 export const nearLimit = (drink: number, goal: number) => drink >= goal * NEAR_SHARE && drink <= goal;
 // This add is the one that brought the day close to the limit: said once, as it happens.
 export const crossedNear = (before: number, after: number, goal: number) => before < goal * NEAR_SHARE && nearLimit(after, goal);
+// This add is the one that took the day past the goal or limit.
+export const crossedOver = (before: number, after: number, goal: number) => before <= goal && after > goal;
+// What the base's speaker says after a drink, as its firmware does for one it counts itself (speakProgress
+// in firmware/firmware.ino), in order: every drink past the goal or limit «Анхаар! N мл илүү уусан» (under
+// a doctor's limit after «Хязгаараас хэтэрлээ»), reaching it exactly «Хэмжээндээ хүрлээ», and within
+// 200 ml of it «N мл дутуу» (10–190 ml, its recorded phrases). Nothing otherwise.
+export const BASE_NEAR_ML = 200;
+export type BaseVoice = 'over' | 'reached' | number | `extra ${number}`;
+export function baseVoice(before: number, after: number, goal: number, limit: boolean): BaseVoice[] {
+  if (goal <= 0) return [];
+  const left = goal - after;
+  if (left < 0) return [...(limit ? ['over' as const] : []), `extra ${-left}` as const];
+  if (before < goal && after >= goal) return ['reached'];
+  if (left > 0 && left < BASE_NEAR_ML) return [Math.min(190, Math.max(10, Math.round(left / 10) * 10))];
+  return [];
+}
 
 export function limitGauge(drink: number, goal: number, cup: number): string {
   const left = goal - drink;

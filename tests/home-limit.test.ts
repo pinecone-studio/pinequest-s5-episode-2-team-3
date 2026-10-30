@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'bun:test';
 // home-limit.ts pulls in stylesheets; tests only need the logic.
 mock.module('../src/hydration.css', () => ({}));
 mock.module('../src/home-limit.css', () => ({}));
-const { crossedNear, cupsText, nearLimit, nextDialysis, quickDrink, untilText } = await import('../src/home-limit');
+const { baseVoice, crossedNear, crossedOver, cupsText, nearLimit, nextDialysis, quickDrink, untilText } = await import('../src/home-limit');
 
 describe('cupsText', () => {
   test('rounds down to a half cup', () => {
@@ -83,5 +83,30 @@ describe('close to the limit', () => {
     expect(crossedNear(1250, 1400, 1500)).toBe(false);  // already close
     expect(crossedNear(1000, 1100, 1500)).toBe(false);  // not yet
     expect(crossedNear(1000, 1700, 1500)).toBe(false);  // straight past it: the over-limit popup says that
+  });
+  test('past it: only by the drink that goes over', () => {
+    expect(crossedOver(1400, 1600, 1500)).toBe(true);
+    expect(crossedOver(1000, 1700, 1500)).toBe(true);   // straight past it
+    expect(crossedOver(1500, 1501, 1500)).toBe(true);   // exactly at it was not over yet
+    expect(crossedOver(1600, 1700, 1500)).toBe(false);  // already over
+    expect(crossedOver(1000, 1500, 1500)).toBe(false);  // reaching it is not passing it
+  });
+});
+
+describe('baseVoice', () => {
+  test('past the goal, every drink says by how much', () => {
+    expect(baseVoice(900, 1100, 1000, false)).toEqual(['extra 100']);
+    expect(baseVoice(1100, 1350, 1000, false)).toEqual(['extra 350']);
+  });
+  test('past a limit, the warning comes first', () => {
+    expect(baseVoice(1100, 1200, 1000, true)).toEqual(['over', 'extra 200']);
+  });
+  test('reaching it exactly says so', () => {
+    expect(baseVoice(900, 1000, 1000, false)).toEqual(['reached']);
+  });
+  test('within 200 ml says how much is left', () => {
+    expect(baseVoice(700, 850, 1000, false)).toEqual([150]);
+    expect(baseVoice(700, 995, 1000, true)).toEqual([10]);
+    expect(baseVoice(500, 700, 1000, false)).toEqual([]);
   });
 });

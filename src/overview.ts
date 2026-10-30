@@ -7,7 +7,8 @@ import { load, save, saveMessage, onExternalChange } from './storage';
 import { bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
 import { bindGaugeDrag, hxGauge, hxHeader, mainCup, readCup, readCupKind, writeCup, writeCupKind } from './hydrify';
 import { openDrinkSheet } from './drink-sheet';
-import { addChecked, crossedNear, limitGauge, openThirst, type AddCtx } from './home-limit';
+import { addChecked, baseVoice, crossedNear, limitGauge, openThirst, type AddCtx } from './home-limit';
+import { BUZZ, NEAR_ID, OVER_ID, nativeReminders, notifyNow, type Face } from './native-reminders';
 import { homeActions } from './home-actions';
 import { openHomeMenu } from './home-menu';
 import { Toast, notify } from './components/Toast';
@@ -20,7 +21,7 @@ import { pushSnapshot, startAccountSync } from './session';
 import { startDevices } from './devices';
 import { bindWeatherChip, loadWeather, todayFeels, weatherChip } from './weather';
 import { pushWidget } from './widget';
-import { scale } from './scale';
+import { scale, strongBuzz } from './scale';
 import { bindDeviceTiles, deviceTiles } from './device-tiles';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
@@ -382,11 +383,27 @@ function bindPlan() {
 
 let drinking = false;
 // The limit home names the drink itself; elsewhere it is the drink the cup button pours.
-// Under a doctor's limit, the drink that brings the day to 80 % of it says so once, as it happens
-// (typed in here or counted by the base); the gauge keeps showing it after.
+// The drink that brings the day to 80 % of the limit or goal, and every drink past it, each say so as
+// it happens (typed in here or counted by the base). On screen: a toast and the phone's strongest buzz
+// with a loud sound (strongBuzz; the WebView drops navigator.vibrate without a tap, and the base counts
+// a drink with no tap at all). In the background: a phone notification that buzzes the same, without sound. The base
+// says it aloud.
 function sayIfNear(before: number, after: number): void {
   const goal = state.goal;
-  if (state.mode === 'limit' && crossedNear(before, after, goal)) notify(`Хязгаарт ойртлоо · ${number(goal - after)} мл үлдсэн. Бага багаар уугаарай.`);
+  const limit = state.mode === 'limit';
+  const say = (id: number, face: Face, title: string, body: string) => {
+    if (!document.hidden) { notify(`${title} · ${body}`); strongBuzz(BUZZ, after - goal); return; }
+    if (nativeReminders) void notifyNow({ title, body, face }, id).catch(() => {});
+    else if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, icon: `/notif/${face}.png`, tag: `dusal-amount-${id}`, renotify: true } as NotificationOptions);
+  };
+  // Every drink past the goal or limit warns again, not only the one that crossed it.
+  if (after > goal && after > before) {
+    say(OVER_ID, limit ? 'sad' : 'happy', limit ? 'Хязгаараас хэтэрлээ' : 'Өдрийн хэмжээгээ давлаа',
+      limit ? `Эмчийн хязгаараас ${number(after - goal)} мл илүү уусан. Өнөөдөр цааш уухгүй байгаарай.` : `${number(after)} / ${number(goal)} мл. Цааш хэт их уух шаардлагагүй.`);
+  } else if (crossedNear(before, after, goal)) {
+    say(NEAR_ID, limit ? 'worried' : 'happy', limit ? 'Хязгаарт ойртлоо' : 'Өдрийн хэмжээнд ойртлоо',
+      limit ? `${number(goal - after)} мл үлдсэн. Бага багаар уугаарай.` : `${number(goal - after)} мл үлдсэн.`);
+  }
 }
 
 async function addDrink(ml: number, kind: Kind | undefined = readCupKind(), salty = false) {
@@ -408,6 +425,13 @@ async function addDrink(ml: number, kind: Kind | undefined = readCupKind(), salt
   offerUndo();
   render();
   sayIfNear(before, before + ml);
+  sayOnBase(before, before + ml);
+}
+
+// A drink typed in here is also said by the linked base's speaker; one the base counted it says itself.
+function sayOnBase(before: number, after: number): void {
+  if (scale.phase !== 'connected') return;
+  for (const what of baseVoice(before, after, state.goal, state.mode === 'limit')) void scale.speak(what).catch(() => {});
 }
 
 // The demo reset shows in a dev build or with ?demo=1; under a limit only then.

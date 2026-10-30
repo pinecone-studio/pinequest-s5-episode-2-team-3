@@ -172,6 +172,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The near/over notice buzzes the phone while the app is open (navigator.vibrate in src/overview.ts). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Onboarding climate step: a rough position for today's weather. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- The smart base is found over Bluetooth only to connect to it, never to work out where the phone is,
