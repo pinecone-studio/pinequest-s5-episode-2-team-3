@@ -8,10 +8,10 @@ import { escape, number } from './format';
 
 // The "Суурь холбох" card, in the same look as «Цаг холбох» (watch-connect.ts): Bluetooth on, the base
 // found in the system's picker, the link made — then says how it went. A remembered base just reconnects.
-// Linked, one thing per page: «Амжилттай холбогдлоо» moves on by itself to «Саваа таниулах» (the bottles).
+// Linked, one thing per page: «Амжилттай холбогдлоо», then either «Шууд уух» (skip the bottle's weight; the
+// base still counts each drink by what it loses) or «Саваа таниулах» (the bottles).
 type Step = 'bt' | 'find' | 'linking' | 'ok' | 'bottles' | 'error' | 'unsupported';
 const LINKED: Step[] = ['ok', 'bottles'];
-const OK_MS = 1800;
 
 const ICON = {
   bt: '<svg viewBox="0 0 24 24"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg>',
@@ -146,8 +146,8 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
     case 'ok': return `${dots(step)}<span class="wt-badge ok pop">${ICON.check}</span><h2 id="wt-title">Амжилттай холбогдлоо!</h2>
       <p>Уусан ус тань автоматаар бүртгэгдэнэ.</p>
       <div class="wt-tiles" data-bc-tiles>${tiles()}</div>
-      <p class="wt-note">Саваа таниулах руу шилжиж байна…</p>
-      <div class="wt-actions">${btn('Үргэлжлүүлэх', 'data-wt-bottles')}</div>`;
+      <p class="wt-note">Саваа таниулбал саванд хэдэн мл ус байгааг харуулна. Шууд уувал суурь уусныг тань тоолсоор байна.</p>
+      <div class="wt-actions">${btn('Шууд уух', 'data-wt-close', true)}${btn('Саваа таниулах', 'data-wt-bottles')}</div>`;
     case 'bottles': return `<h2 id="wt-title">Саваа таниулах</h2>
       <p>Суурин дээр тавьсан саваа сонгоно уу.</p>
       <p class="bc-live" data-bc-live ${scale.addedBottle ? 'hidden' : ''}>${liveLine()}</p>
@@ -201,7 +201,6 @@ export function openBaseConnect(): void {
     pop.querySelector('[data-bc-unlink]')?.addEventListener('click', () => { close(); void scale.forget(); });
     pop.scrollTop = 0;
     pop.querySelector<HTMLElement>('.wt-actions > :last-child')?.focus();
-    if (s === 'ok') setTimeout(() => { if (step === 'ok' && box.isConnected) show('bottles'); }, OK_MS);
   };
   // The link's outcome comes as a scale event: connecting once picked, then connected, or off when it failed.
   const onScale = () => {
