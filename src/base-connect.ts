@@ -31,7 +31,7 @@ function tiles(): string {
 
 // Linked: every saved bottle with its empty weight, «Хоосон жинг авах» and «Суурийн жинг тэглэх», as on the
 // base's settings (DevicePanel.ts). Redrawn when a command answers or the bottles change, not while a name is typed.
-const baseBlock = () => `${bottlesBlock('bc-bottle-name', false)}<p class="device-error" role="alert" hidden></p>`;
+const baseBlock = () => `${bottlesBlock('bc-bottle-name')}<p class="device-error" role="alert" hidden></p>`;
 const baseKey = () => [scale.result, JSON.stringify(savedBottles())].join('|');
 function renderBase(pop: HTMLElement, force = false): void {
   const host = pop.querySelector<HTMLElement>('[data-bc-base]');
@@ -78,7 +78,8 @@ export function openBaseConnect(next?: () => void): void {
   document.body.append(box);
   const pop = box.querySelector<HTMLElement>('.wt-pop')!;
   const native = Capacitor.isNativePlatform();
-  let step: Step = scale.phase === 'unsupported' ? 'unsupported' : native ? 'bt' : 'find';
+  // Already linked (opened from the base's settings): straight to the bottles and the zero.
+  let step: Step = scale.phase === 'unsupported' ? 'unsupported' : scale.phase === 'connected' ? 'ok' : native ? 'bt' : 'find';
   let btOn: boolean | null = null;
   let missed = false;
   const close = () => {

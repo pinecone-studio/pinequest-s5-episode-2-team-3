@@ -6,9 +6,10 @@ import { escape, number } from '../format';
 import { openBaseConnect } from '../base-connect';
 import './device-panel.css';
 
-// Profile › «Ухаалаг суурь»: the bottles and their empty weights show even before the base is connected.
+// Profile › «Ухаалаг суурь» and «Суурийн тохиргоо»: the link and the live weight. The bottles, their empty
+// weights and the zero are on the «Суурь холбох» card (base-connect.ts), opened from here.
 export function BasePanel(): string {
-  return '<section class="device-panel" aria-labelledby="scale-title" data-scale-panel data-full></section>';
+  return '<section class="device-panel" aria-labelledby="scale-title" data-scale-panel></section>';
 }
 
 export function DevicePanel(): string {
@@ -34,7 +35,7 @@ function scaleLine(s: ScaleStatus | null): string {
   if (s.phase === 'moving') parts.push('тогтворжиж байна…');
   else if (s.phase === 'empty') parts.push('сав тавиагүй');
   else if (s.remainingMl !== null) parts.push(`үлдсэн ус ${number(s.remainingMl)} мл`);
-  else if (!s.bottleSet) parts.push('хоосон саваа тавиад суурийн BOOT товчийг дарна уу');
+  else if (!s.bottleSet) parts.push('«Сав ба тэглэх»-ээс хоосон савныхаа жинг авна уу');
   if (s.waiting) parts.push(`илгээгдээгүй уулт ${number(s.waiting)}`);
   return parts.join(' · ');
 }
@@ -57,15 +58,11 @@ function scaleButton(): string {
 }
 
 // Each bottle keeps its empty weight; choosing one before putting it on the base keeps a swap from counting.
-// These do what the base's BOOT button does, for a base sealed in its case.
-// Off the base the block stays visible but disabled, so the saved weights show and it is clear where they are taken.
-// Also on «Суурь холбох» once linked (base-connect.ts): `id` keeps its name field apart from this panel's.
-// `today`: also «Өнөөдрийн дүнг тэглэх» (the demo reset), left out there.
-export function bottlesBlock(id = 'bottle-name', today = true): string {
+// These do what the base's BOOT button does, for a base sealed in its case. Shown on «Суурь холбох» once linked
+// (base-connect.ts).
+export function bottlesBlock(id = 'bottle-name'): string {
   const { list, selected } = savedBottles();
-  const on = scale.phase === 'connected';
-  return `<fieldset class="scale-bottles" ${on ? '' : 'disabled'}><legend class="scale-sub">Савны жин</legend>
-    ${on ? '' : '<p class="device-time">Суурь холбогдсоны дараа савныхаа хоосон жинг авна.</p>'}
+  return `<fieldset class="scale-bottles"><legend class="scale-sub">Савны жин</legend>
     ${list.length ? `<p class="device-time">Саваа солихдоо эхлээд энд сонгоод, дараа нь суурь дээр тавина.</p>
     <div class="bottle-list">${list.map(b => `<span class="bottle-chip${b.id === selected ? ' on' : ''}">
       <button type="button" data-bottle="${escape(b.id)}" aria-pressed="${b.id === selected}">${escape(b.name)} · ${number(b.grams)} г</button>
@@ -77,49 +74,16 @@ export function bottlesBlock(id = 'bottle-name', today = true): string {
       <button type="submit">Хоосон жинг авах</button></div>
     </form>
     <p class="device-time">${scale.result ? `<b>${escape(scale.result)}</b>` : 'Шинэ савыг хоосноор нь суурь дээр тавиад нэр өгч «Хоосон жинг авах»-г дарна.'}</p>
-    <div class="scale-actions">${today ? '<button type="button" data-reset-today>Өнөөдрийн дүнг тэглэх</button>' : ''}<button type="button" data-scale-zero>Суурийн жинг тэглэх</button></div>
+    <div class="scale-actions"><button type="button" data-scale-zero>Суурийн жинг тэглэх</button></div>
   </fieldset>`;
 }
 
-// The second base speaks (firmware/tools/make_voice.py, ElevenLabs). The demo plays the same phrases on the
-// phone, or with the base connected and «Суурь дээр» on, on the base's own speaker.
-const VOICES = [
-  ['ready', 'ready', 'Суурь танигдлаа'],
-  ['short150', '150', '150 мл дутуу'],
-  ['reached', 'reached', 'Хэмжээндээ хүрлээ'],
-  ['over', 'over', 'Хязгаараас хэтэрлээ'],
-  ['extra200', 'extra 200', '200 мл илүү уусан'],
-] as const;
-let onBase = true;
-let playing: HTMLAudioElement | null = null;
-function voiceBlock(): string {
-  const on = scale.phase === 'connected';
-  return `<fieldset class="scale-bottles scale-voice"><legend class="scale-sub">Суурийн хоолой</legend>
-    <p class="device-time">Суурь уулт тоолохдоо эдгээрийг хэлнэ. Дарж сонсоно уу.</p>
-    ${on ? `<label class="scale-voice-where"><input type="checkbox" data-voice-base ${onBase ? 'checked' : ''}> Суурь дээр сонсох</label>` : ''}
-    <div class="scale-actions">${VOICES.map(([file, , label]) => `<button type="button" data-voice="${file}">▶ ${label}</button>`).join('')}</div>
-  </fieldset>`;
-}
-function playVoice(file: string): void {
-  const said = VOICES.find(v => v[0] === file)![1];
-  if (scale.phase === 'connected' && onBase) {
-    void scale.speak(said === 'ready' || said === 'reached' || said === 'over' || said === 'extra 200' ? said : Number(said)).catch(() => {});
-    return;
-  }
-  playing?.pause();
-  playing = new Audio(`/voice/${file}.mp3`);
-  void playing.play().catch(() => {});
-}
-
-// Rebuilt only when the connection, the bottles or a command result change; the live line is updated in
-// place every second.
+// Rebuilt only when the connection changes; the live line is updated in place every second.
 function renderScale(): void {
   const host = document.querySelector<HTMLElement>('[data-scale-panel]');
   if (!host) return;
-  const full = host.hasAttribute('data-full');
-  const key = [scale.phase, scale.saved, scale.name, scale.message, scale.result, JSON.stringify(savedBottles())].join('|');
-  // Do not wipe a bottle name while it is being typed.
-  if (host.dataset.key !== key && document.activeElement !== host.querySelector('#bottle-name')) {
+  const key = [scale.phase, scale.saved, scale.name, scale.message].join('|');
+  if (host.dataset.key !== key) {
     host.dataset.key = key;
     const on = scale.phase === 'connected';
     host.innerHTML = `<div class="hx-watch-link scale-link">
@@ -130,15 +94,12 @@ function renderScale(): void {
       <p class="scale-live" data-scale-live></p>
       ${scale.message ? `<p>${escape(scale.message)}</p>` : ''}
       ${scale.saved && !on ? '<div class="scale-actions"><button type="button" data-scale-forget>Салгах</button></div>' : ''}
-      ${scale.phase !== 'unsupported' ? bottlesBlock() : ''}
-      ${on || full ? voiceBlock() : ''}
+      ${on ? '<div class="scale-actions"><button type="button" data-scale-bottles>Сав ба тэглэх ›</button><button type="button" data-reset-today>Өнөөдрийн дүнг тэглэх</button></div>' : ''}
       <p class="device-error" role="alert" hidden></p>`;
-    // Linking goes through the same «Суурь холбох» card as the home tile (base-connect.ts).
-    host.querySelectorAll('[data-scale-pair], [data-scale-retry]').forEach(b => b.addEventListener('click', () => openBaseConnect()));
+    // Linking, the bottles and the zero go through the same «Суурь холбох» card as the home tile (base-connect.ts).
+    host.querySelectorAll('[data-scale-pair], [data-scale-retry], [data-scale-bottles]').forEach(b => b.addEventListener('click', () => openBaseConnect()));
     host.querySelector('[data-scale-forget]')?.addEventListener('click', () => void act(host, () => scale.forget()));
-    bindBottles(host);
-    host.querySelectorAll<HTMLButtonElement>('[data-voice]').forEach(b => b.addEventListener('click', () => playVoice(b.dataset.voice!)));
-    host.querySelector<HTMLInputElement>('[data-voice-base]')?.addEventListener('change', e => { onBase = (e.target as HTMLInputElement).checked; });
+    host.querySelector('[data-reset-today]')?.addEventListener('click', () => void act(host, () => scale.resetToday()));
   }
   const live = host.querySelector<HTMLElement>('[data-scale-live]')!;
   live.textContent = scale.phase === 'connected' ? scaleLine(scale.status) : '';
@@ -150,7 +111,6 @@ export function bindBottles(host: HTMLElement): void {
   host.querySelectorAll<HTMLButtonElement>('[data-bottle]').forEach(b => b.addEventListener('click', () => void act(host, () => scale.chooseBottle(b.dataset.bottle!))));
   host.querySelectorAll<HTMLButtonElement>('[data-bottle-remove]').forEach(b => b.addEventListener('click', () => scale.removeBottle(b.dataset.bottleRemove!)));
   host.querySelector('[data-scale-zero]')?.addEventListener('click', () => void act(host, () => scale.zero()));
-  host.querySelector('[data-reset-today]')?.addEventListener('click', () => void act(host, () => scale.resetToday()));
   host.querySelector<HTMLFormElement>('[data-bottle-add]')?.addEventListener('submit', event => {
     event.preventDefault();
     const name = new FormData(event.target as HTMLFormElement).get('name');

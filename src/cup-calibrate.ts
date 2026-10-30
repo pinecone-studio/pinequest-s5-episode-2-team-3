@@ -65,7 +65,7 @@ function liveBox(): string {
       <span data-live-hint>${step === 4 ? 'Хадгалагдлаа ✓' : step === 3 ? 'Хэмжлээ ✓' : scale.status ? 'Тогтвортой болмогц «Хэмжих»-ийг дарна уу' : 'Суурийн жинг уншиж байна…'}</span></section>`;
 }
 
-// The bottles weighed before (their empty weight, DevicePanel.ts «Савны жин»): pick the one going on
+// The bottles weighed before (their empty weight, «Савны жин» on base-connect.ts): pick the one going on
 // the base, so the water in it is told right away instead of weighing it empty again. New ones are
 // weighed under «Суурийн тохиргоо» below.
 function bottles(): string {
@@ -75,7 +75,7 @@ function bottles(): string {
       ${list.length ? `<div class="cc-bottle-list">${list.map(b => `<button type="button" class="cc-bottle${b.id === selected ? ' on' : ''}" data-pick-bottle="${escape(b.id)}" aria-pressed="${b.id === selected}" ${on ? '' : 'disabled'}>
         <b>${escape(b.name)}</b><small>${number(b.grams)} г</small></button>`).join('')}</div>
       <small class="cc-tip">${on ? 'Суурин дээр тавих саваа сонгоно уу' : 'Суурь холбогдсоны дараа сонгоно'}</small>`
-      : '<p class="cc-empty">Хадгалсан сав алга. «Суурийн тохиргоо» → «Савны жин»-ээс хоосон савныхаа жинг авна уу.</p>'}
+      : '<p class="cc-empty">Хадгалсан сав алга. «Суурийн тохиргоо» → «Сав ба тэглэх»-ээс хоосон савныхаа жинг авна уу.</p>'}
     </section>`;
 }
 
