@@ -5,54 +5,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
 .tabs-track.animate { transition: transform .38s cubic-bezier(.22, .9, .28, 1); }
 .tabs-track iframe { flex: 1 1 0; min-width: 0; height: 100%; border: 0; background: transparent; }
 
-/* Little breaking waves on tab switch (tabs.ts): one after another they rise, curl, crash with a
-   splash and flatten over a rippling surface, starting from the side the new tab comes in.
-   Only transform and opacity move, so it all runs on the GPU. */
-.breaker { position: fixed; z-index: 6; left: 0; right: 0; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 70px); height: 13vh; pointer-events: none; opacity: 0; overflow: hidden; }
-.breaker.forward { transform: scaleX(-1); }
-/* Waves never change size (that would re-raster them every frame on a phone). Each wave has three
-   separate, eased motions on nested elements so nothing changes speed abruptly: it drifts sideways
-   at an even pace (.w), rises out of the clipped bottom edge and sinks back (.rise), and leans
-   slowly into its curl (svg). */
-.breaker .w { position: absolute; bottom: 0; width: var(--w); height: var(--h); will-change: transform; }
-.breaker .rise { position: absolute; inset: 0; transform: translateY(105%); will-change: transform; }
-.breaker .w svg { display: block; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 100%; will-change: transform; }
-.breaker-shade { fill: rgba(8, 100, 150, .3); }
-.breaker-foam { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; opacity: .95; }
-.breaker .spray { position: absolute; left: 72%; top: 18%; width: 6px; height: 6px; border-radius: 50%; background: #e9fbff; border: 1.5px solid #2fbde0; opacity: 0; will-change: transform, opacity; }
-.breaker .sea { position: absolute; left: 0; bottom: 0; width: 200%; height: 26px; transform: translateY(100%); will-change: transform; }
-.breaker .sea path { fill: rgba(47, 189, 224, .55); }
-.breaker.play { animation: breaker-show 2.2s linear both; }
-.breaker.play .sea { animation: sea-roll 2.2s linear both; }
-.breaker.play .w { animation: wave-drift var(--dur) var(--delay) linear both; }
-.breaker.play .rise { animation: wave-rise var(--dur) var(--delay) both; }
-.breaker.play .w svg { animation: wave-lean var(--dur) var(--delay) both; }
-.breaker.play .spray { animation: wave-spray .7s calc(var(--delay) + var(--dur) * .52) ease-out both; }
-/* Warm-up right after load: one invisible frame with the waves up, so they are rasterised before the first switch. */
-.breaker.warm { opacity: .01; }
-.breaker.warm .rise { transform: translateY(0); }
-@keyframes breaker-show { 0% { opacity: 0; } 8% { opacity: 1; } 86% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes wave-drift { from { transform: translateX(-9%); } to { transform: translateX(11%); } }
-@keyframes wave-rise {
-  0% { transform: translateY(105%); animation-timing-function: cubic-bezier(.2, .7, .35, 1); }
-  48% { transform: translateY(0); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
-  64% { transform: translateY(7%); animation-timing-function: cubic-bezier(.5, 0, .75, .4); }
-  100% { transform: translateY(105%); }
-}
-@keyframes wave-lean {
-  0% { transform: skewX(calc(var(--lean) * 6deg)); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
-  45% { transform: skewX(0deg); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
-  100% { transform: skewX(calc(var(--lean) * -20deg)); }
-}
-@keyframes wave-spray { 0% { opacity: 0; transform: translate(0, 0) scale(.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(14px, -26px) scale(1); } }
-/* The surface eases up, rolls sideways by whole waves at an even pace and eases down again. */
-@keyframes sea-roll {
-  0% { transform: translate(0, 100%); animation-timing-function: cubic-bezier(.2, .7, .35, 1); }
-  14% { transform: translate(-4%, 0); animation-timing-function: linear; }
-  86% { transform: translate(-21%, 0); animation-timing-function: cubic-bezier(.5, 0, .75, .4); }
-  100% { transform: translate(-25%, 100%); }
-}
-
 /* Same look as the home page's floating bar; a soft pill slides under the active tab. */
 .tabs-bar { --i: 0; position: fixed; z-index: 10; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; width: min(428px, calc(100% - 32px)); padding: 6px 8px; border: 1px solid rgba(20, 32, 52, .07); border-radius: 22px; background: rgba(255, 255, 255, .94); box-shadow: 0 12px 30px rgba(40, 60, 90, .16); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
 .tabs-bar::before { content: ""; position: absolute; top: 6px; bottom: 6px; left: 8px; width: calc((100% - 16px) / 4); border-radius: 16px; background: rgba(54, 159, 255, .1); transform: translateX(calc(var(--i) * 100%)); transition: transform .38s cubic-bezier(.22, .9, .28, 1); }
@@ -64,7 +16,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: linear-gradi
 .tabs-bar.away { transform: translate(-50%, 150%); opacity: 0; pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .breaker { display: none; }
   .tabs-track.animate, .tabs-bar::before, .tabs-bar a, .tabs-bar .nav-icon { transition: none; }
 }
 
