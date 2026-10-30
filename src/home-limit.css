@@ -170,6 +170,7 @@ html .dr-chip { min-height: 44px; padding: 0; border: 0; border-radius: 999px; b
 html .dr-chip[aria-pressed="true"] { background: var(--sky); color: #fff; }
 html .dr-time { display: flex; align-items: center; justify-content: space-between; min-height: 48px; margin-top: 8px; padding: 0; border: 0; border-top: 1px solid var(--hair); background: none; font: inherit; font-size: 15px; font-weight: 600; color: var(--ink); cursor: pointer; }
 html .dr-time b { color: var(--sky); }
+html .dr-time small { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--muted); }
 html .dr-foot { margin: 0; font-size: 12px; text-align: center; color: #8a8a8a; }
 
 /* «Юу уусан бэ?» drink sheet (drink-sheet.ts) */

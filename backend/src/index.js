@@ -9,7 +9,7 @@ import { readDoctorNote } from './doctor.js';
 import { parseDrink } from './drink.js';
 import { rateLimit } from './rate-limit.js';
 import { weatherAdjust } from './weather.js';
-import { AuthError, getAccount, googleSignIn, putData, signIn, signOut, signUp } from './accounts.js';
+import { AuthError, changePassword, deleteAccount, getAccount, googleSignIn, putData, signIn, signOut, signUp } from './accounts.js';
 
 import { CONTRACT_VERSION, ContractError, validateId, validateSettings, validateEntry, validateEventPatch } from '../../shared/contracts.ts';
 
@@ -61,6 +61,11 @@ async function route(request, env) {
   if (pathname === '/api/account') {
     if (method === 'GET') return json(await getAccount(request, db));
     if (method === 'PUT') return json(await putData(request, db));
+    if (method === 'DELETE') { await deleteAccount(request, db); return new Response(null, { status: 204, headers: cors }); }
+  }
+  if (pathname === '/api/account/password' && method === 'POST') {
+    await rateLimit(db, request, '/api/auth');
+    return json(await changePassword(request, db));
   }
 
   if (pathname === '/api/devices' && method === 'GET') return json(await listDevices(db));

@@ -114,3 +114,37 @@ test('data needs a live session; signing out ends it', async () => {
   expect((await s.call('POST', '/api/auth/logout', undefined, token)).status).toBe(204);
   expect((await s.call('GET', '/api/account', undefined, token)).status).toBe(401);
 });
+
+test('changing the password needs the current one and signs every other phone out', async () => {
+  const s = setup();
+  const { token } = await (await s.call('POST', '/api/auth/signup', { email: 'a@b.mn', name: 'А', password: 'secret-123' })).json() as { token: string };
+  const other = await (await s.call('POST', '/api/auth/login', { email: 'a@b.mn', password: 'secret-123' })).json() as { token: string };
+  expect((await s.call('POST', '/api/account/password', { current: 'wrong-pass', password: 'better-456' }, token)).status).toBe(403);
+  expect((await s.call('POST', '/api/account/password', { current: 'secret-123', password: 'short' }, token)).status).toBe(400);
+  expect((await s.call('POST', '/api/account/password', { current: 'secret-123', password: 'better-456' }, token)).status).toBe(200);
+  expect((await s.call('GET', '/api/account', undefined, token)).status).toBe(200);
+  expect((await s.call('GET', '/api/account', undefined, other.token)).status).toBe(401);
+  expect((await s.call('POST', '/api/auth/login', { email: 'a@b.mn', password: 'secret-123' })).status).toBe(401);
+  expect((await s.call('POST', '/api/auth/login', { email: 'a@b.mn', password: 'better-456' })).status).toBe(200);
+});
+
+test('a Google-only account can set its first password', async () => {
+  const s = setup();
+  const { token } = await (await s.call('POST', '/api/auth/google', { idToken: 'ok|sub-1|a@gmail.com' })).json() as { token: string };
+  const r = await (await s.call('POST', '/api/account/password', { password: 'secret-123' }, token)).json() as { account: { password: boolean; google: boolean } };
+  expect(r.account).toMatchObject({ password: true, google: true });
+  expect((await s.call('POST', '/api/auth/login', { email: 'a@gmail.com', password: 'secret-123' })).status).toBe(200);
+});
+
+test('deleting the account removes it, its data and its sessions', async () => {
+  const s = setup();
+  const { token } = await (await s.call('POST', '/api/auth/signup', { email: 'a@b.mn', name: 'А', password: 'secret-123' })).json() as { token: string };
+  await s.call('PUT', '/api/account', { data: SNAPSHOT }, token);
+  expect((await s.call('DELETE', '/api/account', undefined, token)).status).toBe(204);
+  expect((await s.call('GET', '/api/account', undefined, token)).status).toBe(401);
+  for (const table of ['accounts', 'sessions', 'account_data']) {
+    expect((s.db.sqlite.query(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n).toBe(0);
+  }
+  // The email is free again.
+  expect((await s.call('POST', '/api/auth/signup', { email: 'a@b.mn', name: 'А', password: 'secret-123' })).status).toBe(200);
+});

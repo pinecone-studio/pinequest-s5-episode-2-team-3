@@ -1,11 +1,10 @@
-import { SyncStatus, bindSyncStatus } from './components/SyncStatus';
-import { BasePanel, DevicePanel, bindDevicePanel } from './components/DevicePanel';
+import { BasePanel, bindDevicePanel } from './components/DevicePanel';
 import { WatchPanel, bindWatchPanel } from './components/WatchPanel';
 import { ProfilePanel, bindProfilePanel } from './components/ProfilePanel';
 import { hxHeader } from './hydrify';
-import { watchCard } from './watch-card';
-import { bindDeviceTiles, deviceTiles } from './device-tiles';
-import { pushSnapshot, signOutAccount, startAccountSync } from './session';
+import { deleteAccount, pushSnapshot, signOutAccount, signedIn, startAccountSync } from './session';
+import { clearPhone } from './wipe';
+import { readProfile } from './plan';
 import { accountViews } from './account';
 import { confirmSheet } from './hx-edit';
 import './style.css';
@@ -15,7 +14,7 @@ import './pwa';
 import { dayKey, defaults, type AppState } from './data';
 import { dateLabel, escape, number } from './format';
 import { brandMark } from './components/Icon';
-import { siteNav } from './nav';
+import { embedded, siteNav } from './nav';
 import { Toast, notify } from './components/Toast';
 import { load, save, saveMessage, onExternalChange, requestPersistence } from './storage';
 import { WEEKEND_DEMO_ID, askPermission, nativeReminders, scheduleWeekend } from './native-reminders';
@@ -117,7 +116,7 @@ const ICONS = {
 function menu(): string {
   const row = (key: keyof typeof ICONS, label: string, href = `#${key}`) => `<li><a href="${href}">${ICON(ICONS[key])}<span>${label}</span><i aria-hidden="true">›</i></a></li>`;
   return `<section class="hx-card ac-menu"><ul>
-      ${row('personal', 'Хувийн мэдээлэл')}${row('doctor', 'Эмчийн зөвлөмж')}${row('reminders', 'Уух сануулга', '#reminder')}${row('cups', 'Миний аяганууд')}${row('base', 'Суурь ба савны жин')}${row('widgets', 'Нүүр дэлгэцийн widget')}${row('preferences', 'Тохиргоо')}
+      ${row('personal', 'Хувийн мэдээлэл')}${readProfile().condition === 'none' ? '' : row('doctor', 'Эмчийн зөвлөмж')}${row('reminders', 'Уух сануулга', '#reminder')}${row('cups', 'Миний аяганууд')}${row('base', 'Суурь ба савны жин')}${row('widgets', 'Нүүр дэлгэцийн widget')}${row('preferences', 'Тохиргоо')}
     </ul></section>
     <section class="hx-card ac-menu"><ul>
       ${row('security', 'Бүртгэл ба аюулгүй байдал')}${row('linked', 'Холбосон бүртгэл')}
@@ -147,13 +146,28 @@ async function weekendDemo(): Promise<void> {
   notify('1 минутын дараа ирнэ. Утсаа түгжээд хүлээгээрэй.');
 }
 
-// Logout clears this phone's profile and name, then onboarding starts again. The water log stays.
-// Signing out sends the last changes up first, then ends the session; the water log stays on the phone.
+// After signing out or deleting, the whole app starts again from onboarding (the tab host too, in the app).
+const startOver = () => (embedded ? window.top ?? window : window).location.replace(embedded ? '/tabs.html' : '/');
+
+// Signing out sends the last changes up first, then ends the session and clears this phone, so the next
+// person here starts empty. Without the last changes saved it stops instead of losing them.
 async function logout(): Promise<void> {
-  await pushSnapshot().catch(() => {});
+  if (signedIn() && !await pushSnapshot().catch(() => false)) {
+    notify('Сүүлийн өөрчлөлт бүртгэлд хадгалагдаагүй байна. Интернэтэд холбогдоод дахин оролдоно уу.');
+    return;
+  }
   await signOutAccount();
-  for (const key of ['dusal-onboarded-v1', 'dusal-profile-v1', 'dusal-member-v1']) { try { localStorage.removeItem(key); } catch { /* nothing kept */ } }
-  location.href = '/';
+  await clearPhone();
+  startOver();
+}
+
+// «Бүртгэл устгах»: the account and its data on the server, then this phone. Without an account, only the phone.
+async function removeAccount(): Promise<void> {
+  if (signedIn()) {
+    try { await deleteAccount(); } catch (e) { notify((e as Error).message); return; }
+  }
+  await clearPhone();
+  startOver();
 }
 
 // "Restart all tracking": empties the water log, with undo.
@@ -166,10 +180,10 @@ async function restart(): Promise<void> {
 
 const viewFor = accountViews({
   state: () => state, goalSection, backupSection: () => backupSection(),
-  devices: () => WatchPanel() + DevicePanel() + SyncStatus(),
+  devices: () => WatchPanel(),
   base: () => BasePanel(),
   profilePanel: () => ProfilePanel(),
-  restart: () => void restart(), logout, redraw: () => render(),
+  restart: () => void restart(), logout, deleteAccount: () => void removeAccount(), redraw: () => render(),
 });
 
 function render(): void {
@@ -181,7 +195,7 @@ function render(): void {
         <div class="hydro hx-page">
           ${view ? `<div class="hx-header"><a class="hx-back" href="#${view.back}" aria-label="Буцах">‹</a><h1>${view.title}</h1>${view.right ?? '<span></span>'}</div>` : hxHeader('Профайл')}
           <p class="storage-error" role="alert" ${storageError ? '' : 'hidden'}>${escape(storageError)}</p>
-          ${view ? view.body() : menu() + devicesGroup()}
+          ${view ? view.body() : menu()}
           ${view?.foot ? `<div class="ac-foot">${view.foot}</div>` : ''}
         </div>
       </div>
@@ -189,16 +203,11 @@ function render(): void {
     ${Toast()}`;
   bind();
   if (view?.bind) view.bind(app.querySelector<HTMLElement>('.hx-page')!);
-  bindSyncStatus();
   bindDevicePanel(render);
   bindWatchPanel();
   bindProfilePanel();
-  bindDeviceTiles();
 }
 window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
-
-// Under the menu: the «Төхөөрөмж» tiles, the same as on the home, and a linked watch's day card.
-const devicesGroup = () => `${deviceTiles()}${watchCard()}`;
 
 async function reload(): Promise<void> {
   ({ state, error: storageError, corrupt } = await load());
@@ -280,7 +289,9 @@ function bind(): void {
   if (download) download.onclick = () => { downloadBackup(state); notify('Нөөц файлыг татлаа.'); };
   const file = document.querySelector<HTMLInputElement>('#backup-file');
   if (file) file.onchange = event => chooseFile(event.target as HTMLInputElement);
-  document.querySelector('[data-logout]')?.addEventListener('click', () => confirmSheet('Гарах', 'Та гарахдаа итгэлтэй байна уу? Усны бүртгэл хадгалагдана.', 'Тийм, гарах', () => void logout()));
+  document.querySelector('[data-logout]')?.addEventListener('click', () => (signedIn()
+    ? confirmSheet('Гарах', 'Усны бүртгэл тань бүртгэлд хадгалагдсан, дахин нэвтрэхэд буцаж ирнэ. Энэ утаснаас арилна.', 'Тийм, гарах', () => void logout())
+    : confirmSheet('Гарах', 'Бүртгэлгүй (Demo) тул энэ утсан дахь усны бүртгэл, тохиргоо бүрмөсөн устна.', 'Тийм, устгаад гарах', () => void logout())));
   document.querySelector<HTMLButtonElement>('#confirm-restore')?.addEventListener('click', confirmRestore);
   document.querySelector<HTMLButtonElement>('#cancel-restore')?.addEventListener('click', () => { pending = undefined; render(); });
 }

@@ -8,7 +8,7 @@ import './device-panel.css';
 export function WatchPanel(): string {
   if (!healthSupported()) {
     return `<section class="device-panel" aria-labelledby="watch-title"><div class="device-heading"><h2 id="watch-title">Ухаалаг цаг</h2></div>
-      <p>Galaxy Watch-ийг Дусал Android апп-аас холбоно: Профайл → Холбосон бүртгэл → «Цагтай холбох». Алхам, зүрхний цохилт, калори нь Health Connect-ээр ирнэ.</p></section>`;
+      <p>Ухаалаг цагийг зөвхөн Дусал Android апп дээр холбоно. Galaxy Watch-ийн алхам, зүрхний цохилт, калори Health Connect-ээр ирнэ.</p></section>`;
   }
   return '<section class="device-panel" aria-labelledby="watch-title" data-watch-panel></section>';
 }
