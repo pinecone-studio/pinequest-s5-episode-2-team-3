@@ -12,15 +12,35 @@
 #include <U8g2lib.h>
 #include <Wire.h>
 #include <esp_timer.h>
+#if CONFIG_IDF_TARGET_ESP32S3
+#include <driver/i2s.h>
+#include "voice.h"  // spoken phrases, tools/make_voice.py
+#endif
 #include "image.h"  // the Dusal bottle, tools/make_image.py
 #include "text.h"   // Mongolian words (the OLED fonts here have no Ө/Ү), tools/make_text.py
 
 // ---------- Settings ----------
-// Wiring for an ESP32-WROOM-32 DevKit. Change these if your board is wired differently.
+// Wiring for an ESP32-WROOM-32 DevKit (first base) and the XH-S3E-AI ESP32-S3 board (second base).
+// Change these if your board is wired differently.
+#if CONFIG_IDF_TARGET_ESP32S3
+// The second base has no screen (it has a speaker instead), so the OLED is never looked for.
+const bool HAS_OLED = false;
+const int PIN_HX711_DT = 41;
+const int PIN_HX711_SCK = 42;
+const int PIN_OLED_SDA = -1;
+const int PIN_OLED_SCL = -1;
+// Its speaker amplifier (I2S).
+#define HAS_SPEAKER 1
+const int PIN_SPEAKER_BCLK = 15;
+const int PIN_SPEAKER_LRCK = 16;
+const int PIN_SPEAKER_DOUT = 7;
+#else
+const bool HAS_OLED = true;
 const int PIN_HX711_DT = 16;
 const int PIN_HX711_SCK = 4;
 const int PIN_OLED_SDA = 21;
 const int PIN_OLED_SCL = 22;
+#endif
 // The BOOT button exists on every DevKit. Nothing on the scale: zero it. Empty bottle on it: remember the bottle.
 const int PIN_BUTTON = 0;
 
@@ -58,6 +78,19 @@ const int MAX_CHANGE_ML = 5000;        // a bigger jump is a different bottle, n
 
 const int QUEUE_CAPACITY = 64;         // unconfirmed drinks kept in flash; when full the oldest is dropped
 const uint32_t STATUS_INTERVAL_MS = 1000;  // live weight to the app
+
+// Speaker (second base): within VOICE_NEAR_ML of the day's goal or limit, each drink says how much is
+// left; reaching the goal says so, and under a doctor's limit every drink past it warns.
+const int VOICE_NEAR_ML = 200;
+const int VOICE_VOLUME = 70;           // percent of the recorded loudness
+
+// Battery: the base can run from a small LiPo, so it does not spin at full speed. 80 MHz is plenty for
+// a 10 samples/s HX711 and BLE; the pause lets the CPU idle between passes of loop().
+const uint32_t CPU_MHZ = 80;
+const uint32_t LOOP_IDLE_MS = 10;
+// Advertising every 0.5-1 s instead of every ~0.1 s: the phone still finds the base within a few seconds.
+const uint16_t ADVERTISE_MIN = 800;    // units of 0.625 ms
+const uint16_t ADVERTISE_MAX = 1600;
 const uint32_t DRINK_RESEND_MS = 3000;     // the oldest drink is repeated until the app confirms it
 // -------------------------------
 
@@ -131,6 +164,8 @@ char command[24];
 volatile bool commandPending = false;
 uint32_t tareUntil = 0;  // an app tare is waiting for the bottle to settle, until this time
 int todayMl = 0;         // drunk today, as the app counts it, plus drinks counted here since
+int goalMl = 0;          // the day's goal or the doctor's limit, from the app; 0: not known yet
+bool limitMode = false;  // goalMl is a doctor's limit, not a goal
 uint32_t statusSentAt = 0;
 uint32_t drinkSentAt = 0;  // 0: send the oldest drink now
 
@@ -217,6 +252,98 @@ void calibrate(float knownGrams) {
 }
 
 // Water left in the bottle; -1 when unknown (no bottle set, lifted or moving).
+// ---------- Voice ----------
+
+#ifdef HAS_SPEAKER
+QueueHandle_t voiceQueue = nullptr;
+
+// voice.h keeps each sample as a μ-law byte (tools/make_voice.py); back to 16-bit for the amplifier.
+int16_t fromMulaw(uint8_t u) {
+  u = ~u;
+  int t = (((u & 0x0F) << 3) + 0x84) << ((u & 0x70) >> 4);
+  return (u & 0x80) ? 0x84 - t : t - 0x84;
+}
+
+// Plays queued clips one after another, so the scale keeps weighing while the base speaks.
+void voiceTask(void*) {
+  const Clip* clip;
+  static int16_t buffer[256];
+  while (xQueueReceive(voiceQueue, &clip, portMAX_DELAY)) {
+    size_t sent = 0;
+    for (uint32_t i = 0; i < clip->count; i += 256) {
+      const uint32_t n = min<uint32_t>(256, clip->count - i);
+      for (uint32_t j = 0; j < n; j++) buffer[j] = fromMulaw(clip->samples[i + j]) * VOICE_VOLUME / 100;
+      size_t written;
+      i2s_write(I2S_NUM_0, buffer, n * sizeof(int16_t), &written, portMAX_DELAY);
+      sent += written;
+    }
+    i2s_zero_dma_buffer(I2S_NUM_0);  // otherwise the last buffer repeats as a buzz
+    Serial.printf("speaker: played %u of %u bytes\n", (unsigned)sent, (unsigned)(clip->count * sizeof(int16_t)));
+  }
+}
+
+void startVoice() {
+  i2s_config_t config = {};
+  config.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX);
+  config.sample_rate = 16000;
+  config.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
+  config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
+  config.communication_format = I2S_COMM_FORMAT_STAND_I2S;
+  config.dma_buf_count = 8;
+  config.dma_buf_len = 256;
+  config.tx_desc_auto_clear = true;
+  i2s_pin_config_t pins = {};
+  pins.mck_io_num = I2S_PIN_NO_CHANGE;
+  pins.bck_io_num = PIN_SPEAKER_BCLK;
+  pins.ws_io_num = PIN_SPEAKER_LRCK;
+  pins.data_out_num = PIN_SPEAKER_DOUT;
+  pins.data_in_num = I2S_PIN_NO_CHANGE;
+  if (i2s_driver_install(I2S_NUM_0, &config, 0, nullptr) != ESP_OK || i2s_set_pin(I2S_NUM_0, &pins) != ESP_OK) {
+    Serial.println("speaker: I2S did not start");
+    return;
+  }
+  voiceQueue = xQueueCreate(4, sizeof(const Clip*));
+  xTaskCreate(voiceTask, "voice", 4096, nullptr, 1, nullptr);
+}
+
+void say(const Clip& clip) {
+  const Clip* p = &clip;
+  if (voiceQueue) xQueueSend(voiceQueue, &p, 0);  // a full queue drops the phrase rather than wait
+}
+
+// "Анхаар! N миллилитр илүү уусан": N to the nearest 100 ml, at least 100, and "мянга гаруй" past 1,000.
+const Clip& extraClip(int ml) { return kVoiceExtra[constrain((ml + 50) / 100, 1, 10) - 1]; }
+
+// After a drink counted here: how the day now stands against the goal or limit. Every drink past it says
+// by how much (under a doctor's limit after «Хязгаараас хэтэрлээ»).
+void speakProgress(int before, int after) {
+  if (goalMl <= 0) return;
+  const int left = goalMl - after;
+  if (left < 0) {
+    if (limitMode) say(kVoiceOver);
+    say(extraClip(-left));
+  }
+  else if (before < goalMl && after >= goalMl) say(kVoiceReached);
+  else if (left > 0 && left < VOICE_NEAR_ML) say(kVoiceShort[constrain((left + 5) / 10, 1, 19) - 1]);
+}
+
+void sayLinked() { say(kVoiceLinked); }
+
+// 'say ready|reached|over|extra <ml>|<ml>': plays a phrase; the app also asks for one after a drink typed in.
+void sayCommand(const String& what) {
+  if (what == "ready") say(kVoiceReady);
+  else if (what == "reached") say(kVoiceReached);
+  else if (what == "over") say(kVoiceOver);
+  else if (what.startsWith("extra ")) say(extraClip(what.substring(6).toInt()));
+  else say(kVoiceShort[constrain((what.toInt() + 5) / 10, 1, 19) - 1]);
+}
+#else
+void startVoice() {}
+void speakProgress(int, int) {}
+void sayLinked() {}
+void sayCommand(const String&) { Serial.println("this base has no speaker"); }
+#endif
+
 int remainingMl() {
   if (bottleG < PRESENT_MIN_G || phase != PRESENT) return -1;
   return constrain((int)lroundf(settledG - bottleG), 0, MAX_CHANGE_ML);
@@ -228,6 +355,9 @@ void setBottle(float g) {
   prefs.putFloat("bottle", g);
   if (g > 0) Serial.printf("bottle: empty bottle %.0f g\n", g);
   else Serial.println("bottle: cleared");
+#ifdef HAS_SPEAKER
+  if (g > 0) say(kVoiceReady);
+#endif
 }
 
 // Short press of BOOT. Nothing on the scale: zero it. The empty bottle on it: remember its weight, so the
@@ -287,6 +417,7 @@ void recordDrink(int amountMl) {
   queue[queued++] = { bootId, ++drinkCount, (uint16_t)amountMl, uptimeSec() };
   todayMl += amountMl;
   prefs.putInt("today", todayMl);
+  speakProgress(todayMl - amountMl, todayMl);
   saveQueue();
   putDrink();
   drinkSentAt = 0;
@@ -387,8 +518,8 @@ class AckEvents : public BLECharacteristicCallbacks {
 void startBle() {
   uint64_t mac = ESP.getEfuseMac();
   uint8_t a = mac >> 32, b = mac >> 40;
-  char name[16];
-  snprintf(name, sizeof name, "Dusal-%02X%02X", a, b);
+  // The name people see when pairing. The app finds the base by its service, not by this name.
+  const char* name = "Ухаалаг суурь";
   snprintf(deviceId, sizeof deviceId, "dusal-%02x%02x", a, b);
 
   BLEDevice::init(name);
@@ -412,6 +543,8 @@ void startBle() {
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   advertising->addServiceUUID(SERVICE_UUID);
   advertising->setScanResponse(true);
+  advertising->setMinInterval(ADVERTISE_MIN);
+  advertising->setMaxInterval(ADVERTISE_MAX);
   BLEDevice::startAdvertising();
   Serial.printf("bluetooth: advertising as %s (device ID %s)\n", name, deviceId);
 }
@@ -453,9 +586,21 @@ void runCommand() {
         snprintf(text, sizeof text, "bottle %.0f", g);
         answer(text);
       }
+    } else if (line.startsWith("say ")) {
+      sayCommand(line.substring(4));  // the app's voice demo
     } else if (line.startsWith("today ")) {
-      todayMl = max(0L, line.substring(6).toInt());
+      // "today <ml>", or "today <ml> <goal ml> <goal|limit>" from apps that also share the plan.
+      int ml = 0, goal = 0;
+      char mode[8] = "";
+      const int got = sscanf(line.c_str() + 6, "%d %d %7s", &ml, &goal, mode);
+      todayMl = max(0, ml);
       prefs.putInt("today", todayMl);
+      if (got == 3 && goal > 0) {
+        goalMl = goal;
+        limitMode = strcmp(mode, "limit") == 0;
+        prefs.putInt("goal", goalMl);
+        prefs.putBool("limit", limitMode);
+      }
     }
   }
   // The app's tare: wait until the bottle has settled, then take that weight as the empty bottle.
@@ -477,6 +622,12 @@ void runCommand() {
 
 void serviceBle() {
   runCommand();
+  // «Сав холбогдлоо» once the phone has linked (said here, not in the Bluetooth callback).
+  static bool wasConnected = false;
+  if (bleConnected != wasConnected) {
+    wasConnected = bleConnected;
+    if (bleConnected) sayLinked();
+  }
   if (advertiseAgain) {
     advertiseAgain = false;
     BLEDevice::startAdvertising();
@@ -614,6 +765,7 @@ void printStatus() {
   Serial.printf("raw %ld | offset %ld | factor %.4f | ", smoothedRaw(), offset, factor);
   if (calibrated()) Serial.printf("%.1f g\n", grams());
   else Serial.println("not calibrated");
+  Serial.printf("today %d / %s %d ml\n", todayMl, limitMode ? "limit" : "goal", goalMl);
   Serial.printf("%s | boot %lu | settled %d g | phase %d (0 moving, 1 empty, 2 present) | bottle %.0f g | left %d ml | waiting %d | app %s\n",
                 deviceId, (unsigned long)bootId, settledG, (int)phase, bottleG, remainingMl(), queued, bleConnected ? "connected" : "not connected");
 }
@@ -645,7 +797,8 @@ void handleSerial() {
   else if (line.startsWith("cal ")) calibrate(line.substring(4).toFloat());
   else if (line == "raw" || line == "status") printStatus();
   else if (line == "watch") watchRaw();
-  else Serial.println("commands: tare | cal <grams> | status | watch");
+  else if (line.startsWith("say ")) sayCommand(line.substring(4));
+  else Serial.println("commands: tare | cal <grams> | status | watch | say ready|reached|over|extra <ml>|<ml>");
 }
 
 // Lists every I2C device so a wrong OLED address or swapped SDA/SCL is easy to spot.
@@ -660,6 +813,7 @@ void scanI2c() {
 }
 
 void setup() {
+  setCpuFrequencyMhz(CPU_MHZ);
   Serial.begin(115200);
   pinMode(PIN_BUTTON, INPUT_PULLUP);
   prefs.begin("scale");
@@ -672,17 +826,21 @@ void setup() {
   }
   bottleG = prefs.getFloat("bottle", 0);
   todayMl = prefs.getInt("today", 0);
+  goalMl = prefs.getInt("goal", 0);
+  limitMode = prefs.getBool("limit", false);
   bootId = prefs.getUInt("boot", 0) + 1;
   prefs.putUInt("boot", bootId);
   loadQueue();
 
-  Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
-  Wire.beginTransmission(OLED_I2C_ADDRESS);
-  hasDisplay = Wire.endTransmission() == 0;
+  if (HAS_OLED) {
+    Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
+    Wire.beginTransmission(OLED_I2C_ADDRESS);
+    hasDisplay = Wire.endTransmission() == 0;
+  }
   if (hasDisplay) {
     display.setI2CAddress(OLED_I2C_ADDRESS * 2);  // U8g2 takes the 8-bit address
     display.begin();
-  } else {
+  } else if (HAS_OLED) {
     Serial.printf("OLED not found at 0x%02X; continuing without it\n", OLED_I2C_ADDRESS);
     scanI2c();
   }
@@ -691,6 +849,7 @@ void setup() {
   delay(500);  // let the load cell settle after power-up
   tare();
   Serial.println(calibrated() ? "calibrated" : "not calibrated: empty scale -> 'tare', then a known weight -> 'cal <grams>'");
+  startVoice();
   startBle();
 }
 
@@ -707,4 +866,5 @@ void loop() {
   if (readScale()) { track(); watchScreen(); }
   serviceBle();
   drawScreen();
+  delay(LOOP_IDLE_MS);
 }

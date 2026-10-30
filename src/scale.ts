@@ -68,7 +68,8 @@ export class ScaleLink {
   private started = false;
   private newBottleName: string | null = null;
   private today = -1;
-  private sentToday = -1;
+  private plan: { goal: number; mode: 'goal' | 'limit' } | null = null;
+  private sentToday = '';
 
   get saved(): boolean { return readSaved() !== null; }
   // Tells this page and, in the tab host, every tab's frame (they all show the one shared link).
@@ -141,7 +142,7 @@ export class ScaleLink {
       await BleClient.startNotifications(bleId, SCALE_SERVICE, COMMAND_CHAR, value => this.answered(value)).catch(() => {});
       this.phase = 'connected';
       if (this.saved) void watch?.start({ address: bleId }).catch(() => {});
-      this.sentToday = -1;
+      this.sentToday = '';
       void this.sendToday();
       this.changed();
       // A drink already waiting is notified again only after a few seconds; take it now.
@@ -176,6 +177,8 @@ export class ScaleLink {
     await BleClient.write(bleId, SCALE_SERVICE, COMMAND_CHAR, new DataView(new TextEncoder().encode(text).buffer));
   }
   private say(result: string): void { this.result = result; this.changed(); }
+  // The base's speaker says one of its phrases (the voice demo); a base without one ignores it.
+  async speak(what: 'ready' | 'reached' | 'over' | number | `extra ${number}`): Promise<void> { await this.command(`say ${what}`); }
 
   // The empty bottle is on the base: weigh it once it is still and save it under this name.
   async addBottle(name: string): Promise<void> {
@@ -224,16 +227,23 @@ export class ScaleLink {
   }
 
   // The base's screen shows the app's total for today, so hand-logged drinks, deletions and resets show there too.
+  // With the plan the base also knows the goal or limit, so its speaker can say how much is left.
   shareToday(ml: number, force = false, plan?: { goal: number; mode: 'goal' | 'limit' }): void {
     this.today = Math.max(0, Math.round(ml));
-    if (plan) void watch?.setDay({ day: dayKey(), drunk: this.today, ...plan }).catch(() => {});
-    if (force) this.sentToday = -1;
+    if (plan) {
+      this.plan = { goal: Math.round(plan.goal), mode: plan.mode };
+      void watch?.setDay({ day: dayKey(), drunk: this.today, ...plan }).catch(() => {});
+    }
+    if (force) this.sentToday = '';
     void this.sendToday();
   }
   private async sendToday(): Promise<void> {
-    if (this.phase !== 'connected' || this.today < 0 || this.today === this.sentToday) return;
-    this.sentToday = this.today;
-    await this.command(`today ${this.today}`).catch(() => { this.sentToday = -1; });
+    if (this.phase !== 'connected' || this.today < 0) return;
+    // "today <ml> <goal> <goal|limit>"; older firmware reads only the first number.
+    const text = this.plan ? `today ${this.today} ${this.plan.goal} ${this.plan.mode}` : `today ${this.today}`;
+    if (text === this.sentToday) return;
+    this.sentToday = text;
+    await this.command(text).catch(() => { this.sentToday = ''; });
   }
   // Clears today's drinks from the log (with the base's screen) — for a fresh demo.
   async resetToday(): Promise<void> {

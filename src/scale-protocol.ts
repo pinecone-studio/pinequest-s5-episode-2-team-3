@@ -6,7 +6,7 @@ export const STATUS_CHAR = 'd05a1001-6c2b-4b8e-9f3a-2f1e0c7a5b01';
 export const DRINK_CHAR = 'd05a1002-6c2b-4b8e-9f3a-2f1e0c7a5b01';
 export const ACK_CHAR = 'd05a1003-6c2b-4b8e-9f3a-2f1e0c7a5b01';
 export const ID_CHAR = 'd05a1004-6c2b-4b8e-9f3a-2f1e0c7a5b01';
-// write/notify, ASCII: "tare", "zero", "bottle <g>", "today <ml>"; the base answers "tare <g>", "tare-failed",
+// write/notify, ASCII: "tare", "zero", "bottle <g>", "today <ml> <goal ml> <goal|limit>", "say ready|reached|over|<ml>"; the base answers "tare <g>", "tare-failed",
 // "zero" or "bottle <g>". See COMMAND_UUID in the firmware.
 export const COMMAND_CHAR = 'd05a1005-6c2b-4b8e-9f3a-2f1e0c7a5b01';
 
