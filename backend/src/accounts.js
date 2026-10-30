@@ -135,6 +135,33 @@ export async function getAccount(request, db) {
   return { account: view(row), ...(await readData(db, row.id)) };
 }
 
+// A new password: the current one must match when the account has one; a Google-only account sets its
+// first one. Every other session ends, so a phone that knew the old password is signed out.
+export async function changePassword(request, db) {
+  const { row, token } = await sessionAccount(request, db);
+  const body = await readJson(request, 4096);
+  const password = cleanPassword(body?.password);
+  if (row.password_hash && !same(await hashPassword(typeof body?.current === 'string' ? body.current : '', row.password_salt), row.password_hash)) {
+    throw new AuthError('Одоогийн нууц үг буруу байна.', 403);
+  }
+  const salt = random(16);
+  await db.batch([
+    db.prepare('UPDATE accounts SET password_hash = ?1, password_salt = ?2 WHERE id = ?3').bind(await hashPassword(password, salt), salt, row.id),
+    db.prepare('DELETE FROM sessions WHERE account_id = ?1 AND token_hash != ?2').bind(row.id, await sha256(token)),
+  ]);
+  return { account: view({ ...row, password_hash: 'set' }) };
+}
+
+// Deletes the account for good: its saved data, every session and the account itself.
+export async function deleteAccount(request, db) {
+  const { row } = await sessionAccount(request, db);
+  await db.batch([
+    db.prepare('DELETE FROM account_data WHERE account_id = ?1').bind(row.id),
+    db.prepare('DELETE FROM sessions WHERE account_id = ?1').bind(row.id),
+    db.prepare('DELETE FROM accounts WHERE id = ?1').bind(row.id),
+  ]);
+}
+
 // The phone's snapshot replaces the stored one; `updatedAt` comes back so the phone can tell it was kept.
 export async function putData(request, db) {
   const { row } = await sessionAccount(request, db);

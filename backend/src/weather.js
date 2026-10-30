@@ -8,8 +8,8 @@ const MAX_UP = 1000;
 const MAX_DOWN = 300;
 
 const SYSTEM = `You adjust a person's daily water goal in Mongolia for today's weather.
-Hot days, strong sun and dry air raise sweat and breathing losses; very cold, dry winter air also dries people out a little.
-Mild days need no change. Never cut more than ${MAX_DOWN} ml or add more than ${MAX_UP} ml.
+Hot days, strong sun and dry air raise sweat and breathing losses; only a bitter cold day (a high of -15°C or lower) dries people out a little.
+Mild and ordinary cold days need no change: deltaMl 0. Never cut more than ${MAX_DOWN} ml or add more than ${MAX_UP} ml.
 "reason" is one short Mongolian (Cyrillic) sentence a child or an elder can follow, about the weather and water only.`;
 
 const SCHEMA = {
@@ -93,6 +93,10 @@ export async function weatherAdjust(searchParams, env) {
   try {
     if (!env.ANTHROPIC_API_KEY) throw new Error('no key');
     advice = await aiDelta(w, goal, env);
+    // On a day the rule calls ordinary (neither warm nor bitter cold) the goal stays: the AI once added
+    // 200 ml for a high of 0°C «because it is cold».
+    const rule = ruleDelta(w);
+    if (!rule.deltaMl && advice.deltaMl) advice = rule;
   } catch {
     advice = ruleDelta(w);
     source = 'rule';
