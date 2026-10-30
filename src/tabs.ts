@@ -6,13 +6,16 @@ import './scale';
 import { Capacitor } from '@capacitor/core';
 
 // The phone app on a wide screen (a small tablet such as the HSD-215, 847 px across): laid out at a phone's
-// width and zoomed up to fill it, not the computer layout with a phone-sized frame in the middle. The zoom
-// reaches the tab frames too. (Changing the WebView's scale or viewport from MainActivity was tried first:
-// the scale only took when it beat the first page load, and the wide viewport left the page blank.)
+// width and scaled up to fill it, not the computer layout with a phone-sized frame in the middle. The frames
+// are a phone's size and the strip holding them is scaled (.tabs-scale), and so is the bar (--bar-scale); each
+// page then knows itself as a 430 px phone, media queries and vh included. CSS zoom was tried first: pages
+// zoomed took the computer layout from the wide screen and could not scroll to their end, and a zoomed host
+// sent touches past the slid-over frames. (MainActivity's WebView scale only took when it beat the first page
+// load; its wide viewport left the page blank.)
 const PHONE_WIDTH = 430, WIDE = 560;
-if (Capacitor.isNativePlatform() && Math.min(screen.width, screen.height) > WIDE) {
-  document.documentElement.style.zoom = String(Math.min(screen.width, screen.height) / PHONE_WIDTH);
-}
+const wideZoom = Capacitor.isNativePlatform() && Math.min(screen.width, screen.height) > WIDE ? Math.min(screen.width, screen.height) / PHONE_WIDTH : 1;
+document.documentElement.style.setProperty('--bar-scale', String(wideZoom));
+document.documentElement.style.setProperty('--frames-scale', String(wideZoom));
 
 // Phone app start page (capacitor.config.ts → server.appStartPath). Home, history, progress and the account each
 // load once in their own frame, side by side; switching tabs slides the strip instead of loading a
@@ -28,7 +31,7 @@ let index = 0;
 try { index = Math.min(TABS.length - 1, Math.max(0, Number(sessionStorage.getItem(LAST_TAB)) || 0)); } catch { /* first tab */ }
 
 root.innerHTML = `
-  <div class="tabs-track">${TABS.map((tab, i) => `<iframe title="${LABELS[i]}" data-src="${tab}?embed=1"></iframe>`).join('')}</div>
+  <div class="tabs-scale"><div class="tabs-track">${TABS.map((tab, i) => `<iframe title="${LABELS[i]}" data-src="${tab}?embed=1"></iframe>`).join('')}</div></div>
   <nav class="tabs-bar" aria-label="Хэсгүүд" style="--i:${index}">
     ${TABS.map((tab, i) => `<a href="${tab}" data-tab="${i}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">${NAV_ICONS[KEYS[i]]}</svg><span>${LABELS[i]}</span></a>`).join('')}
   </nav>`;
@@ -82,7 +85,8 @@ window.addEventListener('message', event => {
     showBar();
     return;
   }
-  const dx = data.dx ?? 0;
+  // Screen pixels, while the strip moves inside its scaled box (.tabs-scale).
+  const dx = (data.dx ?? 0) / wideZoom;
   const atEdge = (dx > 0 && index === 0) || (dx < 0 && index === TABS.length - 1);
   if (data.type === 'drag') {
     // Peek at the neighbour as soon as a drag starts toward it.
