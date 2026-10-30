@@ -58,8 +58,10 @@ function scaleButton(): string {
 
 // Each bottle keeps its empty weight; choosing one before putting it on the base keeps a swap from counting.
 // These do what the base's BOOT button does, for a base sealed in its case.
-// Off the base (profile only) the block stays visible but disabled, so it is clear where the weight is taken.
-function bottlesBlock(): string {
+// Off the base the block stays visible but disabled, so the saved weights show and it is clear where they are taken.
+// Also on «Суурь холбох» once linked (base-connect.ts): `id` keeps its name field apart from this panel's.
+// `today`: also «Өнөөдрийн дүнг тэглэх» (the demo reset), left out there.
+export function bottlesBlock(id = 'bottle-name', today = true): string {
   const { list, selected } = savedBottles();
   const on = scale.phase === 'connected';
   return `<fieldset class="scale-bottles" ${on ? '' : 'disabled'}><legend class="scale-sub">Савны жин</legend>
@@ -67,14 +69,15 @@ function bottlesBlock(): string {
     ${list.length ? `<p class="device-time">Саваа солихдоо эхлээд энд сонгоод, дараа нь суурь дээр тавина.</p>
     <div class="bottle-list">${list.map(b => `<span class="bottle-chip${b.id === selected ? ' on' : ''}">
       <button type="button" data-bottle="${escape(b.id)}" aria-pressed="${b.id === selected}">${escape(b.name)} · ${number(b.grams)} г</button>
-      <button type="button" class="bottle-remove" data-bottle-remove="${escape(b.id)}" aria-label="${escape(b.name)}-г устгах">×</button></span>`).join('')}</div>` : ''}
+      <button type="button" class="bottle-remove" data-bottle-remove="${escape(b.id)}" aria-label="${escape(b.name)}-г устгах">×</button></span>`).join('')}</div>`
+    : '<p class="device-time">Хадгалсан сав алга.</p>'}
     <form class="bottle-add" data-bottle-add data-transient>
-      <label for="bottle-name">Шинэ сав</label>
-      <div><input id="bottle-name" name="name" maxlength="24" placeholder="Нэр, жишээ нь: Цэнхэр сав" autocomplete="off">
+      <label for="${id}">Шинэ сав</label>
+      <div><input id="${id}" name="name" maxlength="24" placeholder="Нэр, жишээ нь: Цэнхэр сав" autocomplete="off">
       <button type="submit">Хоосон жинг авах</button></div>
     </form>
     <p class="device-time">${scale.result ? `<b>${escape(scale.result)}</b>` : 'Шинэ савыг хоосноор нь суурь дээр тавиад нэр өгч «Хоосон жинг авах»-г дарна.'}</p>
-    <div class="scale-actions"><button type="button" data-reset-today>Өнөөдрийн дүнг тэглэх</button><button type="button" data-scale-zero>Суурийн жинг тэглэх</button></div>
+    <div class="scale-actions">${today ? '<button type="button" data-reset-today>Өнөөдрийн дүнг тэглэх</button>' : ''}<button type="button" data-scale-zero>Суурийн жинг тэглэх</button></div>
   </fieldset>`;
 }
 
@@ -127,27 +130,32 @@ function renderScale(): void {
       <p class="scale-live" data-scale-live></p>
       ${scale.message ? `<p>${escape(scale.message)}</p>` : ''}
       ${scale.saved && !on ? '<div class="scale-actions"><button type="button" data-scale-forget>Салгах</button></div>' : ''}
-      ${on || (full && scale.phase !== 'unsupported') ? bottlesBlock() : ''}
+      ${scale.phase !== 'unsupported' ? bottlesBlock() : ''}
       ${on || full ? voiceBlock() : ''}
       <p class="device-error" role="alert" hidden></p>`;
     // Linking goes through the same «Суурь холбох» card as the home tile (base-connect.ts).
     host.querySelectorAll('[data-scale-pair], [data-scale-retry]').forEach(b => b.addEventListener('click', () => openBaseConnect()));
     host.querySelector('[data-scale-forget]')?.addEventListener('click', () => void act(host, () => scale.forget()));
-    host.querySelectorAll<HTMLButtonElement>('[data-bottle]').forEach(b => b.addEventListener('click', () => void act(host, () => scale.chooseBottle(b.dataset.bottle!))));
-    host.querySelectorAll<HTMLButtonElement>('[data-bottle-remove]').forEach(b => b.addEventListener('click', () => scale.removeBottle(b.dataset.bottleRemove!)));
-    host.querySelector('[data-scale-zero]')?.addEventListener('click', () => void act(host, () => scale.zero()));
-    host.querySelector('[data-reset-today]')?.addEventListener('click', () => void act(host, () => scale.resetToday()));
+    bindBottles(host);
     host.querySelectorAll<HTMLButtonElement>('[data-voice]').forEach(b => b.addEventListener('click', () => playVoice(b.dataset.voice!)));
     host.querySelector<HTMLInputElement>('[data-voice-base]')?.addEventListener('change', e => { onBase = (e.target as HTMLInputElement).checked; });
-    host.querySelector<HTMLFormElement>('[data-bottle-add]')?.addEventListener('submit', event => {
-      event.preventDefault();
-      const name = new FormData(event.target as HTMLFormElement).get('name');
-      void act(host, () => scale.addBottle(typeof name === 'string' ? name : ''));
-    });
   }
   const live = host.querySelector<HTMLElement>('[data-scale-live]')!;
   live.textContent = scale.phase === 'connected' ? scaleLine(scale.status) : '';
   live.hidden = !live.textContent;
+}
+
+// The buttons of bottlesBlock; `host` also holds the `.device-error` line for a failed command.
+export function bindBottles(host: HTMLElement): void {
+  host.querySelectorAll<HTMLButtonElement>('[data-bottle]').forEach(b => b.addEventListener('click', () => void act(host, () => scale.chooseBottle(b.dataset.bottle!))));
+  host.querySelectorAll<HTMLButtonElement>('[data-bottle-remove]').forEach(b => b.addEventListener('click', () => scale.removeBottle(b.dataset.bottleRemove!)));
+  host.querySelector('[data-scale-zero]')?.addEventListener('click', () => void act(host, () => scale.zero()));
+  host.querySelector('[data-reset-today]')?.addEventListener('click', () => void act(host, () => scale.resetToday()));
+  host.querySelector<HTMLFormElement>('[data-bottle-add]')?.addEventListener('submit', event => {
+    event.preventDefault();
+    const name = new FormData(event.target as HTMLFormElement).get('name');
+    void act(host, () => scale.addBottle(typeof name === 'string' ? name : ''));
+  });
 }
 
 async function act(host: HTMLElement, action: () => Promise<void>): Promise<void> {

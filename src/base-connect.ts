@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { BleClient } from '@capacitor-community/bluetooth-le';
-import { scale } from './scale';
-import { BASE_ICON } from './components/DevicePanel';
+import { savedBottles, scale } from './scale';
+import { BASE_ICON, bindBottles, bottlesBlock } from './components/DevicePanel';
 import { escape, number } from './format';
 
 // The "Суурь холбох" card, in the same look as «Цаг холбох» (watch-connect.ts): Bluetooth on, the base
@@ -29,6 +29,18 @@ function tiles(): string {
   return `${tile('жин, г', s ? number(s.weightG) : '—')}${tile('савны ус, мл', s?.remainingMl != null ? number(s.remainingMl) : '—')}${tile('илгээгээгүй', s ? number(s.waiting) : '—')}`;
 }
 
+// Linked: every saved bottle with its empty weight, «Хоосон жинг авах» and «Суурийн жинг тэглэх», as on the
+// base's settings (DevicePanel.ts). Redrawn when a command answers or the bottles change, not while a name is typed.
+const baseBlock = () => `${bottlesBlock('bc-bottle-name', false)}<p class="device-error" role="alert" hidden></p>`;
+const baseKey = () => [scale.result, JSON.stringify(savedBottles())].join('|');
+function renderBase(pop: HTMLElement, force = false): void {
+  const host = pop.querySelector<HTMLElement>('[data-bc-base]');
+  if (!host || (!force && (host.dataset.key === baseKey() || document.activeElement === host.querySelector('#bc-bottle-name')))) return;
+  host.dataset.key = baseKey();
+  if (!force) host.innerHTML = baseBlock();
+  bindBottles(host);
+}
+
 function body(step: Step, btOn: boolean | null, missed: boolean): string {
   switch (step) {
     case 'bt': return `${dots(step)}<span class="wt-badge${btOn ? ' ok' : ''}">${btOn ? ICON.check : ICON.bt}</span>
@@ -45,6 +57,7 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
     case 'ok': return `${dots(step)}<span class="wt-badge ok pop">${ICON.check}</span><h2 id="wt-title">Амжилттай холбогдлоо!</h2>
       <p>Уусан ус тань автоматаар бүртгэгдэнэ.</p>
       <div class="wt-tiles" data-bc-tiles>${tiles()}</div>
+      <div class="device-panel bc-base" data-bc-base>${baseBlock()}</div>
       <div class="wt-actions">${btn('Болсон', 'data-wt-close', true)}${btn('Аяга хэмжүүлэх', 'data-wt-next')}</div>`;
     case 'error': return `${dots(step)}<span class="wt-badge warn">${ICON.warn}</span><h2 id="wt-title">Холбогдож чадсангүй</h2>
       <p>Суурь асаалттай, утсанд ойрхон байгаа эсэхийг шалгаад дахин оролдоно уу.</p>
@@ -85,11 +98,12 @@ export function openBaseConnect(next?: () => void): void {
     pop.querySelector('[data-wt-bt]')?.addEventListener('click', () => void turnOnBt());
     pop.querySelector('[data-wt-link]')?.addEventListener('click', () => void link());
     pop.querySelector('[data-wt-next]')?.addEventListener('click', () => { close(); next?.(); });
+    renderBase(pop, true);
     pop.querySelector<HTMLElement>('.wt-actions > :last-child')?.focus();
   };
   // The link's outcome comes as a scale event: connecting once picked, then connected, or off when it failed.
   const onScale = () => {
-    if (step === 'ok') { const t = pop.querySelector('[data-bc-tiles]'); if (t) t.innerHTML = tiles(); return; }
+    if (step === 'ok') { const t = pop.querySelector('[data-bc-tiles]'); if (t) t.innerHTML = tiles(); renderBase(pop); return; }
     if (step === 'find' && scale.phase === 'connecting') show('linking');
     else if (step === 'linking' && scale.phase === 'connected') show('ok');
     else if (step === 'linking' && scale.phase === 'off') show('error');

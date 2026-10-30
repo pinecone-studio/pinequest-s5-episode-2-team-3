@@ -1356,6 +1356,10 @@ html .doctor-card .doc-actions button { flex: 1; min-height: 44px; }
 html .wt-dim { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; background: rgba(15, 30, 50, .45); }
 /* «Суурь холбох» (base-connect.ts) also opens over «Аягаа хэмжүүлэх». */
 html .wt-dim.bc-dim { z-index: 1001; }
+/* Linked: the bottles and their weights follow, so the card scrolls on a short screen. */
+html .bc-dim .wt-pop { max-height: calc(100dvh - 48px); overflow-y: auto; }
+html .bc-dim .bc-base { width: 100%; margin: 0; padding: 0; border: 0; background: transparent; text-align: left; }
+html .bc-dim .bc-base .scale-bottles { margin-top: 6px; }
 html .bc-tips li { font-size: 14px; }
 html .wt-pop { display: grid; justify-items: center; gap: 10px; width: 100%; max-width: 360px; padding: 28px 22px 22px; border-radius: 28px; background: #fff; box-shadow: 0 24px 60px rgba(20, 50, 90, .25); text-align: center; }
 html .wt-pop h2 { margin: 6px 0 0; font-size: 22px; font-weight: 800; color: var(--ink); }
