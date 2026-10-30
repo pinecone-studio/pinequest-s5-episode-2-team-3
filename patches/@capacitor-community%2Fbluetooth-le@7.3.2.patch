@@ -1,0 +1,24 @@
+diff --git a/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt b/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
+index 711697f..210a300 100644
+--- a/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
++++ b/android/src/main/java/com/capacitorjs/community/plugins/bluetoothle/Device.kt
+@@ -471,7 +471,18 @@ class Device(
+             return
+         }
+         bluetoothGatt?.disconnect()
+-        setTimeout(key, "Disconnection timeout.", timeout)
++        // Dusal: a link that dropped without telling us never answers disconnect(). Close it anyway on the
++        // timeout, or connect() keeps saying "Already connected." and every read fails until a restart.
++        val handler = Handler(Looper.getMainLooper())
++        timeoutQueue.add(TimeoutHandler(key, handler))
++        handler.postDelayed({
++            if (connectionState != STATE_DISCONNECTED) onDisconnect()
++            connectionState = STATE_DISCONNECTED
++            bluetoothGatt?.close()
++            bluetoothGatt = null
++            cleanup()
++            resolve(key, "Disconnected.")
++        }, timeout)
+     }
+ 
+     fun getServices(): MutableList<BluetoothGattService> {
