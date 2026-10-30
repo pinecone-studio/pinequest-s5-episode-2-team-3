@@ -67,6 +67,8 @@ export class ScaleLink {
   message = '';
   // What the last tare/zero/bottle command did, in words for the panel.
   result = '';
+  // The bottle «Хоосон жинг авах» just saved, until it has been filled and measured as a cup (base-connect.ts).
+  addedBottle: Bottle | null = null;
   status: ScaleStatus | null = null;
   private bleId: string | null = null;
   // The base's own ID ("dusal-a1b2"), read on connect; it is also its family's ID (src/family.ts).
@@ -246,6 +248,7 @@ export class ScaleLink {
     if (tare && this.newBottleName !== null) {
       const bottle = { id: crypto.randomUUID(), name: this.newBottleName, grams: Number(tare[1]) };
       writeBottles({ list: [...saved.list, bottle], selected: bottle.id });
+      this.addedBottle = bottle;
       this.result = `«${bottle.name}» хадгалагдлаа: ${bottle.grams} г ✓`;
     } else if (text === 'zero' && this.rezeroing) {
       // fixZero's zero: the bottle is the same, so the base gets its weight back.

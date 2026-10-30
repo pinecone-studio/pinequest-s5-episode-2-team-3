@@ -1394,31 +1394,16 @@ html .bc-zero button { min-height: 40px; padding: 0 12px; border: 0; background:
 html .bc-zero span { display: flex; justify-content: center; gap: 4px; }
 html .bc-zero [data-bc-unlink] { color: #c2410c; }
 html[data-theme="dark"] .bc-zero [data-bc-unlink] { color: #ff9b85; }
-/* «Аяга хэмжих» on the card: the live number, then the three steps; only the current one has its button. */
+/* A new bottle filled and put back: its water, then «Алгасах» or «Хэмжих» (saved as a cup of its name). */
+html .bc-fill { display: grid; gap: 10px; }
 html .bc-cup-live { display: grid; justify-items: center; gap: 2px; padding: 14px; border-radius: 18px; background: var(--sky-soft); }
 html .bc-cup-live b { font-size: 30px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 html .bc-cup-live small { font-size: 12.5px; color: var(--muted); }
-html .bc-steps { display: grid; gap: 12px; margin: 4px 0 0; padding: 0; list-style: none; }
-html .bc-step { display: flex; align-items: flex-start; gap: 12px; }
-html .bc-num { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--sky-soft); font-size: 13px; font-weight: 800; color: var(--sky); }
-html .bc-step.now .bc-num { background: var(--sky); color: #fff; }
-html .bc-step.done .bc-num { background: #e7f8ee; color: #22c55e; }
-html .bc-num svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-html .bc-step-text { display: grid; flex: 1 1 auto; gap: 2px; min-width: 0; }
-html .bc-step-text b { font-size: 15px; font-weight: 700; color: var(--ink); }
-html .bc-step.later .bc-step-text b { color: var(--muted); }
-html .bc-step-text small { font-size: 13px; color: var(--muted); }
-html .bc-step-text > .wt-ghost, html .bc-cup-name { margin-top: 8px; }
-html .bc-step-text .wt-ghost { min-height: 44px; font-size: 15px; cursor: pointer; }
-html .bc-step-text .wt-ghost:disabled { opacity: .5; cursor: default; }
-html .bc-cup-name { display: grid; gap: 8px; }
-html .bc-cup-name input { min-height: 46px; padding: 0 16px; border: 1.5px solid var(--sky-line); border-radius: 999px; background: #fff; font: inherit; font-size: 16px; color: var(--ink); }
-html .bc-cup-name input:focus { outline: none; border-color: var(--sky); }
-html .bc-link { justify-self: center; min-height: 44px; padding: 0 12px; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 700; color: var(--sky); cursor: pointer; }
+html .bc-fill-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+html .bc-fill-actions button { min-height: 48px; cursor: pointer; }
+html .bc-fill-actions button:disabled { opacity: .5; cursor: default; }
 html[data-theme="dark"] .bc-cup-live { background: #2a2d36; }
-html[data-theme="dark"] .bc-step.done .bc-num { background: #1d3328; }
-html[data-theme="dark"] .bc-cup-name input { border-color: #3a3e48; background: #2a2d36; }
-html :is(.bc-pick, .bc-remove, .bc-zero button, .bc-link, .bc-add-row):focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 14px; }
+html :is(.bc-pick, .bc-remove, .bc-zero button, .bc-add-row):focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 14px; }
 html[data-theme="dark"] .bc-row { background: #2a2d36; }
 html[data-theme="dark"] .bc-icon { background: #1f222a; }
 html[data-theme="dark"] .bc-add input { border-color: #3a3e48; background: #2a2d36; }

@@ -2,25 +2,24 @@ import { Capacitor } from '@capacitor/core';
 import { BleClient } from '@capacitor-community/bluetooth-le';
 import { savedBottles, scale } from './scale';
 import { BASE_ICON, bindBottles } from './components/DevicePanel';
-import { bindCupCard, cupCard, cupCardLive } from './cup-calibrate';
+import { notify } from './components/Toast';
+import { defaultIcon, readCups, writeCups } from './hydrify';
 import { escape, number } from './format';
 
 // The "Суурь холбох" card, in the same look as «Цаг холбох» (watch-connect.ts): Bluetooth on, the base
 // found in the system's picker, the link made — then says how it went. A remembered base just reconnects.
-// Linked, one thing per page: «Амжилттай холбогдлоо» moves on by itself to «Саваа таниулах» (the bottles), and
-// from there «Аяга хэмжих» (a cup measured on the base).
-type Step = 'bt' | 'find' | 'linking' | 'ok' | 'bottles' | 'cup' | 'error' | 'unsupported';
-const LINKED: Step[] = ['ok', 'bottles', 'cup'];
+// Linked, one thing per page: «Амжилттай холбогдлоо» moves on by itself to «Саваа таниулах» (the bottles).
+type Step = 'bt' | 'find' | 'linking' | 'ok' | 'bottles' | 'error' | 'unsupported';
+const LINKED: Step[] = ['ok', 'bottles'];
 const OK_MS = 1800;
 
 const ICON = {
   bt: '<svg viewBox="0 0 24 24"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg>',
   warn: '<svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01"/></svg>',
-  cup: '<svg viewBox="0 0 24 24"><path d="M5 8h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17"/></svg>',
 };
 const btn = (label: string, attr: string, ghost = false) => `<button type="button" class="${ghost ? 'wt-ghost' : 'wt-primary'}" ${attr}>${label}</button>`;
-const STAGE: Record<Step, number> = { bt: 0, find: 1, linking: 2, error: 2, unsupported: 1, ok: 3, bottles: 3, cup: 3 };
+const STAGE: Record<Step, number> = { bt: 0, find: 1, linking: 2, error: 2, unsupported: 1, ok: 3, bottles: 3 };
 const dots = (step: Step) => `<ol class="wt-dots" aria-label="${Math.min(3, STAGE[step] + 1)} / 3">${[0, 1, 2].map(i => `<li class="${i < STAGE[step] ? 'done' : i === STAGE[step] ? 'on' : ''}"></li>`).join('')}</ol>`;
 // The picker closed without the base: say why that happens, on a phone or a computer.
 const tips = () => (Capacitor.isNativePlatform()
@@ -50,7 +49,32 @@ function liveLine(): string {
 // start while there is none), and the zero as a small link last. Redrawn when a command answers or the
 // bottles change, not while a name is typed.
 let adding = false;
+
+// A bottle just weighed empty is then filled the way it is drunk and put back: «Хэмжих» saves its water as a
+// cup of the same name (Profile › «Миний аяганууд»), so naming the bottle names the cup too.
+const MIN_CUP_ML = 10;
+function fillMl(): number | null {
+  const s = scale.status, bottle = scale.addedBottle;
+  return s && bottle && s.phase === 'present' ? Math.max(0, s.weightG - bottle.grams) : null;
+}
+const canFill = () => (fillMl() ?? 0) >= MIN_CUP_ML;
+const fillText = () => { const ml = fillMl(); return ml !== null ? `${number(ml)} мл` : scale.status?.phase === 'moving' ? 'Тогтворжиж байна…' : '— мл'; };
+function fillBlock(name: string, grams: number): string {
+  return `<div class="bc-fill">
+      <p class="bc-hint"><b>«${escape(name)}»</b> хадгалагдлаа (${number(grams)} г). Одоо ердийнхөөрөө дүүргээд буцааж тавина уу: хэдэн мл багтдагийг аяга болгон тэмдэглэнэ.</p>
+      <div class="bc-cup-live"><b data-fill-live>${fillText()}</b><small>Саван дахь ус</small></div>
+      <div class="bc-fill-actions">${btn('Алгасах', 'data-fill-skip', true)}${btn('Хэмжих', `data-fill-save ${canFill() ? '' : 'disabled'}`)}</div>
+    </div>`;
+}
+function saveCup(ml: number, name: string): void {
+  const cups = readCups();
+  writeCups([...cups, { ml, icon: defaultIcon(ml), name: name.slice(0, 24), ...(cups.some(c => c.main) ? {} : { main: true }) }]);
+  notify(`«${name}» аяга ${number(ml)} мл хадгалагдлаа.`);
+}
+
 function baseBlock(): string {
+  const added = scale.addedBottle;
+  if (added) return `${fillBlock(added.name, added.grams)}<p class="device-error bc-error" role="alert" hidden></p>`;
   const { list, selected } = savedBottles();
   const rows = list.map(b => `<li class="bc-row${b.id === selected ? ' on' : ''}">
       <button type="button" class="bc-pick" data-bottle="${escape(b.id)}" aria-pressed="${b.id === selected}">
@@ -69,7 +93,7 @@ function baseBlock(): string {
     ${scale.result ? `<p class="bc-result" role="status">${escape(scale.result)}</p>` : ''}
     <p class="device-error bc-error" role="alert" hidden></p>`;
 }
-const baseKey = () => [scale.result, JSON.stringify(savedBottles()), adding].join('|');
+const baseKey = () => [scale.result, JSON.stringify(savedBottles()), adding, scale.addedBottle?.id].join('|');
 function renderBase(pop: HTMLElement, force = false): void {
   const host = pop.querySelector<HTMLElement>('[data-bc-base]');
   if (!host || (!force && (host.dataset.key === baseKey() || document.activeElement === host.querySelector('#bc-bottle-name')))) return;
@@ -83,14 +107,22 @@ function renderBase(pop: HTMLElement, force = false): void {
   });
   // Weighed: the field folds away again once the base answers.
   host.querySelector('[data-bottle-add]')?.addEventListener('submit', () => { adding = false; (document.activeElement as HTMLElement | null)?.blur(); });
+  const done = () => { scale.addedBottle = null; renderBase(pop); pop.querySelector('[data-bc-live]')?.removeAttribute('hidden'); };
+  host.querySelector('[data-fill-skip]')?.addEventListener('click', done);
+  host.querySelector('[data-fill-save]')?.addEventListener('click', () => {
+    const ml = fillMl(), bottle = scale.addedBottle;
+    if (ml === null || ml < MIN_CUP_ML || !bottle) return;
+    saveCup(ml, bottle.name);
+    scale.result = `«${bottle.name}»: ${number(bottle.grams)} г сав, ${number(ml)} мл аяга ✓`;
+    done();
+  });
 }
-// Under the bottles, a cup measured right here (cup-calibrate.ts): redrawn when a step changes, the number in place.
-function renderCup(pop: HTMLElement, draw: boolean): void {
-  const host = pop.querySelector<HTMLElement>('[data-bc-cup]');
-  if (!host) return;
-  if (!draw) { cupCardLive(host); return; }
-  host.innerHTML = cupCard();
-  bindCupCard(host, () => renderCup(pop, true));
+// Each reading while a new bottle is filled: its water and whether «Хэмжих» can be pressed, in place.
+function renderFill(pop: HTMLElement): void {
+  const live = pop.querySelector('[data-fill-live]');
+  if (live) live.textContent = fillText();
+  const save = pop.querySelector<HTMLButtonElement>('[data-fill-save]');
+  if (save) save.disabled = !canFill();
 }
 
 function body(step: Step, btOn: boolean | null, missed: boolean): string {
@@ -113,14 +145,10 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
       <div class="wt-actions">${btn('Үргэлжлүүлэх', 'data-wt-bottles')}</div>`;
     case 'bottles': return `<h2 id="wt-title">Саваа таниулах</h2>
       <p>Суурин дээр тавьсан саваа сонгоно уу.</p>
-      <p class="bc-live" data-bc-live>${liveLine()}</p>
+      <p class="bc-live" data-bc-live ${scale.addedBottle ? 'hidden' : ''}>${liveLine()}</p>
       <section class="bc-base" data-bc-base aria-label="Савнууд">${baseBlock()}</section>
-      <div class="wt-actions">${btn('Аяга хэмжих', 'data-wt-cup', true)}${btn('Болсон', 'data-wt-close')}</div>
+      <div class="wt-actions">${btn('Болсон', 'data-wt-close')}</div>
       <div class="bc-zero" data-bc-zero><span><button type="button" data-scale-zero>Суурийг тэглэх</button><button type="button" data-bc-unlink>Суурийг салгах</button></span><p class="device-error bc-error" role="alert" hidden></p></div>`;
-    case 'cup': return `<span class="wt-badge">${ICON.cup}</span><h2 id="wt-title">Аяга хэмжих</h2>
-      <p>Аягаа суурин дээр хэмжвэл «1 аяга» хэдэн мл болохыг апп мэднэ.</p>
-      <section class="bc-base" data-bc-cup aria-label="Аяга хэмжих"></section>
-      <div class="wt-actions">${btn('Савнууд', 'data-wt-bottles', true)}${btn('Болсон', 'data-wt-close')}</div>`;
     case 'error': return `${dots(step)}<span class="wt-badge warn">${ICON.warn}</span><h2 id="wt-title">Холбогдож чадсангүй</h2>
       <p>Суурь асаалттай, утсанд ойрхон байгаа эсэхийг шалгаад дахин оролдоно уу.</p>
       <div class="wt-actions">${btn('Хаах', 'data-wt-close', true)}${btn('Дахин оролдох', 'data-wt-link')}</div>`;
@@ -160,9 +188,7 @@ export function openBaseConnect(): void {
     pop.querySelector('[data-wt-bt]')?.addEventListener('click', () => void turnOnBt());
     pop.querySelector('[data-wt-link]')?.addEventListener('click', () => void link());
     pop.querySelector('[data-wt-bottles]')?.addEventListener('click', () => show('bottles'));
-    pop.querySelector('[data-wt-cup]')?.addEventListener('click', () => show('cup'));
     renderBase(pop, true);
-    renderCup(pop, true);
     const zero = pop.querySelector<HTMLElement>('[data-bc-zero]');
     if (zero) bindBottles(zero);
     // «Суурийг салгах»: this phone lets the base go (another phone can link it) and the card closes.
@@ -176,10 +202,12 @@ export function openBaseConnect(): void {
     if (LINKED.includes(step)) {
       const t = pop.querySelector('[data-bc-tiles]');
       if (t) t.innerHTML = tiles();
-      const live = pop.querySelector('[data-bc-live]');
+      // While a new bottle is filled its own number shows the water, so the line above steps aside.
+      const live = pop.querySelector<HTMLElement>('[data-bc-live]');
       if (live && live.innerHTML !== liveLine()) live.innerHTML = liveLine();
+      if (live) live.hidden = !!scale.addedBottle;
       renderBase(pop);
-      renderCup(pop, false);
+      renderFill(pop);
       return;
     }
     // Linked at any step, also by the app reconnecting a remembered base on its own.
