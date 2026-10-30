@@ -41,6 +41,13 @@ public class ScaleWatchPlugin extends Plugin {
         call.resolve();
     }
 
+    // The amount notices on screen: the strongest buzz and a loud sound (Buzz.java), which navigator.vibrate is not.
+    @PluginMethod
+    public void buzz(PluginCall call) {
+        Buzz.strong(getContext(), call.getInt("overMl", 0));
+        call.resolve();
+    }
+
     // Drinks the service kept while the app was closed: { drinks: [{ baseId, boot, n, amountMl, secondsAgo, receivedAt }] }.
     @PluginMethod
     public void takeDrinks(PluginCall call) {

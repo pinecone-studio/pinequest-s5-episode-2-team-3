@@ -14,6 +14,47 @@ index 0b826a5..8cc0b67 100644
  
          String iconColor = localNotification.getIconColor(config.getString("iconColor"));
          if (iconColor != null) {
+diff --git a/android/src/main/java/com/capacitorjs/plugins/localnotifications/NotificationChannelManager.java b/android/src/main/java/com/capacitorjs/plugins/localnotifications/NotificationChannelManager.java
+index b2ea880..174ad45 100644
+--- a/android/src/main/java/com/capacitorjs/plugins/localnotifications/NotificationChannelManager.java
++++ b/android/src/main/java/com/capacitorjs/plugins/localnotifications/NotificationChannelManager.java
+@@ -60,6 +60,12 @@ public class NotificationChannelManager {
+             channel.put(CHANNEL_VISIBILITY, call.getInt(CHANNEL_VISIBILITY, NotificationCompat.VISIBILITY_PUBLIC));
+             channel.put(CHANNEL_SOUND, call.getString(CHANNEL_SOUND, null));
+             channel.put(CHANNEL_VIBRATE, call.getBoolean(CHANNEL_VIBRATE, false));
++            // Dusal: an own vibration pattern (ms off, on, off, on...), for a strong buzz.
++            if (call.getArray("vibrationPattern") != null) {
++                channel.put("vibrationPattern", call.getArray("vibrationPattern"));
++            }
++            // Dusal: a channel that only buzzes, without the default notification sound.
++            channel.put("silent", call.getBoolean("silent", false));
+             channel.put(CHANNEL_USE_LIGHTS, call.getBoolean(CHANNEL_USE_LIGHTS, false));
+             channel.put(CHANNEL_LIGHT_COLOR, call.getString(CHANNEL_LIGHT_COLOR, null));
+             createChannel(channel);
+@@ -79,6 +85,12 @@ public class NotificationChannelManager {
+             notificationChannel.setDescription(channel.getString(CHANNEL_DESCRIPTION));
+             notificationChannel.setLockscreenVisibility(channel.getInteger(CHANNEL_VISIBILITY));
+             notificationChannel.enableVibration(channel.getBool(CHANNEL_VIBRATE));
++            org.json.JSONArray pattern = channel.optJSONArray("vibrationPattern");
++            if (pattern != null && pattern.length() > 0) {
++                long[] ms = new long[pattern.length()];
++                for (int i = 0; i < ms.length; i++) ms[i] = pattern.optLong(i);
++                notificationChannel.setVibrationPattern(ms);
++            }
+             notificationChannel.enableLights(channel.getBool(CHANNEL_USE_LIGHTS));
+             String lightColor = channel.getString(CHANNEL_LIGHT_COLOR);
+             if (lightColor != null) {
+@@ -89,7 +101,9 @@ public class NotificationChannelManager {
+                 }
+             }
+             String sound = channel.getString(CHANNEL_SOUND, null);
+-            if (sound != null && !sound.isEmpty()) {
++            if (channel.getBool("silent")) {
++                notificationChannel.setSound(null, null);
++            } else if (sound != null && !sound.isEmpty()) {
+                 if (sound.contains(".")) {
+                     sound = sound.substring(0, sound.lastIndexOf('.'));
+                 }
 diff --git a/ios/Sources/LocalNotificationsPlugin/LocalNotificationsPlugin.swift b/ios/Sources/LocalNotificationsPlugin/LocalNotificationsPlugin.swift
 index 463be9a..f89f4ff 100644
 --- a/ios/Sources/LocalNotificationsPlugin/LocalNotificationsPlugin.swift

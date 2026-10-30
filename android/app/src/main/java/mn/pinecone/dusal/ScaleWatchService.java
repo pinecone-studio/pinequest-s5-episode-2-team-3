@@ -46,6 +46,10 @@ public class ScaleWatchService extends Service {
     private static final UUID CCCD = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     private static final String LINK_CHANNEL = "dusal-scale-link";
     private static final String DRINK_CHANNEL = "dusal-scale-drink";
+    // A drink past the goal or a doctor's limit: on top of the screen with the app's strong buzz (Buzz.java)
+    // and no sound, as the base says it aloud. Android keeps a channel as first made, so a new pattern
+    // takes a new id.
+    private static final String OVER_CHANNEL = "dusal-scale-over-v2";
     private static final int LINK_ID = 5100;
     private static final int SEEN_MAX = 64;
 
@@ -77,6 +81,12 @@ public class ScaleWatchService extends Service {
             link.setShowBadge(false);
             manager.createNotificationChannel(link);
             manager.createNotificationChannel(new NotificationChannel(DRINK_CHANNEL, "Суурийн уулт", NotificationManager.IMPORTANCE_DEFAULT));
+            NotificationChannel over = new NotificationChannel(OVER_CHANNEL, "Хэмжээнээс хэтэрсэн уулт", NotificationManager.IMPORTANCE_HIGH);
+            over.enableVibration(true);
+            over.setVibrationPattern(Buzz.PATTERN);
+            over.setSound(null, null);
+            manager.createNotificationChannel(over);
+            manager.deleteNotificationChannel("dusal-scale-over");
         }
     }
 
@@ -299,8 +309,13 @@ public class ScaleWatchService extends Service {
         int goal = prefs.getInt("goal", 0);
         boolean limit = "limit".equals(prefs.getString("mode", "goal"));
         String title = "💧 " + amount + " мл ус уулаа", text, face = "notif_face_happy";
+        boolean over = goal > 0 && drunk > goal;
         if (goal <= 0) text = "Суурь бүртгэлээ. Апп нээхэд өнөөдрийн дүнд нэмэгдэнэ.";
-        else if (limit && drunk > goal) {
+        else if (over && !limit) {
+            title = "⚠️ Өдрийн хэмжээгээ давлаа";
+            text = "Өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл. Цааш хэт их уух шаардлагагүй.";
+            face = "notif_face_worried";
+        } else if (over) {
             title = "⚠️ Эмчийн хязгаараас хэтэрлээ";
             text = "Өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл. Өнөөдөр дахиж уухаас зайлсхийгээрэй.";
             face = "notif_face_crying";
@@ -310,7 +325,8 @@ public class ScaleWatchService extends Service {
         } else if (limit) text = "Хязгаараас " + ml(goal - drunk) + " мл үлдлээ · өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл.";
         else if (drunk >= goal) text = "Өдрийн зорилт биеллээ: " + ml(drunk) + " / " + ml(goal) + " мл.";
         else text = "Өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл · дахиад " + ml(goal - drunk) + " мл.";
-        Notification notification = new NotificationCompat.Builder(this, DRINK_CHANNEL)
+        // Every drink past the limit buzzes again: each is its own notification (the drink's id).
+        Notification notification = new NotificationCompat.Builder(this, over ? OVER_CHANNEL : DRINK_CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_drop)
             .setColor(0xFF4A90E2)
             .setLargeIcon(android.graphics.BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(face, "drawable", getPackageName())))
@@ -319,7 +335,10 @@ public class ScaleWatchService extends Service {
             .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(openApp())
             .setAutoCancel(true)
+            .setPriority(over ? NotificationCompat.PRIORITY_HIGH : NotificationCompat.PRIORITY_DEFAULT)
+            .setVibrate(over ? Buzz.PATTERN : null)
             .build();
+        if (over) Buzz.strong(this, drunk - goal);
         try { getSystemService(NotificationManager.class).notify(id.hashCode(), notification); } catch (SecurityException ignored) { }
     }
 
