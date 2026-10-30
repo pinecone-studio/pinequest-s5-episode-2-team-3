@@ -116,7 +116,7 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
       <p class="bc-live" data-bc-live>${liveLine()}</p>
       <section class="bc-base" data-bc-base aria-label="Савнууд">${baseBlock()}</section>
       <div class="wt-actions">${btn('Аяга хэмжих', 'data-wt-cup', true)}${btn('Болсон', 'data-wt-close')}</div>
-      <div class="bc-zero" data-bc-zero><button type="button" data-scale-zero>Суурийг тэглэх</button><p class="device-error bc-error" role="alert" hidden></p></div>`;
+      <div class="bc-zero" data-bc-zero><span><button type="button" data-scale-zero>Суурийг тэглэх</button><button type="button" data-bc-unlink>Суурийг салгах</button></span><p class="device-error bc-error" role="alert" hidden></p></div>`;
     case 'cup': return `<span class="wt-badge">${ICON.cup}</span><h2 id="wt-title">Аяга хэмжих</h2>
       <p>Аягаа суурин дээр хэмжвэл «1 аяга» хэдэн мл болохыг апп мэднэ.</p>
       <section class="bc-base" data-bc-cup aria-label="Аяга хэмжих"></section>
@@ -165,6 +165,8 @@ export function openBaseConnect(): void {
     renderCup(pop, true);
     const zero = pop.querySelector<HTMLElement>('[data-bc-zero]');
     if (zero) bindBottles(zero);
+    // «Суурийг салгах»: this phone lets the base go (another phone can link it) and the card closes.
+    pop.querySelector('[data-bc-unlink]')?.addEventListener('click', () => { close(); void scale.forget(); });
     pop.scrollTop = 0;
     pop.querySelector<HTMLElement>('.wt-actions > :last-child')?.focus();
     if (s === 'ok') setTimeout(() => { if (step === 'ok' && box.isConnected) show('bottles'); }, OK_MS);
