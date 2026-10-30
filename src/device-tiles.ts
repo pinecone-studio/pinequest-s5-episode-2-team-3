@@ -2,6 +2,7 @@ import { scale } from './scale';
 import { baseTile, watchTile, type DeviceTile } from './device-status';
 import { watchDay } from './watch-card';
 import { openWatchConnect } from './watch-connect';
+import { openBaseConnect } from './base-connect';
 import { escape } from './format';
 import { mdIcon } from './components/Icon';
 import { BASE_ICON, bindDevicePanel } from './components/DevicePanel';
@@ -9,9 +10,9 @@ import { sheet } from './home-limit';
 import { bindCalibrate, calibrateBody } from './cup-calibrate';
 
 // «Төхөөрөмж» on the home and on «Профайл»: two square tiles, «Ухаалаг суурь» and «Ухаалаг цаг», each one
-// button. Not linked: a grey «Холбогдоогүй» and «Холбох ›»; the base opens «Аягаа хэмжүүлэх» (cup-calibrate.ts),
-// whose first step links it, and the watch opens «Цаг холбох» (watch-connect.ts). Linked: a green
-// «Холбогдсон», the bottle's water or the latest pulse, and a tap opens its settings.
+// button. Not linked: a grey «Холбогдоогүй» and «Холбох ›»; the base opens «Суурь холбох» (base-connect.ts)
+// and the watch «Цаг холбох» (watch-connect.ts), the same card. Linked: a green «Холбогдсон», the bottle's
+// water or the latest pulse, and a tap opens its settings (the base: «Аягаа хэмжүүлэх», cup-calibrate.ts).
 const WATCH_ICON = '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 9v3l2 1"/></svg>';
 
 function tileInner(icon: string, name: string, t: DeviceTile): string {
@@ -48,7 +49,7 @@ export function bindDeviceTiles(): void {
   // Delegated, as the base tile is swapped in place.
   document.addEventListener('click', event => {
     const target = event.target as Element;
-    if (target.closest('[data-base-tile]')) openBaseSheet();
+    if (target.closest('[data-base-tile]')) { if (scale.phase === 'connected') openBaseSheet(); else openBaseConnect(openBaseSheet); }
     else if (target.closest('.dev-tile[data-watch-connect]')) openWatchConnect();
   });
   window.addEventListener('dusal-scale', () => {

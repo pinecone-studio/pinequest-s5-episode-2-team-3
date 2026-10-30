@@ -4,6 +4,7 @@ import { scale } from './scale';
 import { confirmSheet } from './hx-edit';
 import { notify } from './components/Toast';
 import { BasePanel } from './components/DevicePanel';
+import { openBaseConnect } from './base-connect';
 
 // «Аягаа хэмжүүлэх», the window the «Ухаалаг суурь» tile opens (device-tiles.ts): the cups the person drinks from,
 // measured on the base.
@@ -143,7 +144,7 @@ export function bindCalibrate(root: HTMLElement, redraw: () => void): void {
     redraw();
     if (!linked()) void link(redraw);
   });
-  root.querySelector<HTMLButtonElement>('[data-act="link"]')?.addEventListener('click', () => void link(redraw));
+  root.querySelector<HTMLButtonElement>('[data-act="link"]')?.addEventListener('click', () => openBaseConnect());
   root.querySelector('[data-act="again"]')?.addEventListener('click', () => { resetCalibration(); redraw(); });
   root.querySelector<HTMLFormElement>('[data-name-form]')?.addEventListener('submit', e => {
     e.preventDefault();
