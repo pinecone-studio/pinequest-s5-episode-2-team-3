@@ -32,6 +32,8 @@ export const embedded = window.parent !== window && new URLSearchParams(location
 // A tab page opened on its own (a browser, a bookmark) moves into the tab host too: each page load would
 // otherwise drop the browser's Bluetooth link to the base (scale.ts), which lives only as long as the page.
 if (window.parent === window && isTab(location.pathname)) {
+  // No slide for this hop (the host draws the tab); left running, the browser aborts it with an error.
+  window.addEventListener('pageswap', event => (event as Event & { viewTransition?: { skipTransition(): void } | null }).viewTransition?.skipTransition());
   const params = new URLSearchParams(location.search);
   params.set('tab', String(rank(location.pathname)));
   location.replace(`/tabs.html?${params}${location.hash}`);
