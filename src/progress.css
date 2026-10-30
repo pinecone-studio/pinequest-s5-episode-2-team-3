@@ -75,7 +75,10 @@ html .pr-bar span { display: block; height: 100%; border-radius: inherit; backgr
 html .nr-header h1 { font-size: 20px; }
 html .nr-who h2 { font-size: 20px; font-weight: 800; }
 html .nr-who p { margin: 4px 0 10px; font-size: 14px; color: var(--muted); }
+html .nr-who p + p { margin-top: 0; }
+html .nr-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 html .nr-pill { display: inline-block; padding: 6px 12px; border-radius: 999px; background: var(--sky-soft); font-size: 13px; font-weight: 700; color: var(--sky-deep); }
+html .nr-today { margin: 12px 0 0 !important; padding-top: 10px; border-top: 1px solid var(--hair); font-size: 14px; color: var(--ink) !important; }
 html .nr-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
 html .nr-tiles li { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 80px; padding: 12px 6px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20, 40, 70, .06); text-align: center; }
 html .nr-tiles b { font-size: 22px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -97,8 +100,17 @@ html .nr-from-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10
 html .nr-from-legend span { display: inline-flex; align-items: center; gap: 6px; }
 html .nr-from-legend i { width: 10px; height: 10px; border-radius: 3px; }
 html .nr-from .water { background: var(--sky); } html .nr-from .milkTea { background: #b8865a; } html .nr-from .soup { background: #f0bf5a; }
-html .nr-weight ul { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 15px; color: var(--ink); }
-html .nr-weight b { font-weight: 800; }
+html .nr-weight ul { display: grid; gap: 0; margin: 6px 0 0; padding: 0; list-style: none; font-size: 15px; color: var(--ink); }
+html .nr-weight li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid #eeeeee; }
+html .nr-weight li > small { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+html .nr-weight b { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+html .nr-weight b small { font-size: 13px; font-weight: 600; color: var(--muted); }
+html .nr-days tr.none th, html .nr-days tr.none td { color: var(--muted); }
+html .nr-days tr.none td { text-align: right; font-size: 13px; }
+html .nr-watch ul { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 15px; color: var(--ink); }
+html .nr-watch li { position: relative; padding-left: 18px; line-height: 1.4; }
+html .nr-watch li::before { content: ''; position: absolute; left: 2px; top: .5em; width: 8px; height: 8px; border-radius: 50%; background: #f5a524; }
+html .nr-watch b { font-weight: 800; }
 html .nr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 html .nr-actions button { min-height: 52px; border-radius: 999px; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
 html .nr-pdf { border: 1.5px solid var(--sky); background: #fff; color: var(--sky-deep); }
@@ -114,7 +126,7 @@ html[data-theme="dark"] .pr-cal-days li.over, html[data-theme="dark"] .nr-tiles 
 html[data-theme="dark"] .pr-cal-days li.today { background: #1f222a; border-color: #fff; color: #fff; }
 html[data-theme="dark"] .pr-miles li, html[data-theme="dark"] .nr-tiles li, html[data-theme="dark"] .pr-pill, html[data-theme="dark"] .nr-pdf { background: #1f222a; box-shadow: none; }
 html[data-theme="dark"] .pr-good { background: #1c3326; color: #8fd9ab; }
-html[data-theme="dark"] .nr-days th, html[data-theme="dark"] .nr-days td { border-color: #35383f; }
+html[data-theme="dark"] .nr-days th, html[data-theme="dark"] .nr-days td, html[data-theme="dark"] .nr-weight li { border-color: #35383f; }
 html[data-theme="dark"] .nr-days tr.bad { background: #2c1d20; }
 html[data-theme="dark"] .pr-bar, html[data-theme="dark"] .nr-stack { background: #35383f; }
 
@@ -125,7 +137,22 @@ html[data-theme="dark"] .pr-bar, html[data-theme="dark"] .nr-stack { background:
   html .nr-actions, html .hx-back, html .site-nav, html .skip-link, html .toast { display: none !important; }
   html .pr-page { padding-bottom: 0; }
   html .hx-card, html .nr-tiles li { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
-  html .nr-days tr.bad, html .nr-tiles li.bad, html .nr-stack i { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html .nr-days tr.bad, html .nr-tiles li.bad, html .nr-stack i, html .nr-watch li::before { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* One A4 page: two columns, the patient, weights and the tiles across both. */
+  @page { size: A4; margin: 12mm; }
+  html main.home-app, html main.home-app > .app-shell, html .hydro.nr-page { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border-radius: 0 !important; }
+  html .hydro.nr-page { display: grid !important; grid-template-columns: 1fr 1fr; grid-auto-flow: row dense; align-items: start; gap: 10px !important; }
+  html .nr-page > :is(.nr-header, .nr-who, .nr-weight, .nr-tiles, .nr-foot) { grid-column: 1 / -1; }
+  html .nr-page > .nr-tiles { width: 100% !important; max-width: none !important; justify-self: stretch; }
+  /* The days down the left; what needs a word and where the fluid came from beside them. */
+  html .nr-page > .nr-days { grid-column: 1; grid-row: span 2; }
+  html .nr-page > :is(.nr-watch, .nr-from) { grid-column: 2; }
+  html .nr-header { display: block; padding: 0; }
+  html .nr-header h1 { margin: 0; text-align: left; font-size: 20px; white-space: nowrap; }
+  html .nr-page .hx-card { padding: 12px 14px; }
+  html .nr-days th, html .nr-days td { padding: 6px 4px; }
+  html .nr-tiles li { min-height: 0; padding: 8px 6px; }
+  html body::before, html body::after { display: none !important; }
 }
 
 /* «Илүү уусан» (the goal home only): the month's extra water as one number. */
