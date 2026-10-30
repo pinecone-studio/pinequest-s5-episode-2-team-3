@@ -7,7 +7,7 @@ import { load, save, saveMessage, onExternalChange } from './storage';
 import { bindStreakCalendar, bindHydration, deviceDrop } from './hydration';
 import { bindGaugeDrag, hxGauge, hxHeader, mainCup, readCup, readCupKind, writeCup, writeCupKind } from './hydrify';
 import { openDrinkSheet } from './drink-sheet';
-import { crossedNear, limitGauge, openThirst, type AddCtx } from './home-limit';
+import { addChecked, crossedNear, limitGauge, openThirst, type AddCtx } from './home-limit';
 import { homeActions } from './home-actions';
 import { openHomeMenu } from './home-menu';
 import { Toast, notify } from './components/Toast';
@@ -572,13 +572,16 @@ document.addEventListener('click', event => {
   setPlanOpen(!planOpen);
 });
 
-// «Уух» on the limit home (the drink sheet) and «⋯» on both homes, bound once like the plan openers.
+// The limit home's «Уух» and cup button, and «⋯» on both homes, bound once like the plan openers.
 // homeCtx is today's, set by each render.
 let homeCtx: AddCtx | null = null;
 document.addEventListener('click', event => {
   const target = event.target as Element;
   if (!homeCtx) return;
-  if (target.closest('[data-drink-sheet]')) openDrinkSheet(homeCtx);
+  // Under a limit, «Уух» adds one cup straight away (through the over-limit check), as on the goal home;
+  // the cup button beside it opens the sheet for another drink or amount.
+  if (target.closest('[data-limit-drink]')) addChecked(homeCtx, homeCtx.cup, undefined);
+  else if (target.closest('[data-drink-sheet]')) openDrinkSheet(homeCtx);
   else if (target.closest('#hx-more')) {
     const ctx = homeCtx;
     openHomeMenu(homeActions(readProfile().condition, state.mode), ctx.goal, {

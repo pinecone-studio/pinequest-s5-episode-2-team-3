@@ -1,6 +1,6 @@
 import { escape, number } from './format';
 import { KINDS, SALTABLE, type Kind } from './drinks';
-import { arcAt, arcPoint, gaugeArt, gaugeStart, moreButton } from './hydrify';
+import { arcAt, arcPoint, gaugeArt, gaugeStart, iconFor, moreButton } from './hydrify';
 import { openDrinkSheet } from './drink-sheet';
 import { logThirst, type Dialysis } from './progress-data';
 import './home-limit.css';
@@ -60,7 +60,8 @@ export function limitGauge(drink: number, goal: number, cup: number): string {
       </div>
       ${tone === ' near' ? `<p class="hl-near" role="status">${WARN_ICON}<span><b>Хязгаарт ойртож байна</b> · ${number(left)} мл үлдсэн. Бага багаар уугаарай.</span></p>` : ''}
       <p class="hl-sum">${number(drink)} / ${number(goal)} мл уусан · эмчийн хязгаар</p>
-      <div class="hx-actions hl-actions"><button type="button" class="hx-drink" data-drink-sheet>Уух (${number(cup)} мл)</button>${moreButton()}</div>
+      <div class="hx-actions hl-actions"><button type="button" class="hx-drink" data-limit-drink>Уух (${number(cup)} мл)</button>
+        <button type="button" class="hx-cup" data-drink-sheet aria-haspopup="dialog" aria-label="Өөр зүйл, өөр хэмжээ сонгох">${iconFor(cup)}<span class="hx-swap" aria-hidden="true">⟳</span></button>${moreButton()}</div>
     </section>`;
 }
 
