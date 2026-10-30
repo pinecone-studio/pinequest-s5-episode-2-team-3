@@ -38,3 +38,9 @@ test('the latest heart rate wins, whatever the order', () => {
     .toEqual({ bpm: 89, at: '2026-10-26T05:10:00.000Z' });
   expect(latestHeart([])).toBeNull();
 });
+
+test('a record crossing midnight counts only its part after midnight', () => {
+  const walk: HealthSample = { dataType: 'steps', value: 800, unit: 'count', startDate: '2026-10-25T23:40:00.000Z', endDate: '2026-10-26T00:20:00.000Z', sourceId: 'watch' };
+  const old: HealthSample = { ...walk, startDate: '2026-10-25T20:00:00.000Z', endDate: '2026-10-25T21:00:00.000Z' };
+  expect(totalOfBestSource([walk, old, sample(100, 'watch')], '2026-10-26T00:00:00.000Z')).toBe(500);
+});
