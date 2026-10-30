@@ -384,8 +384,8 @@ function bindPlan() {
 let drinking = false;
 // The limit home names the drink itself; elsewhere it is the drink the cup button pours.
 // The drink that brings the day to 80 % of the limit or goal, and every drink past it, each say so as
-// it happens (typed in here or counted by the base). On screen: a toast and the phone's strongest buzz
-// with a loud sound (strongBuzz; the WebView drops navigator.vibrate without a tap, and the base counts
+// it happens (typed in here or counted by the base). On screen: a toast with «Унтраах» and the phone's strongest
+// buzz, past the goal or limit with a sound that swells (strongBuzz; the WebView drops navigator.vibrate without a tap, and the base counts
 // a drink with no tap at all). In the background: a phone notification that buzzes the same, without sound. The base
 // says it aloud.
 function sayIfNear(before: number, after: number): void {
