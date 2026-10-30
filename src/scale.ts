@@ -76,6 +76,8 @@ export class ScaleLink {
   private today = -1;
   private plan: { goal: number; mode: 'goal' | 'limit' } | null = null;
   private sentToday = '';
+  // Whether the first status since connecting was checked for a base that lost its bottle.
+  private bottleChecked = false;
 
   get saved(): boolean { return readSaved() !== null; }
   // Tells this page and, in the tab host, every tab's frame (they all show the one shared link).
@@ -147,6 +149,7 @@ export class ScaleLink {
       // A base with older firmware has no command channel; it still weighs and counts.
       await BleClient.startNotifications(bleId, SCALE_SERVICE, COMMAND_CHAR, value => this.answered(value)).catch(() => {});
       this.phase = 'connected';
+      this.bottleChecked = false;
       if (this.saved) void watch?.start({ address: bleId }).catch(() => {});
       this.sentToday = '';
       void this.sendToday();
@@ -204,6 +207,17 @@ export class ScaleLink {
     const saved = savedBottles();
     writeBottles({ list: saved.list.filter(b => b.id !== id), selected: saved.selected === id ? null : saved.selected });
     this.changed();
+  }
+  // The base can forget its bottle (new firmware, a jump read as another bottle) while this phone still has
+  // the chosen one weighed: on the first status after connecting, hand it that weight again. Only then, so a
+  // BOOT press that clears the bottle later is not undone.
+  private restoreBottle(): void {
+    if (this.bottleChecked || this.phase !== 'connected' || !this.status) return;
+    this.bottleChecked = true;
+    if (!this.status.calibrated || this.status.bottleSet) return;
+    const { list, selected } = savedBottles();
+    const bottle = list.find(b => b.id === selected);
+    if (bottle) void this.command(`bottle ${bottle.grams}`).catch(() => { this.bottleChecked = false; });
   }
   async zero(): Promise<void> {
     this.say('Тэглэж байна…');
@@ -265,6 +279,7 @@ export class ScaleLink {
 
   private onStatus(value: DataView): void {
     try { this.status = parseStatus(value); } catch { return; }
+    this.restoreBottle();
     this.changed();
   }
   // One drink at a time, in order; a resend of a drink still being saved waits its turn and is then skipped.
