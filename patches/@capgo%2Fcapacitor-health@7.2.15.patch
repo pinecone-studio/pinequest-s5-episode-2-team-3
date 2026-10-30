@@ -1,0 +1,167 @@
+diff --git a/android/src/main/java/app/capgo/plugin/health/HealthManager.kt b/android/src/main/java/app/capgo/plugin/health/HealthManager.kt
+index b5d683235ace0eace65994920f1a095ab3f6fe5f..5613c75ae94713b8f3f07ed7a697a76bc29a0e11 100644
+--- a/android/src/main/java/app/capgo/plugin/health/HealthManager.kt
++++ b/android/src/main/java/app/capgo/plugin/health/HealthManager.kt
+@@ -7,6 +7,8 @@ import androidx.health.connect.client.records.HeartRateRecord
+ import androidx.health.connect.client.records.Record
+ import androidx.health.connect.client.records.StepsRecord
+ import androidx.health.connect.client.records.WeightRecord
++import androidx.health.connect.client.aggregate.AggregateMetric
++import androidx.health.connect.client.request.AggregateRequest
+ import androidx.health.connect.client.request.ReadRecordsRequest
+ import androidx.health.connect.client.time.TimeRangeFilter
+ import androidx.health.connect.client.units.Energy
+@@ -139,6 +141,34 @@ class HealthManager {
+         return array
+     }
+ 
++    // Steps, active kcal and heart rate in one request, each only when its read permission is granted
++    // (Health Connect rejects the whole request otherwise). A metric with no data is left out.
++    suspend fun aggregate(client: HealthConnectClient, startTime: Instant, endTime: Instant): JSObject {
++        val granted = client.permissionController.getGrantedPermissions()
++        val allowed = { type: HealthDataType -> granted.contains(type.readPermission) }
++        val metrics = buildSet<AggregateMetric<*>> {
++            if (allowed(HealthDataType.STEPS)) add(StepsRecord.COUNT_TOTAL)
++            if (allowed(HealthDataType.CALORIES)) add(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)
++            if (allowed(HealthDataType.HEART_RATE)) {
++                add(HeartRateRecord.BPM_AVG)
++                add(HeartRateRecord.BPM_MIN)
++                add(HeartRateRecord.BPM_MAX)
++            }
++        }
++        val result = JSObject()
++        if (metrics.isEmpty()) return result
++        val totals = client.aggregate(AggregateRequest(metrics, TimeRangeFilter.between(startTime, endTime)))
++        totals[StepsRecord.COUNT_TOTAL]?.let { result.put("steps", it) }
++        totals[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.let { result.put("activeKcal", it.inKilocalories) }
++        totals[HeartRateRecord.BPM_AVG]?.let { result.put("heartAvg", it) }
++        totals[HeartRateRecord.BPM_MIN]?.let { result.put("heartMin", it) }
++        totals[HeartRateRecord.BPM_MAX]?.let { result.put("heartMax", it) }
++        val origins = JSArray()
++        totals.dataOrigins.forEach { origins.put(it.packageName) }
++        result.put("sources", origins)
++        return result
++    }
++
+     private suspend fun <T : Record> readRecords(
+         client: HealthConnectClient,
+         recordClass: kotlin.reflect.KClass<T>,
+diff --git a/android/src/main/java/app/capgo/plugin/health/HealthPlugin.kt b/android/src/main/java/app/capgo/plugin/health/HealthPlugin.kt
+index 2bc5704f100c67eb8689b251b7334a3660129090..58d4bc5e04e216ad371466132e6489fdd20f8b79 100644
+--- a/android/src/main/java/app/capgo/plugin/health/HealthPlugin.kt
++++ b/android/src/main/java/app/capgo/plugin/health/HealthPlugin.kt
+@@ -182,6 +182,34 @@ class HealthPlugin : Plugin() {
+         }
+     }
+ 
++    // Health Connect's own totals: de-duplicated across apps by the user's data source priority and
++    // prorated for records that cross the range edges, the same numbers Samsung Health shows.
++    @PluginMethod
++    fun aggregate(call: PluginCall) {
++        val startInstant: Instant
++        val endInstant: Instant
++        try {
++            endInstant = manager.parseInstant(call.getString("endDate"), Instant.now())
++            startInstant = manager.parseInstant(call.getString("startDate"), endInstant.minus(DEFAULT_PAST_DURATION))
++        } catch (e: DateTimeParseException) {
++            call.reject(e.message, null, e)
++            return
++        }
++        if (endInstant.isBefore(startInstant)) {
++            call.reject("endDate must be greater than or equal to startDate")
++            return
++        }
++
++        pluginScope.launch {
++            val client = getClientOrReject(call) ?: return@launch
++            try {
++                call.resolve(manager.aggregate(client, startInstant, endInstant))
++            } catch (e: Exception) {
++                call.reject(e.message ?: "Failed to aggregate.", null, e)
++            }
++        }
++    }
++
+     @PluginMethod
+     fun saveSample(call: PluginCall) {
+         val identifier = call.getString("dataType")
+diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
+index ed08c5a9d7ca38aabd77770b23ed76a3bc2aba69..d613d4fa060ae2792f31ac746160e3ba5fa76024 100644
+--- a/dist/esm/definitions.d.ts
++++ b/dist/esm/definitions.d.ts
+@@ -57,6 +57,22 @@ export interface WriteSampleOptions {
+     /** Metadata key-value pairs forwarded to the native APIs where supported. */
+     metadata?: Record<string, string>;
+ }
++export interface AggregateOptions {
++    /** Inclusive ISO 8601 start date (defaults to now - 1 day). */
++    startDate?: string;
++    /** Exclusive ISO 8601 end date (defaults to now). */
++    endDate?: string;
++}
++/** Health Connect's de-duplicated totals; a metric without data (or permission) is missing. */
++export interface AggregateResult {
++    steps?: number;
++    activeKcal?: number;
++    heartAvg?: number;
++    heartMin?: number;
++    heartMax?: number;
++    /** Packages whose data went into the totals. */
++    sources?: string[];
++}
+ export interface HealthPlugin {
+     /** Returns whether the current platform supports the native health SDK. */
+     isAvailable(): Promise<AvailabilityResult>;
+@@ -66,6 +82,8 @@ export interface HealthPlugin {
+     checkAuthorization(options: AuthorizationOptions): Promise<AuthorizationStatus>;
+     /** Reads samples for the given data type within the specified time frame. */
+     readSamples(options: QueryOptions): Promise<ReadSamplesResult>;
++    /** Android only: totals for the range, de-duplicated across apps by Health Connect. */
++    aggregate(options: AggregateOptions): Promise<AggregateResult>;
+     /** Writes a single sample to the native health store. */
+     saveSample(options: WriteSampleOptions): Promise<void>;
+     /**
+diff --git a/dist/esm/web.js b/dist/esm/web.js
+index ede6d33858b17d793e9ac794147d386296d57c14..c4c8b1872303404abc68b5e65dcc1c21546f0838 100644
+--- a/dist/esm/web.js
++++ b/dist/esm/web.js
+@@ -16,6 +16,9 @@ export class HealthWeb extends WebPlugin {
+     async readSamples(_options) {
+         throw this.unimplemented('Reading health data is only available on native platforms.');
+     }
++    async aggregate(_options) {
++        throw this.unimplemented('Health totals are only available on Android.');
++    }
+     async saveSample(_options) {
+         throw this.unimplemented('Writing health data is only available on native platforms.');
+     }
+diff --git a/dist/plugin.cjs.js b/dist/plugin.cjs.js
+index 6bd305a2fd33f5e17dfdcf114be4bbd5f95c945a..a99ab22476a26f60790f10590e5a6dd70536b289 100644
+--- a/dist/plugin.cjs.js
++++ b/dist/plugin.cjs.js
+@@ -23,6 +23,9 @@ class HealthWeb extends core.WebPlugin {
+     async readSamples(_options) {
+         throw this.unimplemented('Reading health data is only available on native platforms.');
+     }
++    async aggregate(_options) {
++        throw this.unimplemented('Health totals are only available on Android.');
++    }
+     async saveSample(_options) {
+         throw this.unimplemented('Writing health data is only available on native platforms.');
+     }
+diff --git a/dist/plugin.js b/dist/plugin.js
+index 3a00976c12f684dabd3542913495da7efc6b0c15..e7974ff16338c71792ccbb55091272847cb071df 100644
+--- a/dist/plugin.js
++++ b/dist/plugin.js
+@@ -22,7 +22,10 @@ var capacitorHealth = (function (exports, core) {
+         async readSamples(_options) {
+             throw this.unimplemented('Reading health data is only available on native platforms.');
+         }
+-        async saveSample(_options) {
++        async aggregate(_options) {
++        throw this.unimplemented('Health totals are only available on Android.');
++    }
++    async saveSample(_options) {
+             throw this.unimplemented('Writing health data is only available on native platforms.');
+         }
+         async getPluginVersion() {
