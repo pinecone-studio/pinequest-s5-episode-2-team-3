@@ -4,10 +4,7 @@ import { watchDay } from './watch-card';
 import { openWatchConnect } from './watch-connect';
 import { openBaseConnect } from './base-connect';
 import { escape, number } from './format';
-import { mdIcon } from './components/Icon';
-import { BASE_ICON, bindDevicePanel } from './components/DevicePanel';
-import { sheet } from './home-limit';
-import { bindCalibrate, calibrateBody } from './cup-calibrate';
+import { BASE_ICON } from './components/DevicePanel';
 
 // «Төхөөрөмж» on the home and on «Профайл»: two square tiles, «Ухаалаг суурь» and «Ухаалаг цаг», each one
 // button. Not linked: a grey «Холбогдоогүй» and «Холбох ›»; the base opens «Суурь холбох» (base-connect.ts)
@@ -78,18 +75,4 @@ export function bindDeviceTiles(): void {
     old.outerHTML = html;
     if (focused) document.querySelector<HTMLElement>('[data-base-tile]')?.focus();
   });
-}
-
-// The steps and the live reading redraw in place; the base panel below redraws itself (DevicePanel.ts).
-export function openBaseSheet(): void {
-  const { box, close } = sheet('base-sheet', `<div class="hm-head"><h2 id="bs-title">Аягаа хэмжүүлэх</h2><button type="button" class="hm-close" data-close aria-label="Хаах">${mdIcon('close')}</button></div><div class="bs-body"></div>`, 'Аягаа хэмжүүлэх');
-  box.querySelector('[data-close]')!.addEventListener('click', close);
-  const body = box.querySelector<HTMLElement>('.bs-body')!;
-  const redraw = () => {
-    if (!body.isConnected) return;
-    body.innerHTML = calibrateBody();
-    bindCalibrate(body, redraw);
-    bindDevicePanel(() => {});
-  };
-  redraw();
 }
