@@ -3,6 +3,7 @@ import { devices, startDevices, deviceSummary } from '../devices';
 import { savedBottles, scale } from '../scale';
 import type { ScaleStatus } from '../scale-protocol';
 import { escape, number } from '../format';
+import { openBaseConnect } from '../base-connect';
 import './device-panel.css';
 
 // Profile › «Ухаалаг суурь»: the bottles and their empty weights show even before the base is connected.
@@ -128,10 +129,9 @@ function renderScale(): void {
       ${scale.saved && !on ? '<div class="scale-actions"><button type="button" data-scale-forget>Салгах</button></div>' : ''}
       ${on || (full && scale.phase !== 'unsupported') ? bottlesBlock() : ''}
       ${on || full ? voiceBlock() : ''}
-      <p class="device-error" role="alert" hidden></p>
-      <div class="scale-help" role="status" hidden></div>`;
-    host.querySelector('[data-scale-pair]')?.addEventListener('click', () => void act(host, () => scale.pair(), true));
-    host.querySelector('[data-scale-retry]')?.addEventListener('click', () => scale.reconnect());
+      <p class="device-error" role="alert" hidden></p>`;
+    // Linking goes through the same «Суурь холбох» card as the home tile (base-connect.ts).
+    host.querySelectorAll('[data-scale-pair], [data-scale-retry]').forEach(b => b.addEventListener('click', () => openBaseConnect()));
     host.querySelector('[data-scale-forget]')?.addEventListener('click', () => void act(host, () => scale.forget()));
     host.querySelectorAll<HTMLButtonElement>('[data-bottle]').forEach(b => b.addEventListener('click', () => void act(host, () => scale.chooseBottle(b.dataset.bottle!))));
     host.querySelectorAll<HTMLButtonElement>('[data-bottle-remove]').forEach(b => b.addEventListener('click', () => scale.removeBottle(b.dataset.bottleRemove!)));
@@ -150,27 +150,14 @@ function renderScale(): void {
   live.hidden = !live.textContent;
 }
 
-// Closing the picker usually means the base was not in it: say why that happens, for a phone or a
-// computer. A base takes one link at a time, so one still joined to a phone does not show elsewhere.
-function pairHelp(): string {
-  const tips = Capacitor.isNativePlatform()
-    ? ['Суурь асаалттай, утаснаас 1–2 м дотор байна уу', 'Суурь өөр утас, компьютерт холбогдоогүй байна уу (нэг удаад нэгтэй л холбогдоно)', 'Утасны Bluetooth болон Байршил асаалттай юу']
-    : ['Суурь асаалттай, компьютерт ойрхон байна уу', 'Суурь утсанд холбогдсон бол утсан дээрээ «Салгах»-ыг дарна уу (нэг удаад нэгтэй л холбогдоно)', 'Mac: System Settings → Privacy &amp; Security → Bluetooth → Google Chrome асаалттай юу'];
-  return `<b>Суурь жагсаалтад гарахгүй байна уу?</b><ul>${tips.map(t => `<li>${t}</li>`).join('')}</ul><small>Шалгаад «Суурь холбох»-ыг дахин дарна уу.</small>`;
-}
-async function act(host: HTMLElement, action: () => Promise<void>, pairing = false): Promise<void> {
+async function act(host: HTMLElement, action: () => Promise<void>): Promise<void> {
   const alert = host.querySelector<HTMLElement>('.device-error')!;
-  const help = host.querySelector<HTMLElement>('.scale-help');
   alert.hidden = true;
-  if (help) help.hidden = true;
   host.querySelectorAll<HTMLButtonElement>('button').forEach(e => { e.disabled = true; });
   try { await action(); }
   catch (error) {
     // Closing the system's device picker is not an error.
-    if (error instanceof Error && /cancel/i.test(`${error.name} ${error.message}`)) {
-      if (pairing && help) { help.innerHTML = pairHelp(); help.hidden = false; }
-      return;
-    }
+    if (error instanceof Error && /cancel/i.test(`${error.name} ${error.message}`)) return;
     alert.hidden = false;
     alert.textContent = Capacitor.isNativePlatform() ? 'Bluetooth асаалттай, апп Bluetooth ашиглах зөвшөөрөлтэй эсэхийг шалгана уу.'
       : 'Компьютерийн Bluetooth асаалттай, Chrome-д Bluetooth ашиглах зөвшөөрөл өгсөн эсэхийг шалгана уу.';
