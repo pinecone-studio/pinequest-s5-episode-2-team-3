@@ -1450,6 +1450,14 @@ html .dev-cta { margin-top: auto; font-size: 14px; font-weight: 800; color: var(
 html[data-theme="dark"] .dev-tile { background: #1f222a; color: #fff; }
 html[data-theme="dark"] .dev-tile.on { border-color: #35383f; }
 html[data-theme="dark"] .dev-icon { background: #1d2a3a; }
+/* «Саванд 300 мл ус байна» above the goal (device-tiles.ts baseLive). */
+html .base-live { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; width: 100%; box-sizing: border-box; margin: 0; padding: 10px 14px; border-radius: 16px; background: var(--sky-soft); font-size: 14px; color: var(--sky-deep); font-variant-numeric: tabular-nums; }
+html .base-live[hidden] { display: none; }
+html .base-live b { font-size: 16px; font-weight: 800; color: var(--ink); }
+html .bl-icon { display: grid; place-items: center; }
+html .bl-icon svg { width: 22px; height: 22px; fill: none; stroke: var(--sky); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html[data-theme="dark"] .base-live { background: #1d2a3a; }
+html[data-theme="dark"] .base-live b { color: #fff; }
 
 /* Home: the cards reach the usual 16px edge instead of a narrower 400px column. */
 html .hydro:has(> .hx-header) { box-sizing: border-box; width: 100%; max-width: none; }

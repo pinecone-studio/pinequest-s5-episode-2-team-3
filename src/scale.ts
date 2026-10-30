@@ -47,6 +47,11 @@ export function savedBottles(): { list: Bottle[]; selected: string | null } {
   } catch { /* none saved yet */ }
   return { list: [], selected: null };
 }
+// The name of the bottle chosen to stand on the base, if one is.
+export function chosenBottleName(): string | undefined {
+  const { list, selected } = savedBottles();
+  return list.find(b => b.id === selected)?.name;
+}
 function writeBottles(value: { list: Bottle[]; selected: string | null }): void {
   try { localStorage.setItem(BOTTLES_KEY, JSON.stringify(value)); } catch { /* the base still has the weight */ }
 }

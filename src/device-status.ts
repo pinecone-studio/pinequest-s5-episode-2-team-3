@@ -8,11 +8,12 @@ import { number } from './format';
 // `cta`: «Холбох ›» at the bottom, only while it is not linked (and not linking).
 export interface DeviceTile { connected: boolean; status: string; detail: string; cta: boolean }
 
-export function baseTile(phase: ScalePhase, status: ScaleStatus | null): DeviceTile {
+// `bottle`: the name given to the chosen bottle (scale.ts savedBottles), said in place of «Сав».
+export function baseTile(phase: ScalePhase, status: ScaleStatus | null, bottle?: string): DeviceTile {
   if (phase === 'connecting') return { connected: false, status: 'Холбогдож байна…', detail: '', cta: false };
   if (phase !== 'connected') return { connected: false, status: 'Холбогдоогүй', detail: '', cta: true };
   // Water left is known once the empty bottle's weight is set; until then the line says what to do.
-  const detail = status?.remainingMl != null ? `Сав: ${number(status.remainingMl)} мл`
+  const detail = status?.remainingMl != null ? `${bottle || 'Сав'}: ${number(status.remainingMl)} мл`
     : status && !status.calibrated ? 'Калибровк хийгдээгүй'
     : status && !status.bottleSet ? 'Саваа тохируулах'
     : status?.waiting ? `${number(status.waiting)} уулт илгээгдээгүй` : '';

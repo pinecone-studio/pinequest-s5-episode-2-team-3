@@ -22,7 +22,7 @@ import { startDevices } from './devices';
 import { bindWeatherChip, loadWeather, todayFeels, weatherChip } from './weather';
 import { pushWidget } from './widget';
 import { scale, strongBuzz } from './scale';
-import { bindDeviceTiles, deviceTiles } from './device-tiles';
+import { baseLive, bindDeviceTiles, deviceTiles } from './device-tiles';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
 import { readMember, saveMember } from './member';
@@ -521,6 +521,7 @@ function render() {
       <div class="hydro">
         ${hxHeader('Нүүр')}
         ${limit ? '' : weatherChip(state.mode)}
+        ${baseLive()}
         ${limit ? limitGauge(drink, goal, cup) : hxGauge(drink, goal, state.mode, readCup(), drinking)}${undoLine}
         ${readProfile().condition === 'none' ? '' : doctorCard()}
         ${deviceTiles()}

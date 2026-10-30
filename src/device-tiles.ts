@@ -1,9 +1,9 @@
-import { scale } from './scale';
+import { chosenBottleName, scale } from './scale';
 import { baseTile, watchTile, type DeviceTile } from './device-status';
 import { watchDay } from './watch-card';
 import { openWatchConnect } from './watch-connect';
 import { openBaseConnect } from './base-connect';
-import { escape } from './format';
+import { escape, number } from './format';
 import { mdIcon } from './components/Icon';
 import { BASE_ICON, bindDevicePanel } from './components/DevicePanel';
 import { sheet } from './home-limit';
@@ -23,7 +23,7 @@ function tileInner(icon: string, name: string, t: DeviceTile): string {
 const label = (name: string, t: DeviceTile) => `${name}: ${t.status}${t.detail ? `, ${t.detail}` : ''}${t.cta ? '. Холбох' : ''}`;
 
 function baseTileHtml(): string {
-  const t = baseTile(scale.phase, scale.status);
+  const t = baseTile(scale.phase, scale.status, chosenBottleName());
   return `<button type="button" class="dev-tile${t.connected ? ' on' : ''}" data-base-tile aria-haspopup="dialog" aria-label="${escape(label('Ухаалаг суурь', t))}">${tileInner(BASE_ICON, 'Ухаалаг суурь', t)}</button>`;
 }
 // Linked, the watch's settings are on «Профайл › Холбосон бүртгэл» (in the app's tab host the hash goes along).
@@ -33,6 +33,20 @@ function watchTileHtml(): string {
     ? `<a class="dev-tile on" href="/settings.html#linked" aria-label="${escape(label('Ухаалаг цаг', t))}">${tileInner(WATCH_ICON, 'Ухаалаг цаг', t)}</a>`
     : `<button type="button" class="dev-tile" data-watch-connect aria-haspopup="dialog" aria-label="${escape(label('Ухаалаг цаг', t))}">${tileInner(WATCH_ICON, 'Ухаалаг цаг', t)}</button>`;
 }
+
+// Above the goal on the home: the water in the bottle on the linked base right now, its empty weight
+// taken off (the base works it out once the bottle is set). Without that, or with the bottle lifted or
+// still moving, it says so instead. Hidden while no base is linked; updated in place with each reading.
+function baseLiveInner(): string {
+  const s = scale.phase === 'connected' ? scale.status : null;
+  if (!s) return '';
+  const name = chosenBottleName();
+  const text = s.remainingMl != null ? `${name ? `«${escape(name)}»-д` : 'Саванд'} <b>${number(s.remainingMl)} мл</b> ус байна`
+    : !s.bottleSet ? 'Савны хоосон жинг тохируулаагүй байна'
+    : s.phase === 'moving' ? 'Жин тогтворжиж байна…' : 'Сав суурин дээр алга';
+  return `<span class="bl-icon" aria-hidden="true">${BASE_ICON}</span><span>${text}</span>`;
+}
+export const baseLive = (): string => { const inner = baseLiveInner(); return `<p class="base-live" data-base-live aria-live="off" ${inner ? '' : 'hidden'}>${inner}</p>`; };
 
 export const deviceTiles = (): string => `<section class="dev-section" aria-labelledby="dev-title">
     <h2 class="dev-head" id="dev-title">Төхөөрөмж</h2>
@@ -53,6 +67,8 @@ export function bindDeviceTiles(): void {
     else if (target.closest('.dev-tile[data-watch-connect]')) openWatchConnect();
   });
   window.addEventListener('dusal-scale', () => {
+    const live = document.querySelector<HTMLElement>('[data-base-live]');
+    if (live) { const inner = baseLiveInner(); if (live.innerHTML !== inner) live.innerHTML = inner; live.hidden = !inner; }
     const old = document.querySelector('[data-base-tile]');
     const html = baseTileHtml();
     if (!old || html === shown) return;
