@@ -157,6 +157,10 @@
             android:name=".ScaleWatchService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+        <!-- «Унтраах» on a past-the-limit notice: stops the buzz and the sound (BuzzStopReceiver.java). -->
+        <receiver
+            android:name=".BuzzStopReceiver"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

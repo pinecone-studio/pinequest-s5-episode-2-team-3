@@ -31,9 +31,7 @@ final class Buzz {
 
     // `overMl`: how far past the goal or limit today now is, for the loudness; 0 when close to it.
     static void strong(Context context, int overMl) {
-        Vibrator vibrator = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-            ? context.getSystemService(VibratorManager.class).getDefaultVibrator()
-            : (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+        Vibrator vibrator = vibrator(context);
         if (vibrator == null || !vibrator.hasVibrator()) return;
         AudioAttributes alarm = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -44,6 +42,19 @@ final class Buzz {
             vibrator.vibrate(PATTERN, -1, alarm);
         }
         ring(context, alarm, loudness(overMl));
+    }
+
+    // «Унтраах»: on the notice (BuzzStopReceiver) or in the app (ScaleWatchPlugin.stopBuzz).
+    static synchronized void stop(Context context) {
+        Vibrator vibrator = vibrator(context);
+        if (vibrator != null) vibrator.cancel();
+        if (playing != null) { playing.release(); playing = null; }
+    }
+
+    private static Vibrator vibrator(Context context) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+            ? context.getSystemService(VibratorManager.class).getDefaultVibrator()
+            : (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
     }
 
     // A new alert cuts the one still playing.

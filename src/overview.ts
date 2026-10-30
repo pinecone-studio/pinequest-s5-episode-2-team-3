@@ -21,7 +21,7 @@ import { pushSnapshot, startAccountSync } from './session';
 import { startDevices } from './devices';
 import { bindWeatherChip, loadWeather, todayFeels, weatherChip } from './weather';
 import { pushWidget } from './widget';
-import { scale, strongBuzz } from './scale';
+import { scale, stopBuzz, strongBuzz } from './scale';
 import { baseLive, bindDeviceTiles, deviceTiles } from './device-tiles';
 import { familyBoard, leaveFamily, readFamily, reportFamily, startFamily } from './family';
 import { familyCard, familyJoinCard } from './family-view';
@@ -392,7 +392,7 @@ function sayIfNear(before: number, after: number): void {
   const goal = state.goal;
   const limit = state.mode === 'limit';
   const say = (id: number, face: Face, title: string, body: string) => {
-    if (!document.hidden) { notify(`${title} · ${body}`); strongBuzz(BUZZ, after - goal); return; }
+    if (!document.hidden) { notify(`${title} · ${body}`, stopBuzz, 10000, 'Унтраах'); strongBuzz(BUZZ, after - goal); return; }
     if (nativeReminders) void notifyNow({ title, body, face }, id).catch(() => {});
     else if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, icon: `/notif/${face}.png`, tag: `dusal-amount-${id}`, renotify: true } as NotificationOptions);
   };

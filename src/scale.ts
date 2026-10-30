@@ -15,6 +15,7 @@ interface ScaleWatchPlugin {
   // Today's total and the goal or doctor's limit, so a drink's notification says how much is left.
   setDay(options: { day: string; drunk: number; goal: number; mode: 'goal' | 'limit' }): Promise<void>;
   buzz(options: { overMl: number }): Promise<void>;
+  stopBuzz(): Promise<void>;
 }
 const watch = Capacitor.getPlatform() === 'android' ? registerPlugin<ScaleWatchPlugin>('DusalScaleWatch') : null;
 
@@ -342,5 +343,10 @@ export const scale: ScaleLink = hostLink() ?? new ScaleLink();
 export function strongBuzz(pattern: number[], overMl = 0): void {
   if (watch) void watch.buzz({ overMl: Math.max(0, Math.round(overMl)) }).catch(() => {});
   else navigator.vibrate?.(pattern);
+}
+// «Унтраах» on the notice: the buzz and the sound stop.
+export function stopBuzz(): void {
+  if (watch) void watch.stopBuzz().catch(() => {});
+  else navigator.vibrate?.(0);
 }
 (window as ScaleHost).dusalScale = scale;

@@ -325,8 +325,10 @@ public class ScaleWatchService extends Service {
         } else if (limit) text = "Хязгаараас " + ml(goal - drunk) + " мл үлдлээ · өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл.";
         else if (drunk >= goal) text = "Өдрийн зорилт биеллээ: " + ml(drunk) + " / " + ml(goal) + " мл.";
         else text = "Өнөөдөр " + ml(drunk) + " / " + ml(goal) + " мл · дахиад " + ml(goal - drunk) + " мл.";
-        // Every drink past the limit buzzes again: each is its own notification (the drink's id).
-        Notification notification = new NotificationCompat.Builder(this, over ? OVER_CHANNEL : DRINK_CHANNEL)
+        // Every drink past the limit buzzes again: each is its own notification (the drink's id), with
+        // «Унтраах» to stop it; swiping it away stops it too.
+        int notice = id.hashCode();
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, over ? OVER_CHANNEL : DRINK_CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_drop)
             .setColor(0xFF4A90E2)
             .setLargeIcon(android.graphics.BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(face, "drawable", getPackageName())))
@@ -336,10 +338,15 @@ public class ScaleWatchService extends Service {
             .setContentIntent(openApp())
             .setAutoCancel(true)
             .setPriority(over ? NotificationCompat.PRIORITY_HIGH : NotificationCompat.PRIORITY_DEFAULT)
-            .setVibrate(over ? Buzz.PATTERN : null)
-            .build();
+            .setVibrate(over ? Buzz.PATTERN : null);
+        if (over) builder.addAction(0, "Унтраах", stopBuzz(notice)).setDeleteIntent(stopBuzz(notice));
         if (over) Buzz.strong(this, drunk - goal);
-        try { getSystemService(NotificationManager.class).notify(id.hashCode(), notification); } catch (SecurityException ignored) { }
+        try { getSystemService(NotificationManager.class).notify(notice, builder.build()); } catch (SecurityException ignored) { }
+    }
+
+    private PendingIntent stopBuzz(int notice) {
+        Intent stop = new Intent(this, BuzzStopReceiver.class).putExtra(BuzzStopReceiver.EXTRA_ID, notice);
+        return PendingIntent.getBroadcast(this, notice, stop, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     private static String ml(int value) { return String.format(java.util.Locale.US, "%,d", value); }

@@ -7,13 +7,15 @@ export function Toast(): string {
   </div>`;
 }
 
-// The toast stays 5 s, or 10 s with «Буцаах»; `ms` sets it otherwise.
-export function notify(message: string, undo?: () => void, ms?: number): void {
+// The toast stays 5 s, or 10 s with «Буцаах»; `ms` sets it otherwise. `label` names the button when it does
+// something else, e.g. «Унтраах» for an alarm.
+export function notify(message: string, undo?: () => void, ms?: number, label = 'Буцаах'): void {
   clearTimeout(undoTimer);
   undoAction = undo;
   const toast = document.querySelector<HTMLDivElement>('#toast')!;
   const button = toast.querySelector('button')!;
   toast.querySelector('span')!.textContent = message;
+  button.textContent = label;
   button.hidden = !undo;
   button.onclick = () => {
     const action = undoAction;

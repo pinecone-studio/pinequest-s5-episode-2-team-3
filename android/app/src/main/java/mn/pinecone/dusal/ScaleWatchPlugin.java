@@ -48,6 +48,13 @@ public class ScaleWatchPlugin extends Plugin {
         call.resolve();
     }
 
+    // «Унтраах» on the app's notice: the buzz and the sound stop.
+    @PluginMethod
+    public void stopBuzz(PluginCall call) {
+        Buzz.stop(getContext());
+        call.resolve();
+    }
+
     // Drinks the service kept while the app was closed: { drinks: [{ baseId, boot, n, amountMl, secondsAgo, receivedAt }] }.
     @PluginMethod
     public void takeDrinks(PluginCall call) {
