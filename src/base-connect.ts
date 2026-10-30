@@ -125,6 +125,10 @@ function renderFill(pop: HTMLElement): void {
   if (save) save.disabled = !canFill();
 }
 
+// A remembered base is all «Холбох» reaches; this forgets it and opens the system's list of bases nearby,
+// so another base (or the same one after a reset) can be picked.
+const other = () => (scale.saved ? '<div class="bc-zero"><button type="button" data-wt-other>Өөр суурь хайх</button></div>' : '');
+
 function body(step: Step, btOn: boolean | null, missed: boolean): string {
   switch (step) {
     case 'bt': return `${dots(step)}<span class="wt-badge${btOn ? ' ok' : ''}">${btOn ? ICON.check : ICON.bt}</span>
@@ -135,9 +139,10 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
       <h2 id="wt-title">${missed ? 'Суурь олдсонгүй' : scale.saved ? 'Суурь холбох' : 'Суурь хайх'}</h2>
       ${missed ? `<ul class="wt-steps bc-tips">${tips()}</ul>`
         : `<p>${scale.saved ? `<b>${escape(scale.name || 'Суурь')}</b>-тай дахин холбогдоно.` : 'Суурийг асаагаад утсандаа ойртуулна уу. Гарч ирэх жагсаалтаас «Dusal»-ыг сонгоно.'}</p>`}
-      <div class="wt-actions">${btn('Хаах', 'data-wt-close', true)}${btn(missed ? 'Дахин хайх' : scale.saved ? 'Холбох' : 'Хайх', 'data-wt-link')}</div>`;
+      <div class="wt-actions">${btn('Хаах', 'data-wt-close', true)}${btn(missed ? 'Дахин хайх' : scale.saved ? 'Холбох' : 'Хайх', 'data-wt-link')}</div>${other()}`;
     case 'linking': return `${dots(step)}<span class="wt-badge busy">${BASE_ICON}</span><h2 id="wt-title">Холбогдож байна…</h2>
-      <p>${escape(scale.name || 'Суурь')}-тай холбогдож байна. Түр хүлээнэ үү.</p>`;
+      <p>${escape(scale.name || 'Суурь')}-тай холбогдож байна. Түр хүлээнэ үү.</p>
+      ${scale.saved ? `<div class="wt-actions">${btn('Хаах', 'data-wt-close', true)}</div>${other()}` : ''}`;
     case 'ok': return `${dots(step)}<span class="wt-badge ok pop">${ICON.check}</span><h2 id="wt-title">Амжилттай холбогдлоо!</h2>
       <p>Уусан ус тань автоматаар бүртгэгдэнэ.</p>
       <div class="wt-tiles" data-bc-tiles>${tiles()}</div>
@@ -151,7 +156,7 @@ function body(step: Step, btOn: boolean | null, missed: boolean): string {
       <div class="bc-zero" data-bc-zero><span><button type="button" data-scale-zero>Суурийг тэглэх</button><button type="button" data-bc-unlink>Суурийг салгах</button></span><p class="device-error bc-error" role="alert" hidden></p></div>`;
     case 'error': return `${dots(step)}<span class="wt-badge warn">${ICON.warn}</span><h2 id="wt-title">Холбогдож чадсангүй</h2>
       <p>Суурь асаалттай, утсанд ойрхон байгаа эсэхийг шалгаад дахин оролдоно уу.</p>
-      <div class="wt-actions">${btn('Хаах', 'data-wt-close', true)}${btn('Дахин оролдох', 'data-wt-link')}</div>`;
+      <div class="wt-actions">${btn('Хаах', 'data-wt-close', true)}${btn('Дахин оролдох', 'data-wt-link')}</div>${other()}`;
     case 'unsupported': return `${dots(step)}<span class="wt-badge warn">${ICON.warn}</span><h2 id="wt-title">Энд холбогдохгүй</h2>
       <p>Суурь Дусал Android апп эсвэл Chrome хөтчөөр холбогдоно.</p>
       <div class="wt-actions">${btn('Ойлголоо', 'data-wt-close')}</div>`;
@@ -187,6 +192,7 @@ export function openBaseConnect(): void {
     pop.querySelector('[data-wt-close]')?.addEventListener('click', close);
     pop.querySelector('[data-wt-bt]')?.addEventListener('click', () => void turnOnBt());
     pop.querySelector('[data-wt-link]')?.addEventListener('click', () => void link());
+    pop.querySelector('[data-wt-other]')?.addEventListener('click', () => void findOther());
     pop.querySelector('[data-wt-bottles]')?.addEventListener('click', () => show('bottles'));
     renderBase(pop, true);
     const zero = pop.querySelector<HTMLElement>('[data-bc-zero]');
@@ -225,6 +231,15 @@ export function openBaseConnect(): void {
     try { await BleClient.requestEnable(); } catch { /* the user said no */ }
     await checkBt();
     if (step === 'bt') btDone();
+  };
+  // «Өөр суурь хайх»: the remembered base goes (on «Хайх» first, so its link dropping is not read as a
+  // failed link), then the picker opens as for a first base.
+  const findOther = async () => {
+    step = 'find';
+    await scale.forget();
+    missed = false;
+    show('find');
+    void link();
   };
   const link = async () => {
     missed = false;

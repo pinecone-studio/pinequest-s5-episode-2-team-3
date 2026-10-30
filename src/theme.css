@@ -1393,6 +1393,7 @@ html .bc-zero { display: grid; justify-items: center; margin-top: -4px; }
 html .bc-zero button { min-height: 40px; padding: 0 12px; border: 0; background: none; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
 html .bc-zero span { display: flex; justify-content: center; gap: 4px; }
 html .bc-zero [data-bc-unlink] { color: #c2410c; }
+html .bc-zero [data-wt-other] { color: var(--sky); font-weight: 700; }
 html[data-theme="dark"] .bc-zero [data-bc-unlink] { color: #ff9b85; }
 /* A new bottle filled and put back: its water, then «Алгасах» or «Хэмжих» (saved as a cup of its name). */
 html .bc-fill { display: grid; gap: 10px; }
