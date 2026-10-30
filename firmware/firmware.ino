@@ -62,6 +62,8 @@ const float ZERO_BAND_G = 0.5;         // the screen shows 0.0 inside this, so t
 // At power-up a reading this far from the saved empty-scale zero means something is on the base (the bottle
 // left standing on it): keep the saved zero, as zeroing there would take the bottle and its water off.
 const float BOOT_ZERO_BAND_G = 30;
+// A settled weight this far below zero: the zero was taken with something on the base, which is now off.
+const int REZERO_G = 10;
 const uint32_t SCREEN_INTERVAL_MS = 100;  // 10 frames a second, so the bottle on the screen moves smoothly
 // The screen wakes when the weight changes by more than SCREEN_WAKE_G and goes dark after SCREEN_ON_MS
 // without a change. Saves power and keeps the OLED from burning in.
@@ -481,6 +483,18 @@ void evaluate() {
   if (left > capacityMl) capacityMl = left;
 }
 
+// The base was zeroed with the bottle on it (switched on that way), so the water in it read as 0. Lifted, it
+// weighs below zero: the base is empty now, so zero it here. The anchor moves with the zero, so the drink
+// taken while it was lifted still counts.
+void rezero() {
+  const long before = offset;
+  tare();
+  if (offset == before) return;
+  const float shift = (offset - before) / factor;
+  anchorG -= lroundf(shift);
+  Serial.printf("zero was off by %.0f g: zeroed again\n", -shift);
+}
+
 // Runs after every sample. Once the last second has stayed in band for SETTLE_MS, takes MEASUREMENTS
 // averages a moment apart and settles on their mean, once per placement.
 void track() {
@@ -501,6 +515,7 @@ void track() {
   settled = true;
   settledG = lroundf(total / taken);
   Serial.printf(" -> %d g\n", settledG);
+  if (settledG <= -REZERO_G) { rezero(); phase = EMPTY; settledG = 0; return; }
   phase = settledG < PRESENT_MIN_G ? EMPTY : PRESENT;
   evaluate();
 }
