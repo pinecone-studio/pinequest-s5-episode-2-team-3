@@ -18,7 +18,8 @@
     "test:family": "bun test backend/family.test.ts"
   },
   "patchedDependencies": {
-    "@capacitor/local-notifications@7.0.7": "patches/@capacitor%2Flocal-notifications@7.0.7.patch"
+    "@capacitor/local-notifications@7.0.7": "patches/@capacitor%2Flocal-notifications@7.0.7.patch",
+    "@capgo/capacitor-health@7.2.15": "patches/@capgo%2Fcapacitor-health@7.2.15.patch"
   },
   "devDependencies": {
     "@capacitor/cli": "7.6.9",

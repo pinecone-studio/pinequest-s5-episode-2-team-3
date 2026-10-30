@@ -7,6 +7,8 @@ import { latestHeart, todayRange, totalOfBestSource } from './health-data';
 // Only Android has Health Connect; on the web and iOS the whole feature stays hidden.
 const READ: HealthDataType[] = ['steps', 'calories', 'heartRate'];
 const LINKED_KEY = 'dusal-health-v1';
+// Samsung Health pushes the watch's data to Health Connect every few minutes, so an open app reads again.
+const REFRESH_MS = 5 * 60_000;
 
 export type HealthPhase = 'unsupported' | 'missing' | 'off' | 'denied' | 'on';
 export interface HealthDay { steps: number | null; activeKcal: number | null; heart: { bpm: number; at: string } | null }
@@ -25,6 +27,7 @@ export class HealthLink {
   day: HealthDay | null = null;
   message = '';
   private started = false;
+  private watching = false;
 
   private changed(): void { window.dispatchEvent(new Event('dusal-health')); }
 
@@ -40,7 +43,6 @@ export class HealthLink {
       this.phase = status.readAuthorized.length ? 'on' : 'denied';
       this.changed();
       if (this.phase === 'on') await this.refresh();
-      document.addEventListener('visibilitychange', () => { if (!document.hidden && this.phase === 'on') void this.refresh(); });
     } catch {
       // A failed call is not a missing Health Connect: keep the link button and try again next time.
       this.started = false;
@@ -72,13 +74,31 @@ export class HealthLink {
     this.changed();
   }
 
+  // Reads again on coming back to the app and every few minutes while it is open, once linked.
+  private keepFresh(): void {
+    if (this.watching) return;
+    this.watching = true;
+    const again = () => { if (!document.hidden && this.phase === 'on') void this.refresh(); };
+    document.addEventListener('visibilitychange', again);
+    setInterval(again, REFRESH_MS);
+  }
+
   async refresh(): Promise<void> {
     if (this.phase !== 'on') return;
+    this.keepFresh();
     const range = todayRange();
     // limit 0 reads every record of the day; a type the user did not allow comes back empty.
     const read = (dataType: HealthDataType) => Health.readSamples({ ...range, dataType, limit: 0 }).then(r => r.samples).catch(() => []);
-    const [steps, kcal, heart] = await Promise.all([read('steps'), read('calories'), read('heartRate')]);
-    this.day = { steps: totalOfBestSource(steps), activeKcal: totalOfBestSource(kcal), heart: latestHeart(heart) };
+    // Health Connect's own totals merge the watch and the phone by the user's source priority and
+    // cut records at midnight. An older app without the patched plugin falls back to the raw records.
+    const totals = Health.aggregate(range).catch(() => null);
+    const [steps, kcal, heart, sum] = await Promise.all([read('steps'), read('calories'), read('heartRate'), totals]);
+    const from = range.startDate;
+    this.day = {
+      steps: sum?.steps != null ? Math.round(sum.steps) : totalOfBestSource(steps, from),
+      activeKcal: sum?.activeKcal != null ? Math.round(sum.activeKcal) : totalOfBestSource(kcal, from),
+      heart: latestHeart(heart),
+    };
     this.message = !steps.length && !kcal.length && !heart.length
       ? 'Өнөөдөр цагнаас мэдээлэл ирээгүй байна. Samsung Health → Тохиргоо → Health Connect хэсэгт синк асаалттай эсэхийг шалгана уу.'
       : '';
