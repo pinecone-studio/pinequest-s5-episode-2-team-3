@@ -38,11 +38,13 @@ function tiles(): string {
 function liveLine(): string {
   const s = scale.status;
   if (!s) return 'Суурийн жинг уншиж байна…';
-  if (s.remainingMl != null) return `Саванд <b>${number(s.remainingMl)} мл</b> ус байна`;
+  // «Шууд уух» first: the base may still hold a bottle chosen before.
+  const direct = scale.directStart !== null ? directText(s, scale.directStart) : null;
+  if (direct) return escape(direct);
+  if (s.remainingMl != null && scale.directStart === null) return `Саванд <b>${number(s.remainingMl)} мл</b> ус байна`;
   if (s.phase === 'moving') return 'Жин тогтворжиж байна…';
   if (s.phase === 'empty') return 'Суурин дээр сав алга';
-  const direct = !s.bottleSet && scale.directStart !== null ? directText(s, scale.directStart) : null;
-  return direct ? escape(direct) : 'Энэ савыг таниулаагүй байна';
+  return 'Энэ савыг таниулаагүй байна';
 }
 
 // Linked: the saved bottles with their empty weights (tap one before putting it on the base), a new one weighed

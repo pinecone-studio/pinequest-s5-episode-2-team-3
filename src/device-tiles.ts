@@ -39,10 +39,10 @@ function baseLiveInner(): string {
   const s = scale.phase === 'connected' ? scale.status : null;
   if (!s) return '';
   const name = chosenBottleName();
-  // «Шууд уух»: the weight and what has gone from it, in place of «not set up».
-  const direct = !s.bottleSet && scale.directStart !== null ? directText(s, scale.directStart) : null;
-  const text = s.remainingMl != null ? `${name ? `«${escape(name)}»-д` : 'Саванд'} <b>${number(s.remainingMl)} мл</b> ус байна`
-    : direct ? escape(direct)
+  // «Шууд уух»: the weight and what has gone from it, first (the base may still hold a bottle from before).
+  const direct = scale.directStart !== null ? directText(s, scale.directStart) : null;
+  const text = direct ? escape(direct)
+    : s.remainingMl != null && scale.directStart === null ? `${name ? `«${escape(name)}»-д` : 'Саванд'} <b>${number(s.remainingMl)} мл</b> ус байна`
     : !s.bottleSet && scale.directStart === null ? 'Савны хоосон жинг тохируулаагүй байна'
     : s.phase === 'moving' ? 'Жин тогтворжиж байна…' : 'Сав суурин дээр алга';
   return `<span class="bl-icon" aria-hidden="true">${BASE_ICON}</span><span>${text}</span>`;

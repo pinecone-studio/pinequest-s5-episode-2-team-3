@@ -87,6 +87,9 @@ export class ScaleLink {
     this.directPending = !this.status;
     this.directStart = this.status ? this.status.weightG : null;
     writeDirect(this.directStart);
+    // No bottle now: one chosen before would be shown (its water) and handed back to the base on the next link.
+    const saved = savedBottles();
+    if (saved.selected) writeBottles({ ...saved, selected: null });
     this.changed();
   }
   private endDirect(): void {

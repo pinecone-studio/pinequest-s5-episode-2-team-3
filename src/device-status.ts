@@ -17,14 +17,14 @@ export function directText(status: ScaleStatus, start: number): string | null {
 }
 
 // `bottle`: the name given to the chosen bottle (scale.ts savedBottles), said in place of «Сав».
-// `directStart`: set by «Шууд уух», so the weight shows in place of «Саваа тохируулах».
+// `directStart`: set by «Шууд уух», so the weight shows, before any bottle the base may still be set to.
 export function baseTile(phase: ScalePhase, status: ScaleStatus | null, bottle?: string, directStart: number | null = null): DeviceTile {
   if (phase === 'connecting') return { connected: false, status: 'Холбогдож байна…', detail: '', cta: false };
   if (phase !== 'connected') return { connected: false, status: 'Холбогдоогүй', detail: '', cta: true };
   // Water left is known once the empty bottle's weight is set; until then the line says what to do.
-  const detail = status?.remainingMl != null ? `${bottle || 'Сав'}: ${number(status.remainingMl)} мл`
+  const detail = status && status.calibrated && directStart !== null ? (directText(status, directStart) ?? 'Жин хэмжиж байна…')
+    : status?.remainingMl != null ? `${bottle || 'Сав'}: ${number(status.remainingMl)} мл`
     : status && !status.calibrated ? 'Калибровк хийгдээгүй'
-    : status && !status.bottleSet && directStart !== null ? (directText(status, directStart) ?? 'Жин хэмжиж байна…')
     : status && !status.bottleSet ? 'Саваа тохируулах'
     : status?.waiting ? `${number(status.waiting)} уулт илгээгдээгүй` : '';
   return { connected: true, status: 'Холбогдсон', detail, cta: false };

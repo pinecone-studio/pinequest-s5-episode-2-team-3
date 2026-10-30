@@ -34,9 +34,10 @@ function scaleLine(s: ScaleStatus | null): string {
   const parts = [`Жин ${number(s.weightG)} г`];
   if (s.phase === 'moving') parts.push('тогтворжиж байна…');
   else if (s.phase === 'empty') parts.push('сав тавиагүй');
+  // «Шууд уух»: the weight is already first; what has gone from the whole it started at (before any bottle
+  // the base may still hold).
+  else if (scale.directStart !== null) { const gone = Math.max(0, scale.directStart - s.weightG); if (gone) parts.push(`${number(gone)} мл уусан`); }
   else if (s.remainingMl !== null) parts.push(`үлдсэн ус ${number(s.remainingMl)} мл`);
-  // «Шууд уух»: the weight is already first; what has gone from the whole it started at.
-  else if (!s.bottleSet && scale.directStart !== null) { const gone = Math.max(0, scale.directStart - s.weightG); if (gone) parts.push(`${number(gone)} мл уусан`); }
   else if (!s.bottleSet) parts.push('«Сав ба тэглэх»-ээс хоосон савныхаа жинг авна уу');
   if (s.waiting) parts.push(`илгээгдээгүй уулт ${number(s.waiting)}`);
   return parts.join(' · ');

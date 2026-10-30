@@ -27,6 +27,8 @@ describe('baseTile', () => {
     expect(baseTile('connected', now, undefined, 900).detail).toBe('Суурин дээр 642 г · 258 мл уусан');
     expect(baseTile('connected', now, undefined, 642).detail).toBe('Суурин дээр 642 г');
     expect(baseTile('connected', status({ bottleSet: false, remainingMl: null, phase: 'moving' }), undefined, 900).detail).toBe('Жин хэмжиж байна…');
+    // A bottle the base still holds from before does not hide it (its water would read 0).
+    expect(baseTile('connected', status({ phase: 'present', weightG: 642, remainingMl: 0 }), 'Shvvgc', 900).detail).toBe('Суурин дээр 642 г · 258 мл уусан');
   });
   test('linked, bottle lifted, before any reading: nothing more', () => {
     expect(baseTile('connected', status({ remainingMl: null })).detail).toBe('');
