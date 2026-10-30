@@ -21,6 +21,8 @@ const watch = Capacitor.getPlatform() === 'android' ? registerPlugin<ScaleWatchP
 // Remembered so the Android app reconnects by itself; a browser has to ask the user every time.
 const SAVED_KEY = 'dusal-scale-v1';
 const RETRY_MS = 5000;
+// A still, empty base this far below zero was zeroed with something on it (ScaleLink.fixZero).
+const REZERO_G = 10;
 
 export type ScalePhase = 'unsupported' | 'off' | 'connecting' | 'connected';
 interface Saved { bleId: string; name: string }
@@ -78,6 +80,8 @@ export class ScaleLink {
   private sentToday = '';
   // Whether the first status since connecting was checked for a base that lost its bottle.
   private bottleChecked = false;
+  // A "zero" sent by fixZero is waiting for its answer.
+  private rezeroing = false;
 
   get saved(): boolean { return readSaved() !== null; }
   // Tells this page and, in the tab host, every tab's frame (they all show the one shared link).
@@ -150,6 +154,7 @@ export class ScaleLink {
       await BleClient.startNotifications(bleId, SCALE_SERVICE, COMMAND_CHAR, value => this.answered(value)).catch(() => {});
       this.phase = 'connected';
       this.bottleChecked = false;
+      this.rezeroing = false;
       if (this.saved) void watch?.start({ address: bleId }).catch(() => {});
       this.sentToday = '';
       void this.sendToday();
@@ -223,6 +228,15 @@ export class ScaleLink {
     this.say('Тэглэж байна…');
     await this.command('zero');
   }
+  // A base switched on with the bottle on it took the bottle as its zero, so the water in it read 0. Lifted,
+  // it then weighs below zero: the base is empty now, so zero it from here and hand back the chosen bottle.
+  // Newer firmware does this itself (firmware.ino rezero); this keeps a base on older firmware right.
+  private fixZero(): void {
+    const s = this.status;
+    if (this.rezeroing || !s?.calibrated || s.phase !== 'empty' || s.weightG > -REZERO_G) return;
+    this.rezeroing = true;
+    void this.command('zero').catch(() => { this.rezeroing = false; });
+  }
   private answered(value: DataView): void {
     const text = new TextDecoder().decode(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
     const tare = /^tare (\d+)$/.exec(text);
@@ -232,6 +246,12 @@ export class ScaleLink {
       const bottle = { id: crypto.randomUUID(), name: this.newBottleName, grams: Number(tare[1]) };
       writeBottles({ list: [...saved.list, bottle], selected: bottle.id });
       this.result = `«${bottle.name}» хадгалагдлаа: ${bottle.grams} г ✓`;
+    } else if (text === 'zero' && this.rezeroing) {
+      // fixZero's zero: the bottle is the same, so the base gets its weight back.
+      this.rezeroing = false;
+      const bottle = saved.list.find(b => b.id === saved.selected);
+      if (bottle) void this.command(`bottle ${bottle.grams}`).catch(() => {});
+      this.result = 'Суурийн тэгийг зассан ✓';
     } else if (chosen) {
       const bottle = saved.list.find(b => b.id === saved.selected);
       this.result = `${bottle ? `«${bottle.name}»` : 'Сав'} сонгогдлоо (${chosen[1]} г) ✓`;
@@ -280,6 +300,7 @@ export class ScaleLink {
   private onStatus(value: DataView): void {
     try { this.status = parseStatus(value); } catch { return; }
     this.restoreBottle();
+    this.fixZero();
     this.changed();
   }
   // One drink at a time, in order; a resend of a drink still being saved waits its turn and is then skipped.
