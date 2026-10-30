@@ -304,7 +304,7 @@ html .cc-link { justify-self: start; min-height: 44px; margin: 6px 0 4px; paddin
 html .cc-live ~ .device-panel, html .cc-list ~ .device-panel { width: 100%; margin: 0; }
 html .cc-list { padding-bottom: 8px; }
 html .cc-bottles h2 { margin: 0 0 10px; font-size: 16px; font-weight: 800; color: var(--ink); }
-html .cc-bottle-list { display: flex; flex-wrap: wrap; gap: 8px; }
+html .cc-bottle-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; overscroll-behavior: contain; }
 html .cc-bottle { display: grid; gap: 2px; min-width: 96px; min-height: 56px; padding: 8px 14px; border: 1.5px solid var(--sky-line); border-radius: 14px; background: #fff; font: inherit; text-align: left; color: var(--ink); cursor: pointer; }
 html .cc-bottle b { font-size: 15px; } html .cc-bottle small { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 html .cc-bottle.on { border-color: var(--sky); background: var(--sky-soft); }

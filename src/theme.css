@@ -1363,7 +1363,8 @@ html .bc-base { display: grid; gap: 10px; width: 100%; margin-top: 8px; padding-
 html .bc-title { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); }
 html .wt-pop .bc-hint, html .wt-pop .bc-empty { font-size: 13.5px; }
 html .wt-pop .bc-empty { padding: 12px 14px; border-radius: 16px; background: var(--sky-soft); }
-html .bc-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+/* Three rows and half of the next show, so it is clear there is more; the rest scroll inside the list. */
+html .bc-list { display: grid; gap: 8px; max-height: 240px; margin: 0; padding: 0 2px 0 0; overflow-y: auto; overscroll-behavior: contain; list-style: none; }
 html .bc-row { display: flex; align-items: center; gap: 4px; border: 1.5px solid transparent; border-radius: 18px; background: var(--sky-soft); }
 html .bc-row.on { border-color: var(--sky); }
 html .bc-pick { display: flex; flex: 1 1 auto; align-items: center; gap: 12px; min-width: 0; min-height: 60px; padding: 8px 4px 8px 10px; border: 0; background: none; font: inherit; text-align: left; color: inherit; cursor: pointer; }
