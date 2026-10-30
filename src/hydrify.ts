@@ -53,10 +53,11 @@ export const CUP_ICONS = [
 export interface Cup { ml: number; icon: number; main?: boolean; name?: string }
 const CUPS_KEY = 'dusal-cups-v1';
 export const defaultIcon = (ml: number) => (ml <= 125 ? 0 : ml <= 150 ? 2 : ml <= 200 ? 1 : ml <= 250 ? 4 : ml <= 350 ? 5 : ml <= 400 ? 7 : ml <= 500 ? 8 : 9);
+// From 1 ml: a light cup measured on the base (cup-calibrate.ts) is kept to the gram.
 export function readCups(): Cup[] {
   try {
     const list = JSON.parse(localStorage.getItem(CUPS_KEY) ?? 'null');
-    if (Array.isArray(list) && list.every(c => Number.isInteger(c?.ml) && c.ml >= 10 && c.ml <= 3000 && Number.isInteger(c.icon) && c.icon >= 0 && c.icon < CUP_ICONS.length)) return list;
+    if (Array.isArray(list) && list.every(c => Number.isInteger(c?.ml) && c.ml >= 1 && c.ml <= 3000 && Number.isInteger(c.icon) && c.icon >= 0 && c.icon < CUP_ICONS.length)) return list;
   } catch { /* defaults */ }
   return CUP_SIZES.map(ml => ({ ml, icon: defaultIcon(ml) }));
 }

@@ -295,6 +295,8 @@ html .cc-live { display: grid; justify-items: center; gap: 4px; background: var(
 html .cc-live > small { font-size: 13px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--sky-deep); }
 html .cc-live [data-live] { font-size: 48px; font-weight: 800; line-height: 1.1; color: var(--sky-deep); font-variant-numeric: tabular-nums; }
 html .cc-live [data-live-hint] { font-size: 13px; color: var(--sky-deep); }
+html .cc-live .cc-weight { font-size: 14px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+html .cc-live .cc-weight:empty { display: none; }
 html .cc-live.off { justify-items: stretch; text-align: left; }
 html .cc-live.off > b { font-size: 16px; color: var(--ink); } html .cc-live.off > small { text-transform: none; font-weight: 500; color: var(--muted); }
 html .cc-manual input[type="number"] { flex: 0 1 90px; } html .cc-manual > span { align-self: center; font-size: 14px; color: var(--muted); }
@@ -302,6 +304,16 @@ html .cc-link { justify-self: start; min-height: 44px; margin: 6px 0 4px; paddin
 html .cc-live ~ .device-panel, html .cc-list ~ .device-panel { width: 100%; margin: 0; }
 html .cc-list ~ .device-panel .bottle-add button { flex: none; white-space: nowrap; }
 html .cc-list { padding-bottom: 8px; }
+html .cc-bottles h2 { margin: 0 0 10px; font-size: 16px; font-weight: 800; color: var(--ink); }
+html .cc-bottle-list { display: flex; flex-wrap: wrap; gap: 8px; }
+html .cc-bottle { display: grid; gap: 2px; min-width: 96px; min-height: 56px; padding: 8px 14px; border: 1.5px solid var(--sky-line); border-radius: 14px; background: #fff; font: inherit; text-align: left; color: var(--ink); cursor: pointer; }
+html .cc-bottle b { font-size: 15px; } html .cc-bottle small { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+html .cc-bottle.on { border-color: var(--sky); background: var(--sky-soft); }
+html .cc-bottle.on b { color: var(--sky-deep); }
+html .cc-bottle:disabled { opacity: .5; cursor: default; }
+html .cc-bottle:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+html[data-theme="dark"] .cc-bottle { background: #1f222a; border-color: #35383f; color: #fff; }
+html[data-theme="dark"] .cc-bottle.on { background: #1a2442; border-color: var(--sky); }
 html .cc-list h2 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: var(--ink); }
 html .cc-list ul { margin: 0; padding: 0; list-style: none; }
 html .cc-cup { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0; border: 0; border-top: 1px solid var(--hair); background: none; font: inherit; text-align: left; color: var(--ink); cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
