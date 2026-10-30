@@ -22,16 +22,19 @@ final class Buzz {
     static final long[] PATTERN = { 0, 1000, 300, 1000, 300, 1000, 300, 1500 };
 
     private static MediaPlayer playing;
-    // The buzzer grows louder with every 10 ml past the goal or limit: 10 ml past is soft, 160 ml and
-    // more at full volume.
-    private static final float SOFTEST = 0.25f, PER_10_ML = 0.05f;
+    // The further past the goal or limit, the louder: 10 ml past is faint (SOFTEST_DB), FULL_ML and more at
+    // full volume, evenly in decibels in between, as the ear hears it (1,930 / 1,900 is soft, 2,000 / 1,900
+    // loud). Even steps of volume sounded nearly the same from 30 ml to 100 ml.
+    private static final float SOFTEST_DB = -24f;
+    private static final int FULL_ML = 100;
     // Each time it also starts nearly silent and swells to that loudness over RAMP_MS, in RAMP_STEPS.
     private static final float RAMP_FROM = 0.05f;
     private static final int RAMP_MS = 3000, RAMP_STEPS = 20;
     private static final Handler ramp = new Handler(Looper.getMainLooper());
 
     static float loudness(int overMl) {
-        return Math.min(1f, SOFTEST + PER_10_ML * (Math.max(10, overMl) / 10 - 1));
+        float past = (Math.min(FULL_ML, Math.max(10, overMl)) - 10f) / (FULL_ML - 10f);
+        return (float) Math.pow(10, SOFTEST_DB * (1 - past) / 20);
     }
 
     private Buzz() {}

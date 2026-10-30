@@ -341,8 +341,8 @@ function hostLink(): ScaleLink | undefined {
   try { return window.parent !== window ? (window.parent as ScaleHost).dusalScale : undefined; } catch { return undefined; }
 }
 export const scale: ScaleLink = hostLink() ?? new ScaleLink();
-// The strongest buzz with a loud sound in the Android app (Buzz.java), louder with every 10 ml past the
-// goal or limit (`overMl`, 0 when close to it); elsewhere the browser's own buzz, where it has one.
+// The strongest buzz in the Android app (Buzz.java), with a sound past the goal or limit that is the louder
+// the further past it is (`overMl`, 0 when close to it: no sound); elsewhere the browser's own buzz, where it has one.
 export function strongBuzz(pattern: number[], overMl = 0): void {
   if (watch) void watch.buzz({ overMl: Math.max(0, Math.round(overMl)) }).catch(() => {});
   else navigator.vibrate?.(pattern);
