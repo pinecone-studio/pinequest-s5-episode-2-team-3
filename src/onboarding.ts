@@ -3,6 +3,7 @@ import { escape, number } from './format';
 import { mdIcon } from './components/Icon';
 import { ACTIVITIES, CONDITIONS, PROFILE_KEY, calcPlan, readProfile, writeProfile, type Activity, type Condition, type Plan, type Profile } from './plan';
 import { saveMember, readMember } from './member';
+import { seedKidneyDemo } from './demo-data';
 import { signInWithGoogle } from './google-signin';
 import { restoreSnapshot, signInEmail, signInGoogle, signUpEmail, type Account, type Snapshot } from './session';
 import { readSettings, writeSettings } from './schedule';
@@ -345,7 +346,7 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
         <label class="ob-check"><input type="checkbox" id="ob-agree" ${agreed ? 'checked' : ''}/> <span>Дусалын <a href="/privacypolicy.html" target="_blank">үйлчилгээний нөхцөл</a>-ийг зөвшөөрч байна.</span></label>
         <p class="ob-or"><span>эсвэл</span></p>
         ${GOOGLE_BUTTON}
-        <p class="ob-demo">Бүртгэл таны усны мэдээллийг хадгалж, өөр утсанд нэвтрэхэд буцааж өгнө. «Demo» бол зөвхөн энэ утсанд.</p>
+        <p class="ob-demo">Бүртгэл таны усны мэдээллийг хадгалж, өөр утсанд нэвтрэхэд буцааж өгнө. «Demo»: бөөрний дутагдалтай хүний 2 долоо хоногийн жишээ өгөгдлөөр үзэх (зөвхөн энэ утсанд).</p>
         <p class="ob-error" role="alert" hidden></p>
         <div class="ob-actions"><button type="button" class="ob-ghost" data-demo>Demo</button><button type="button" class="ob-primary" data-signup>Бүртгүүлэх</button></div>
         <p class="ob-switch">Бүртгэлтэй юу? <button type="button" data-to="login">Нэвтрэх</button></p></div>`;
@@ -553,10 +554,13 @@ export function showOnboarding(onDone: (plan: Plan) => void): void {
       if (!email || !password) { error('Имэйл, нууц үгээ бичнэ үү.'); return; }
       void attempt(() => signInEmail(email, password));
     });
-    // Demo: skip the form; the typed name is kept, otherwise "Demo".
-    on('[data-demo]', () => {
-      saveMember(box.querySelector<HTMLInputElement>('#ob-name')!.value.trim() || 'Demo');
-      screen = 'step'; step = 1; draw();
+    // Demo: no form and no questions; a kidney patient with two weeks of drinks, weights and dialysis days
+    // (demo-data.ts) opens straight on the home, under the typed name or «Дулмаа». The whole app reloads
+    // (the tab host too), so every tab reads the new log.
+    on('[data-demo]', async () => {
+      if (!await seedKidneyDemo(box.querySelector<HTMLInputElement>('#ob-name')!.value.trim() || 'Дулмаа')) { error('Demo өгөгдөл хадгалж чадсангүй.'); return; }
+      markSeen(); box.remove();
+      (window.top ?? window).location.reload();
     });
     on('[data-sex]', el => { sex = el.dataset.sex as Sex; if (sex !== 'female' && FOR_WOMEN.includes(p.condition)) p.condition = 'none'; draw(); });
     on('[data-locate]', () => void locate());
