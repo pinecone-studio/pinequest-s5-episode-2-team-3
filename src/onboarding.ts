@@ -188,8 +188,9 @@ const mock = () => `<svg class="ob-mock" viewBox="0 0 220 300" aria-hidden="true
   <g fill="#369fff"><circle cx="175" cy="239" r="1.4"/><circle cx="179" cy="239" r="1.4"/><circle cx="183" cy="239" r="1.4"/></g>
 </svg>`;
 
-// The smart base slide: a glass on the base, its weight going to the phone as a logged drink, held
-// against the doctor's limit.
+// The smart base slide: a glass on our base, drawn after the printed one (a grey puck: the lid with
+// «ДУСАЛ» engraved, a seam, the small screen on the front showing the glass's water), its weight
+// going to the phone as a logged drink, held against the doctor's limit.
 function baseArt(): string {
   const glass = 'M158 112 H242 L233 232 Q200 240 167 232 Z';
   return `<div class="ob-pets ob-base" aria-hidden="true">
@@ -197,13 +198,20 @@ function baseArt(): string {
       <defs>
         <clipPath id="ob-glass"><path d="${glass}"/></clipPath>
         <linearGradient id="ob-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ad6ff"/><stop offset="1" stop-color="#1f8bff"/></linearGradient>
-        <linearGradient id="ob-puck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf4ff"/><stop offset="1" stop-color="#bcdcfb"/></linearGradient>
+        <linearGradient id="ob-side" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a8d92"/><stop offset=".45" stop-color="#b4b6ba"/><stop offset="1" stop-color="#85888d"/></linearGradient>
+        <linearGradient id="ob-lid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9bbbf"/><stop offset="1" stop-color="#a5a7ab"/></linearGradient>
       </defs>
-      <ellipse cx="200" cy="270" rx="112" ry="12" fill="#468cc8" opacity=".18"/>
-      <path d="M110 236 V250 A90 16 0 0 0 290 250 V236 Z" fill="url(#ob-puck)"/>
-      <ellipse cx="200" cy="236" rx="90" ry="16" fill="#fff" stroke="#d4e8fc" stroke-width="1.5"/>
-      <ellipse cx="200" cy="236" rx="68" ry="11" fill="none" stroke="#5cb4ff" stroke-width="3"/>
-      <circle cx="200" cy="255" r="3" fill="#369fff"/>
+      <ellipse cx="200" cy="290" rx="118" ry="10" fill="#468cc8" opacity=".18"/>
+      <path d="M92 212 V262 A108 24 0 0 0 308 262 V212 Z" fill="url(#ob-side)"/>
+      <path d="M92 224 A108 24 0 0 0 308 224" fill="none" stroke="#6f7277" stroke-width="2"/>
+      <path d="M92 226.5 A108 24 0 0 0 308 226.5" fill="none" stroke="#c9cbce" stroke-width="1"/>
+      <rect x="179" y="255" width="42" height="27" rx="3" fill="#cfd1d4"/>
+      <rect x="182.5" y="258.5" width="35" height="20" rx="1.5" fill="#15181e"/>
+      <text x="200" y="272.5" text-anchor="middle" font-size="11" font-weight="700" fill="#7fd3ff">250</text>
+      <ellipse cx="200" cy="212" rx="108" ry="24" fill="url(#ob-lid)" stroke="#9c9ea2" stroke-width="1"/>
+      <ellipse cx="200" cy="204" rx="44" ry="7" fill="#5f6368" opacity=".22"/>
+      <text x="200" y="457" transform="scale(1 .5)" text-anchor="middle" font-size="22" font-weight="800" letter-spacing="2" fill="#a2a4a8" stroke="#86898e" stroke-width=".8">ДУСАЛ</text>
+      <g transform="translate(0 -28)">
       <path d="${glass}" fill="#fff" opacity=".8"/>
       <g clip-path="url(#ob-glass)">
         <path d="M150 160 q12 -7 25 0 t25 0 t25 0 t25 0 V250 H150 Z" fill="url(#ob-water)"/>
@@ -218,7 +226,8 @@ function baseArt(): string {
         <path d="M250 128 A22 22 0 0 1 272 150"/>
         <path d="M250 118 A32 32 0 0 1 282 150"/>
       </g>
-      <g>
+      </g>
+      <g transform="translate(6 -12)">
         <rect x="236" y="14" width="118" height="98" rx="18" fill="#fff"/>
         <circle cx="258" cy="38" r="13" fill="#eef6fe"/>
         <path d="M258 29c-5 6-7 9-7 12a7 7 0 0 0 14 0c0-3-2-6-7-12z" fill="#369fff"/>
